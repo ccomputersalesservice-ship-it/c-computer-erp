@@ -1675,7 +1675,7 @@ ACT.qwa = async () => {
 <script>
 'use strict';
 /* ================= Cash Book (same data as the old CRM Cash Book) ================= */
-const CB = { month: new Date().toISOString().slice(0, 7), q: '', type: '', mode: '', by: '', range: '', from: '', to: '', data: null };
+const CB = { month: new Date().toISOString().slice(0, 7), q: '', type: '', mode: '', by: '', grp: '', range: '', from: '', to: '', data: null };
 const CB_CATS_OUT = ['Office', 'Rent', 'Electricity', 'Salary', 'Vendor', 'Personal', 'Family', 'Saving', 'Rapido', 'Other'];
 const CB_CATS_IN = ['Sale', 'Customer Payment', 'Collection', 'Other'];
 const cbDay = o => { const d = new Date(Date.now() + 330 * 60000 + o * 864e5); return d.toISOString().slice(0, 10); };
@@ -1693,16 +1693,16 @@ async function V_cash() {
   loadCash();
 }
 async function loadCash() {
-  const d = await api('cash.list', Object.assign({ month: CB.month, q: CB.q, type: CB.type, mode: CB.mode, by: CB.by }, cbRange()));
+  const d = await api('cash.list', Object.assign({ month: CB.month, q: CB.q, type: CB.type, mode: CB.mode, by: CB.by, grp: CB.grp }, cbRange()));
   CB.data = d; drawCash();
 }
 function drawCash() {
   const d = CB.data; if (!d || !$('#page')) return; const s = d.sum, ad = d.admin;
-  const card = (t, v, c, sub) => `<div class="card" style="border-left:5px solid ${c}"><small>${t}</small><div style="font-size:22px;font-weight:700">${inr(v)}</div>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  const card = (t, v, c, sub, g) => `<div class="card" data-act="cbgrp" data-g="${g || ''}" style="cursor:pointer;border-left:5px solid ${c};${CB.grp && CB.grp === g ? 'outline:2px solid ' + c : ''}"><small>${t}</small><div style="font-size:22px;font-weight:700">${inr(v)}</div>${sub ? `<small>${sub}</small>` : ''}</div>`;
   const over = s.Personal > d.personalLimit;
   let h = `<div class="tools"><input type="month" id="cbm" value="${esc(d.month)}"><button class="btn" data-act="cbadd" data-t="in">+ Money IN</button><button class="btn g" data-act="cbadd" data-t="out">− Money OUT</button><button class="btn g" data-act="cbtr">⇄ Transfer</button></div>`;
-  h += `<div class="grid g4" style="margin:10px 0">${card('Office', s.Office, '#2f6bff')}${card('Personal', s.Personal, over ? '#d92d20' : '#e2603f', 'Limit ' + inr(d.personalLimit) + (over ? ' - OVER' : ''))}${card('Family', s.Family, '#8b5cf6')}${card('Vendor', s.Vendor, '#0ea5e9')}${card('Saving', s.Saving, '#22b573')}${card('Other', s.Other, '#64748b')}${card('Total OUT', s.OUT, '#d92d20')}${card('Total IN', s.IN, '#22b573')}</div>`;
-  h += `<div class="grid g4" style="margin:10px 0">${d.accts.map(a => `<div class="card"><small>${esc(a)}</small><div style="font-size:20px;font-weight:700">${inr(d.balances[a])}</div></div>`).join('')}<div class="card" style="background:#111;color:#fff"><small>TOTAL BALANCE</small><div style="font-size:22px;font-weight:700">${inr(d.total)}</div></div></div>`;
+  h += `<div class="grid g4" style="margin:10px 0">${card('Office', s.Office, '#2f6bff', '', 'Office')}${card('Personal', s.Personal, over ? '#d92d20' : '#e2603f', 'Limit ' + inr(d.personalLimit) + (over ? ' - OVER' : ''), 'Personal')}${card('Family', s.Family, '#8b5cf6', '', 'Family')}${card('Vendor', s.Vendor, '#0ea5e9', '', 'Vendor')}${card('Saving', s.Saving, '#22b573', '', 'Saving')}${card('Other', s.Other, '#64748b', '', 'Other')}${card('Total OUT', s.OUT, '#d92d20', '', 'OUT')}${card('Total IN', s.IN, '#22b573', '', 'IN')}</div>`;
+  h += `<div class="grid g4" style="margin:10px 0">${d.accts.map(a => `<div class="card" data-act="cbacct" data-m="${a}" style="cursor:pointer;${CB.mode === a ? 'outline:2px solid #111' : ''}"><small>${esc(a)}</small><div style="font-size:20px;font-weight:700">${inr(d.balances[a])}</div><small>Tap: full statement</small></div>`).join('')}<div class="card" data-act="cbacct" data-m="" style="cursor:pointer;background:#111;color:#fff"><small>TOTAL BALANCE (tap: all entries)</small><div style="font-size:22px;font-weight:700">${inr(d.total)}</div></div></div>`;
   h += `<div class="tools"><input id="cbq" placeholder="Search party / reason / amount" value="${esc(CB.q)}">
     <select id="cbr">${[['', 'This month'], ['today', 'Aaje'], ['yday', 'Kaal'], ['week', 'Aa week'], ['all', 'Badha divas'], ['custom', 'Date to date']].map(x => `<option value="${x[0]}" ${CB.range === x[0] ? 'selected' : ''}>${x[1]}</option>`).join('')}</select>
     ${CB.range === 'custom' ? `<input type="date" id="cbf" value="${CB.from}"><input type="date" id="cbt" value="${CB.to}">` : ''}
@@ -1710,10 +1710,12 @@ function drawCash() {
     <select id="cbmo"><option value="">All accounts</option>${d.accts.map(a => `<option ${CB.mode === a ? 'selected' : ''}>${a}</option>`).join('')}</select>
     <select id="cbby"><option value="">All users</option>${d.by.map(a => `<option ${CB.by === a ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select></div>`;
   h += `<h3 style="margin:14px 0 6px">Roj na total</h3>` + tbl([{ h: 'Date', k: r => dtm(r.date) }, { h: 'IN', cls: 'r', k: r => inr(r.in) }, { h: 'OUT', cls: 'r', k: r => inr(r.out) }], d.days, { empty: 'No entries' });
-  h += `<h3 style="margin:14px 0 6px">History (${nf(d.count)})</h3>` + tbl([
+  const fl = [CB.mode && ('Account: ' + CB.mode), CB.grp && ('Group: ' + CB.grp)].filter(Boolean).join(' · ');
+  h += `<h3 id="cbhist" style="margin:14px 0 6px">History (${nf(d.count)})${fl ? ' - ' + esc(fl) : ''} ${fl || CB.range ? '<button class="btn g s" data-act="cbclear">Clear filter</button>' : ''}</h3>` + tbl([
     { h: 'Date', k: r => dtm(r.date) + `<br><small>${esc(r.time)}</small>` }, { h: 'Type', k: r => `<span class="pill ${r.type === 'in' ? 'p-ok' : 'p-bad'}">${r.type.toUpperCase()}</span>` },
     { h: 'Category', k: r => esc(r.cat) }, { h: 'Party / Reason', k: r => esc(r.party) + (r.note ? `<br><small>${esc(r.note)}</small>` : '') },
-    { h: 'Account', k: r => esc(r.mode) }, { h: 'Amount', cls: 'r', k: r => `<b>${inr(r.amount)}</b>` }, { h: 'By', k: r => esc(r.by) },
+    { h: 'Account', k: r => esc(r.mode) }, { h: 'Amount', cls: 'r', k: r => `<b style="color:${r.type === 'in' ? '#15803d' : '#b42318'}">${r.type === 'in' ? '+' : '−'}${inr(r.amount)}</b>` },
+    ...(d.rows.some(r => r.bal !== undefined) ? [{ h: 'Balance', cls: 'r', k: r => r.bal === undefined ? '' : inr(r.bal) }] : []), { h: 'By', k: r => esc(r.by) },
     ...(ad ? [{ h: '', k: r => `<button class="btn g s" data-act="cbedit" data-id="${esc(r.id)}">Edit</button> <button class="btn g s" data-act="cbdel" data-id="${esc(r.id)}">Delete</button>` }] : [])
   ], { empty: 'No entries' });
   page('Cash Book', '', h);
@@ -1763,8 +1765,11 @@ ACT.cbdel = (d) => work(null, async () => {
   if (!(await confirmBox(`Delete ${r.type.toUpperCase()} ${inr(r.amount)} (${r.party || r.cat})?${r.cat === 'Transfer' ? ' Delete the other transfer line too.' : ''}`))) return;
   await api('cash.del', { _rid: rid(), id: r.id }); toast('Deleted'); loadCash();
 });
-</script>
 
+ACT.cbacct = d => { CB.mode = d.m || ''; CB.grp = ''; CB.type = ''; CB.q = ''; CB.by = ''; CB.range = 'all'; loadCash().then(() => { const h = $('#cbhist'); h && h.scrollIntoView({ behavior: 'smooth' }); }); };
+ACT.cbgrp = d => { CB.grp = CB.grp === d.g ? '' : d.g; loadCash(); };
+ACT.cbclear = () => { CB.mode = ''; CB.grp = ''; CB.type = ''; CB.q = ''; CB.by = ''; CB.range = ''; loadCash(); };
+</script>
 <script>
 'use strict';
 /* ================= main: login, shell, routing, init ================= */
