@@ -378,6 +378,7 @@ input,select,textarea{border-color:#dcdcd8}
  .lg-ft{margin-top:10px}}
 .lg-card .lang{border:0;background:none;padding:0;box-shadow:none}
 </style>
+.cbk{cursor:pointer;transition:.15s}.cbk:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(16,36,94,.14)}.cbk.on{outline:2px solid #2f6bff;background:#eef3ff}
 
 </head>
 <body>
@@ -432,6 +433,7 @@ const IC = {
   customers: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.5a5 5 0 0 1 4.5 5"/>',
   service: '<path d="M14 6l4 4-9 9H5v-4z"/>',
   pos: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M16 15h0"/>',
+  fixed: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',
   pcmp: '<path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/>',
   cash: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9v.01M18 15v.01"/>',
   crm: '<path d="M4 5h16v11H8l-4 4z"/>',
@@ -456,7 +458,7 @@ const ico = (n, cls) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 /* ---------- language (English / Gujarati) ---------- */
 const T = {
   dash: ['Dashboard', 'ડેશબોર્ડ'], products: ['Products', 'પ્રોડક્ટ્સ'], purchase: ['Purchase', 'ખરીદી'], sales: ['Sales', 'વેચાણ'], stock: ['Stock', 'સ્ટોક'],
-  serial: ['Serial No.', 'સિરિયલ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], pcmp: ['Price Compare', 'Price Compare'], pos: ['POS / Quick Order', 'POS / Quick Order'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'],
+  serial: ['Serial No.', 'સિરિયલ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], fixed: ['Fixed Kharcha', 'Fixed Kharcha'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], pcmp: ['Price Compare', 'Price Compare'], pos: ['POS / Quick Order', 'POS / Quick Order'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'],
   print: ['Print Stickers', 'સ્ટીકર પ્રિન્ટ'], users: ['Users & Roles', 'યુઝર્સ'], settings: ['Settings', 'સેટિંગ્સ'], scan: ['Scan', 'સ્કેન'],
   search: ['Search Product, Serial, Customer...', 'પ્રોડક્ટ, સિરિયલ, ગ્રાહક શોધો...'], save: ['Save', 'સાચવો'], cancel: ['Cancel', 'રદ કરો'], close: ['Close', 'બંધ'], add: ['Add', 'ઉમેરો'],
   edit: ['Edit', 'ફેરફાર'], del: ['Delete', 'કાઢો'], login: ['Login', 'લૉગિન'], logout: ['Logout', 'લૉગઆઉટ'], loginid: ['Login ID', 'લૉગિન ID'], pin: ['PIN', 'પિન'],
@@ -1929,7 +1931,7 @@ ACT.pcmgo = () => { PCM.g = $('#pcg').value; pcmShow(); };
 <script>
 'use strict';
 /* ================= Cash Book (same data as the old CRM Cash Book, same look) ================= */
-const CB = { month: new Date().toISOString().slice(0, 7), q: '', type: '', mode: '', by: '', range: 'all', from: '', to: '', view: 'hist', data: null };
+const CB = { month: new Date().toISOString().slice(0, 7), q: '', type: '', mode: '', by: '', range: 'all', cat: '', from: '', to: '', view: 'hist', data: null };
 const CB_CATS_OUT = ['Office', 'Personal', 'Family', 'Vendor', 'Saving', 'Salary', 'Rent', 'Electricity', 'Rapido', 'Other'];
 const CB_CATS_IN = ['Sale', 'Customer Payment', 'Collection', 'Other'];
 const cbDay = o => new Date(Date.now() + 330 * 60000 + o * 864e5).toISOString().slice(0, 10);
@@ -1958,7 +1960,9 @@ function cbCalc(d) {
   const scope = all.filter(r => inRange(r) && (!CB.mode || r.mode === CB.mode));
   const view = { in: 0, out: 0 }; scope.forEach(r => { if (r.type === 'in') view.in += r.amount; else view.out += r.amount; }); view.bal = view.in - view.out;
   const q = CB.q.trim().toLowerCase();
-  const rows = scope.filter(r => (!CB.type || r.type === CB.type) && (!CB.by || r.by === CB.by) && (!q || (r.party + ' ' + r.note + ' ' + r.cat + ' ' + r.amount).toLowerCase().includes(q)));
+  const five = ['Office', 'Personal', 'Family', 'Vendor', 'Saving'], cm = r => !CB.cat || (r.type === 'out' && (CB.cat === '_other' ? !five.includes(r.cat) && r.cat !== 'Transfer' && r.cat !== 'Opening Balance' : r.cat === CB.cat));
+  const rows = scope.filter(r => cm(r) && (!CB.type || r.type === CB.type) && (!CB.by || r.by === CB.by) && (!q || (r.party + ' ' + r.note + ' ' + r.cat + ' ' + r.amount).toLowerCase().includes(q)));
+  if (CB.cat) { view.in = 0; view.out = 0; rows.forEach(r => { if (r.type === 'in') view.in += r.amount; else view.out += r.amount; }); view.bal = view.in - view.out; }
   const dm = {};
   rows.forEach(r => { if (r.cat === 'Transfer' || r.cat === 'Opening Balance') return; const x = dm[r.date] = dm[r.date] || { date: r.date, in: 0, out: 0 }; if (r.type === 'in') x.in += r.amount; else x.out += r.amount; });
   const days = Object.keys(dm).sort().reverse().map(k => dm[k]);
@@ -1973,19 +1977,19 @@ function cbKeep() { const a = document.activeElement; return a && a.id ? { id: a
 function drawCash() {
   const d = CB.data; if (!d || !$('#page')) return; const vm = cbCalc(d), _fk = cbKeep(), _sy = window.scrollY, s = d.sum, ad = d.admin, ac = d.accts;
   const keep = ['cfty', 'cfc', 'cfp', 'cfn', 'cfa', 'cfm', 'cfd', 'tf', 'tt', 'ta', 'tn', 'td'].reduce((o, k) => { const e = $('#' + k); if (e) o[k] = e.value; return o; }, {});
-  const sm = (t, v, c, sub) => `<div class="cbc" style="border-left:5px solid ${c}"><small>${t} - Selected Month</small><b>${inr(v)}${sub || ''}</b></div>`;
+  const sm = (t, v, c, sub, k) => `<div class="cbc cbk ${CB.cat === (k || t) ? 'on' : ''}" data-act="cbcat" data-c="${k || t}" style="border-left:5px solid ${c}"><small>${t} - Selected Month</small><b>${inr(v)}${sub || ''}</b></div>`;
   const over = s.Personal > d.personalLimit;
   const typ = keep.cfty || 'in', cats = typ === 'in' ? CB_CATS_IN : CB_CATS_OUT, selAcc = CB.mode || 'Cash';
   const op = (arr, v) => arr.map(x => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('');
   let h = `<div class="cbrow cbhead"><b>VIEW MONTH</b><span><input type="month" id="cbm" value="${esc(d.month)}"> <button class="btn g" data-act="cbcur">Current Month</button></span></div>
   <div class="cbg">${sm('Office', s.Office, '#2f6bff')}${sm('Personal', s.Personal, over ? '#d92d20' : '#e2603f', ` / ${inr(d.personalLimit)}`)}${sm('Family', s.Family, '#8b5cf6')}${sm('Vendor', s.Vendor, '#0ea5e9')}${sm('Saving', s.Saving, '#22b573')}</div>
-  <div class="cbg cbg3"><div class="cbc"><small>Bija kharcha (Salary, Rent, Light, Other...)</small><b>${inr(s.Other)}</b></div><div class="cbc"><small>Kul OUT - Selected Month</small><b style="color:#d92d20">${inr(s.OUT)}</b></div><div class="cbc"><small>Kul IN - Selected Month</small><b style="color:#15803d">${inr(s.IN)}</b></div></div>
+  <div class="cbg cbg3"><div class="cbc cbk ${CB.cat === '_other' ? 'on' : ''}" data-act="cbcat" data-c="_other"><small>Bija kharcha (Salary, Rent, Light, Other...)</small><b>${inr(s.Other)}</b></div><div class="cbc cbk ${!CB.cat && CB.type === 'out' ? 'on' : ''}" data-act="cbcat" data-c="" data-t="out"><small>Kul OUT - Selected Month</small><b style="color:#d92d20">${inr(s.OUT)}</b></div><div class="cbc cbk ${!CB.cat && CB.type === 'in' ? 'on' : ''}" data-act="cbcat" data-c="" data-t="in"><small>Kul IN - Selected Month</small><b style="color:#15803d">${inr(s.IN)}</b></div></div>
   <div class="cbg"><div class="cbc cbt ${CB.mode ? '' : 'on'}" data-act="cbacct" data-m=""><small>TOTAL (badhu jovo)</small><b>${inr(d.total)}</b></div>${ac.map(a => `<div class="cbc cba ${CB.mode === a ? 'on' : ''}" data-act="cbacct" data-m="${a}"><small>${esc(a)}</small><b>${inr(d.balances[a])}</b></div>`).join('')}</div>
   <div class="card cbf"><select id="cfty"><option value="in" ${typ === 'in' ? 'selected' : ''}>Money IN</option><option value="out" ${typ === 'out' ? 'selected' : ''}>Money OUT</option></select><select id="cfc">${op(cats, keep.cfc)}</select><input id="cfp" placeholder="Party / customer" value="${esc(keep.cfp || '')}"><input id="cfn" placeholder="Karan (reason)" value="${esc(keep.cfn || '')}"><input id="cfa" type="number" inputmode="decimal" placeholder="Amount" value="${esc(keep.cfa || '')}"><select id="cfm">${op(ac, keep.cfm || selAcc)}</select><input id="cfd" type="date" value="${keep.cfd || cbDay(0)}"><button class="btn" id="cfs" data-act="cbsave">Add Entry</button></div>
   <div class="card"><b>Transfer between accounts</b><div class="cbf" style="margin-top:10px"><select id="tf">${op(ac, keep.tf || 'Cash')}</select><select id="tt">${op(ac, keep.tt || 'HDFC')}</select><input id="ta" type="number" inputmode="decimal" placeholder="Amount" value="${esc(keep.ta || '')}"><input id="tn" placeholder="Note" value="${esc(keep.tn || '')}"><input id="td" type="date" value="${keep.td || cbDay(0)}"><button class="btn" id="tsv" data-act="cbtrf" style="background:#f97316">Transfer</button></div></div>
   <div class="card"><div class="cbrow"><b>Tarikh pramane jovo</b><span><input type="date" id="cbf" value="${esc(CB.from)}"> thi <input type="date" id="cbt" value="${esc(CB.to)}"> sudhi</span></div>
     <div class="cbpills">${[['today', 'Aaje'], ['yday', 'Kaal'], ['week', 'Aa week'], ['month', 'Aa mahino'], ['all', 'Badha divas']].map(x => `<button class="pillb ${CB.range === x[0] && CB.view === 'hist' ? 'on' : ''}" data-act="cbrange" data-r="${x[0]}">${x[1]}</button>`).join('')}<button class="pillb ${CB.view === 'days' ? 'on' : ''}" data-act="cbdays">Roj na total</button></div></div>
-  <div class="card cbsum"><b>${CB.mode ? esc(CB.mode) : 'Badhi'} ni noondh</b> — IN <b style="color:#15803d">${inr(vm.view.in)}</b> | OUT <b style="color:#d92d20">${inr(vm.view.out)}</b> | Balance <b>${inr(vm.view.bal)}</b> ${CB.mode ? '<button class="pillb" data-act="cbacct" data-m="">Badhu jovo</button>' : ''}</div>`;
+  <div class="card cbsum"><b>${CB.mode ? esc(CB.mode) : 'Badhi'} ni noondh${CB.cat ? ' - ' + (CB.cat === '_other' ? 'Bija kharcha' : esc(CB.cat)) : ''}</b> — IN <b style="color:#15803d">${inr(vm.view.in)}</b> | OUT <b style="color:#d92d20">${inr(vm.view.out)}</b> | Balance <b>${inr(vm.view.bal)}</b> ${CB.mode || CB.cat ? '<button class="pillb" data-act="cbacct" data-m="">Badhu jovo</button>' : ''}</div>`;
   if (CB.view === 'days') {
     h += `<h3 style="margin:14px 0 6px">Roj na total</h3>` + tbl([{ h: 'Date', k: r => dtm(r.date) }, { h: 'IN', cls: 'r', k: r => `<span style="color:#15803d">${inr(r.in)}</span>` }, { h: 'OUT', cls: 'r', k: r => `<span style="color:#d92d20">${inr(r.out)}</span>` }], vm.days, { empty: 'No entries' });
   } else {
@@ -2006,8 +2010,9 @@ function drawCash() {
   $('#cfty').onchange = () => drawCash();
 }
 ACT.cbcur = () => { CB.month = new Date().toISOString().slice(0, 7); loadCash(); };
-ACT.cbacct = d => { CB.mode = d.m || ''; CB.type = ''; CB.q = ''; CB.by = ''; CB.view = 'hist'; drawCash(); };
-ACT.cbrange = d => { CB.range = d.r; CB.view = 'hist'; CB.from = ''; CB.to = ''; drawCash(); };
+ACT.cbcat = d => { const m = CB.month; CB.cat = d.c || ''; CB.type = d.t || (d.c ? '' : ''); CB.mode = ''; CB.q = ''; CB.by = ''; CB.view = 'hist'; CB.range = 'custom'; CB.from = m + '-01'; CB.to = m + '-31'; drawCash(); const e = $('.cbsum'); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+ACT.cbacct = d => { CB.cat = ''; CB.mode = d.m || ''; CB.type = ''; CB.q = ''; CB.by = ''; CB.view = 'hist'; drawCash(); };
+ACT.cbrange = d => { CB.cat = ''; CB.range = d.r; CB.view = 'hist'; CB.from = ''; CB.to = ''; drawCash(); };
 ACT.cbdays = () => { CB.view = CB.view === 'days' ? 'hist' : 'days'; drawCash(); };
 ACT.cbsave = (d, el) => work(el, async () => {
   await api('cash.add', { _rid: rid(), type: $('#cfty').value, cat: $('#cfc').value, party: $('#cfp').value, note: $('#cfn').value, amount: $('#cfa').value, mode: $('#cfm').value, date: $('#cfd').value });
@@ -2174,13 +2179,75 @@ ACT.possave = (d, el) => work(el, async () => {
 
 <script>
 'use strict';
+/* ================= Fixed Kharcha + Staff Time (admin only; same data as the old CRM) ================= */
+const FX = { tab: 'fixed', data: null, staff: null };
+const FX_PILL = { Paid: 'p-ok', Overdue: 'p-bad', Baki: 'p-blue', Band: 'p-warn' };
+async function V_fixed() {
+  page('Fixed Kharcha', '', `<div class="tabs"><button data-act="fxtab" data-t="fixed" class="${FX.tab === 'fixed' ? 'on' : ''}">Fixed Kharcha</button><button data-act="fxtab" data-t="staff" class="${FX.tab === 'staff' ? 'on' : ''}">Staff Login Time</button></div><div id="fxb">${skel()}</div>`);
+  if (FX.tab === 'staff') loadFxStaff(); else loadFx();
+}
+ACT.fxtab = d => { FX.tab = d.t; V_fixed(); };
+async function loadFx() { FX.data = await api('fixed.list', {}); drawFx(); }
+function drawFx() {
+  const d = FX.data, b = $('#fxb'); if (!d || !b) return; const s = d.sum, ty = ['Business', 'Personal', 'Finance'];
+  b.innerHTML = `<div class="cbg cbg3" style="grid-template-columns:repeat(4,1fr)"><div class="cbc"><small>Aa mahino fixed kul</small><b>${inr(s.total)}</b></div><div class="cbc"><small>Paid</small><b style="color:#15803d">${inr(s.paid)}</b></div><div class="cbc"><small>Baki</small><b style="color:#d97706">${inr(s.baki)}</b></div><div class="cbc"><small>Baki (office / business)</small><b>${inr(s.bakiBiz)}</b><small>Personal baki: ${inr(s.bakiPer)}</small></div></div>
+  <div class="card cbf"><input id="fxn" placeholder="Naam (Rent, Salary...)"><input id="fxa" type="number" inputmode="decimal" placeholder="Amount"><input id="fxd" type="number" inputmode="numeric" placeholder="Due tarikh (1-31)"><select id="fxt">${ty.map(x => `<option>${x}</option>`).join('')}</select><button class="btn" data-act="fxadd">+ Fixed add</button></div>` +
+  tbl([{ h: 'Naam', k: r => `<b>${esc(r.name)}</b>${r.remarks ? `<br><small>${esc(r.remarks)}</small>` : ''}`, l: 'Naam' }, { h: 'Type', k: r => esc(r.type), l: 'Type' }, { h: 'Amount', k: r => inr(r.amount), l: 'Amount' }, { h: 'Due tarikh', k: r => r.day, l: 'Due' },
+    { h: 'Aa mahino', k: r => `<span class="pill ${FX_PILL[r.status]}">${r.status}</span>${r.paid ? `<br><small>${esc(r.paidDate)} · ${esc(r.paidFrom)}</small>` : ''}`, l: 'Status' },
+    { h: '', nl: 1, k: r => (r.active && !r.paid ? `<button class="btn s" data-act="fxpay" data-id="${esc(r.id)}">Pay</button> ` : '') + `<button class="btn g s" data-act="fxedit" data-id="${esc(r.id)}">Edit</button> ` + (r.active ? `<button class="btn g s" data-act="fxband" data-id="${esc(r.id)}" data-on="0">Band</button>` : `<button class="btn g s" data-act="fxband" data-id="${esc(r.id)}" data-on="1">Chalu</button>`) }], d.rows, { empty: 'No fixed kharcha' });
+}
+ACT.fxadd = (d, el) => work(el, async () => {
+  await api('fixed.save', { _rid: rid(), name: $('#fxn').value, amount: $('#fxa').value, day: $('#fxd').value, type: $('#fxt').value }); toast('Saved'); await loadFx();
+});
+function fxForm(r) {
+  return `<div class="fld"><label>Naam</label><input id="fe_n" value="${esc(r.name)}"></div><div class="fld"><label>Amount</label><input id="fe_a" type="number" inputmode="decimal" value="${r.amount}"></div><div class="fld"><label>Due tarikh (1-31)</label><input id="fe_d" type="number" value="${r.day}"></div>
+  <div class="fld"><label>Type</label><select id="fe_t">${['Business', 'Personal', 'Finance'].map(x => `<option ${r.type === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div><div class="fld"><label>Remarks</label><input id="fe_r" value="${esc(r.remarks)}"></div>`;
+}
+ACT.fxedit = d => {
+  const r = FX.data.rows.find(x => x.id === d.id); if (!r) return;
+  const m = modal('Edit Fixed Kharcha', fxForm(r), { foot: '<button class="btn" id="fes">Save</button>' });
+  m.$('#fes').onclick = e => work(e.currentTarget, async () => { await api('fixed.save', { _rid: rid(), id: r.id, name: m.$('#fe_n').value, amount: m.$('#fe_a').value, day: m.$('#fe_d').value, type: m.$('#fe_t').value, remarks: m.$('#fe_r').value }); m.close(); toast('Updated'); loadFx(); });
+};
+ACT.fxband = d => work(null, async () => {
+  const r = FX.data.rows.find(x => x.id === d.id); if (!r) return; const on = d.on === '1';
+  if (!(await confirmBox(on ? `${r.name} fari chalu karvu?` : `${r.name} Band karvu? (delete nathi thatu, pachi Chalu kari shakso)`))) return;
+  await api('fixed.active', { _rid: rid(), id: r.id, active: on }); toast(on ? 'Chalu' : 'Band'); loadFx();
+});
+function fxCat(r) {
+  const n = r.name.toLowerCase();
+  if (r.type === 'Personal') return /sip|gold|mandal|saving|lic/.test(n) ? 'Saving' : 'Personal';
+  if (/salary/.test(n)) return 'Salary'; if (/rent/.test(n)) return 'Rent'; if (/light|electric/.test(n)) return 'Electricity';
+  return r.type === 'Business' ? 'Office' : 'Other';
+}
+ACT.fxpay = d => {
+  const r = FX.data.rows.find(x => x.id === d.id); if (!r) return; const cats = CB_CATS_OUT, c0 = fxCat(r);
+  const m = modal('Pay - ' + r.name, `<div class="fld"><label>Amount</label><input id="fp_a" type="number" inputmode="decimal" value="${r.amount}"></div><div class="fld"><label>Account (kya thi pay karyu)</label><select id="fp_m">${FX.data.accts.map(a => `<option>${a}</option>`).join('')}</select></div>
+  <div class="fld"><label>Category</label><select id="fp_c">${cats.map(c => `<option ${c === c0 ? 'selected' : ''}>${c}</option>`).join('')}</select></div><div class="fld"><label>Date</label><input id="fp_d" type="date" value="${FX.data.today}"></div><div class="note">Pay karya pachi Cash Book ma OUT entry apoaap jashe.</div>`, { foot: '<button class="btn" id="fps">Pay</button>' });
+  m.$('#fps').onclick = e => work(e.currentTarget, async () => { await api('fixed.pay', { _rid: rid(), id: r.id, amount: m.$('#fp_a').value, mode: m.$('#fp_m').value, cat: m.$('#fp_c').value, date: m.$('#fp_d').value }); m.close(); toast('Paid - Cash Book ma entry thai'); loadFx(); });
+};
+/* ----- Staff login time ----- */
+async function loadFxStaff() { FX.staff = await api('stafftime.list', {}); drawFxStaff(); }
+function drawFxStaff() {
+  const b = $('#fxb'); if (!b || !FX.staff) return;
+  b.innerHTML = `<div class="card"><small>Aa time CRM na staff login ne lagu pade che (CRM ni j setting). PIN ahi dekhato nathi.</small></div>` + (FX.staff.length ? FX.staff.map((u, i) => `<div class="card"><b>${esc(u.name)}</b> <small>${esc(u.role)}</small>
+  <div class="cbf" style="margin-top:10px;align-items:center"><span>Office time</span><input type="time" id="sf_s${i}" value="${esc(u.start)}"> thi <input type="time" id="sf_c${i}" value="${esc(u.close)}"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sf_e${i}" ${u.enabled ? 'checked' : ''}> Login enabled</label></div>
+  <div style="margin-top:10px"><button class="btn s" data-act="fxsave" data-i="${i}">Save</button> <button class="btn g s" data-act="fxextra" data-i="${i}">+1 hour access</button> ${u.extraActive ? `<small>Extra access ${esc(u.extraUntil)} sudhi</small>` : ''}</div></div>`).join('') : '<div class="card">No staff found</div>');
+}
+ACT.fxsave = (d, el) => work(el, async () => {
+  const u = FX.staff[+d.i]; await api('stafftime.save', { _rid: rid(), name: u.name, start: $('#sf_s' + d.i).value, close: $('#sf_c' + d.i).value, enabled: $('#sf_e' + d.i).checked }); toast('Saved'); await loadFxStaff();
+});
+ACT.fxextra = (d, el) => work(el, async () => { const u = FX.staff[+d.i]; await api('stafftime.extra', { _rid: rid(), name: u.name }); toast('+1 hour access ' + u.name + ' ne apyu'); await loadFxStaff(); });
+</script>
+
+<script>
+'use strict';
 /* ================= main: login, shell, routing, init ================= */
 const ROUTES = {
   dash: () => V_dash(), products: () => V_products(), purchase: () => V_purchase(), sales: () => V_sales(), stock: () => V_stock(),
   serial: () => V_serial(), customers: () => V_customers(), reports: () => V_reports(), audit: () => V_audit(), build: () => V_build(),
-  print: () => V_print(), users: () => V_users(), settings: () => V_settings(), scan: () => V_scan(), crm: () => V_crm(), service: () => V_service(), quotes: () => V_quotes(), quote: () => V_quote(), cash: () => V_cash(), pcmp: () => V_pcmp(), pos: () => V_pos()
+  print: () => V_print(), users: () => V_users(), settings: () => V_settings(), scan: () => V_scan(), crm: () => V_crm(), service: () => V_service(), quotes: () => V_quotes(), quote: () => V_quote(), cash: () => V_cash(), pcmp: () => V_pcmp(), pos: () => V_pos(), fixed: () => V_fixed()
 };
-const ADMIN_ONLY = ['users', 'settings', 'pcmp'];
+const ADMIN_ONLY = ['users', 'settings', 'pcmp', 'fixed'];
 /* Which menus each staff member sees (by name). Admin sees everything. */
 const STAFF_MENUS = { USTAV: ['quotes', 'crm', 'sales', 'build', 'serial', 'products'], NAKUL: ['quotes', 'crm', 'cash', 'purchase', 'sales', 'stock'] };
 function userMenus() {
@@ -2192,7 +2259,7 @@ function navItems() {
   const a = isAdmin();
   if (isAcct()) return ['sales', 'customers'];
   if (userMenus()) return userMenus();
-  const l = ['dash', 'products', 'purchase', 'pcmp', 'pos', 'sales', 'quotes', 'stock', 'serial', 'customers', 'build', 'audit', 'print', 'reports', 'service', 'cash', 'crm'];
+  const l = ['dash', 'products', 'purchase', 'pcmp', 'pos', 'sales', 'quotes', 'stock', 'serial', 'customers', 'build', 'audit', 'print', 'reports', 'service', 'cash', 'fixed', 'crm'];
   if (a) l.push('users', 'settings');
   return l;
 }
