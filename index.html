@@ -307,6 +307,22 @@ input,select,textarea{border-color:#dcdcd8}
 .opsbt{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 @media (min-width:1100px){.ops9{grid-template-columns:repeat(9,1fr)}}
 @media (max-width:600px){.opsg{grid-template-columns:repeat(2,1fr)}.opsw h2{font-size:20px}.opsc b{font-size:18px}}
+/* Quotation editor (CRM style) */
+.qdoc{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px;max-width:980px;margin:0 auto}
+.qd-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.qd-hd img{height:58px}.qd-r{text-align:right;font-weight:700;font-size:11px;letter-spacing:.3px}
+.qd-pills{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.qd-pills div{background:#eef0f3;border-radius:8px;padding:8px;text-align:center;font-weight:700;font-size:11px}
+.qd-bn{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#2b2d31;color:#fff;border-left:7px solid #f97316;border-radius:8px;padding:14px 16px}.qd-bn h2{margin:0;font-size:28px;letter-spacing:3px;color:#fff}.qd-bn small{letter-spacing:2px;font-size:10px;color:#d1d5db}
+.qd-m{display:flex;gap:12px;flex-wrap:wrap}.qd-m label{display:flex;flex-direction:column;font-size:11px;color:#d1d5db;gap:2px}.qd-m b{color:#fff;font-size:14px}.qd-m input{width:auto;padding:4px 6px}
+.qd-two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}.qd-box{border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#fafafa}.qd-box h4,.qd-g3 h4{margin:0 0 8px;font-size:13px}
+.qd-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}.qd-chip{display:flex;align-items:center;gap:5px;border:1px solid #d1d5db;border-radius:16px;padding:4px 10px;font-size:12px;background:#fff;cursor:pointer}.qd-chip input{width:auto}
+.qd-items{border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}.qd-ih{background:#16a34a;color:#fff;font-weight:700;padding:8px 12px;font-size:13px;letter-spacing:1px}.qd-add{padding:10px 12px;background:#f0fdf4}
+.qd-t th{background:#16a34a;color:#fff}.qd-t .c,.qd-items .c{text-align:center}.qint{color:#64748b}
+.qd-ty{text-align:center;font-size:18px;font-weight:700;font-style:italic;margin-bottom:8px}.qd-ty small{font-size:12px;font-weight:400}
+.qd-tot{border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px}.qd-gt{font-size:18px;background:#f97316;color:#fff;border-radius:6px;padding:8px 10px!important;margin-top:6px}
+.qd-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.qd-g3>div{border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:12px;background:#f6f7f8}.qd-g3 ul{margin:0;padding-left:16px}
+.qd-addr{margin-top:10px;background:#f6f7f8;border-radius:8px;padding:8px 10px;font-size:12px}.qd-foot{margin-top:10px;background:#2b2d31;color:#fff;text-align:center;border-radius:8px;padding:8px;font-size:12px}
+@media(max-width:720px){.qd-two,.qd-g3{grid-template-columns:1fr}.qd-pills{grid-template-columns:1fr 1fr}.qd-r{display:none}}
+.qrow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;gap:10px}
 </style>
 
 </head>
@@ -830,7 +846,7 @@ async function loadProducts() {
       <div class="pr"><b>${sp > 0 ? '₹' + nf(sp) : ''}</b><span class="pill ${low || x.stock.available <= 0 ? 'p-bad' : 'p-ok'}">${nf(x.stock.available)} ${LT('stock')}</span></div></div>`; }).join('')}</div>` : '<div class="note info">No products</div>') + pager(r, 'ppage');
   loadThumbs(r.rows.map(x => x.ProductID), $('#plist'));
 }
-ACT.ppage = d => { pf.page = +d.p; loadProducts(); };
+ACT.ppage = d => { pf.page = +d.p; const l = $('#plist'); if (l) l.innerHTML = skel(); loadProducts(); };
 ACT.newprod = () => openProduct(null);
 ACT.openprod = d => openProduct(d.id);
 
@@ -977,9 +993,9 @@ async function V_serial() {
 ACT.clearq = () => { qf.productId = ''; V_serial(); };
 async function loadSerial() {
   const r = await api('serial.list', qf);
-  $('#qlist').innerHTML = tbl([{ h: LT('itemid'), k: i => `<b>${esc(i.itemId)}</b>`, l: LT('itemid') }, { h: LT('serialno'), k: i => esc(i.serial) || '-', l: LT('serialno') }, { h: LT('products'), k: i => esc(i.productName), l: LT('products'), nl: true }, { h: LT('status'), k: i => pill(i.status), l: LT('status') }, { h: 'Ref', k: i => esc(i.orderId || i.buildId || i.purchaseId), l: 'Ref' }], r.rows, { click: 'openitem', id: i => i.itemId, empty: 'No items found' }) + pager(r, 'qpage');
+  $('#qlist').innerHTML = tbl([{ h: LT('itemid'), k: i => `<b>${esc(i.itemId)}</b>`, l: LT('itemid') }, { h: LT('serialno'), k: i => esc(i.serial) || '-', l: LT('serialno') }, { h: LT('products'), k: i => esc(i.productName), l: LT('products'), nl: true }, { h: LT('status'), k: i => pill(i.status), l: LT('status') }, { h: 'Ref', k: i => esc(i.orderId || i.buildId || i.purchaseId), l: 'Ref' }], r.rows, { click: 'openitem', id: i => i.itemId, empty: 'No items found' }) + pager(r, 'serpage');
 }
-ACT.qpage = d => { qf.page = +d.p; loadSerial(); };
+ACT.serpage = d => { qf.page = +d.p; loadSerial(); };
 ACT.openitem = async d => {
   const i = await api('serial.item', { code: d.id }, { loader: true });
   const m = modal(esc(i.serial || i.itemId), `<div class="grid g2 stack"><div class="stat"><small>${LT('products')}</small><b style="font-size:15px">${esc(i.productName)}</b></div><div class="stat"><small>${LT('status')}</small><b>${pill(i.status)}</b></div><div class="stat"><small>${LT('itemid')} / ${LT('barcode')}</small><b style="font-size:15px">${esc(i.itemId)} / ${esc(i.barcode)}</b></div><div class="stat"><small>Purchase / Order / Build</small><b style="font-size:15px">${esc(i.purchaseId)} ${esc(i.orderId)} ${esc(i.buildId)}</b></div></div><h3 style="margin:12px 0">${LI('moves')}</h3>${movesTable({ rows: i.history })}`, { cls: 'w', foot: `<button class="btn g" id="iPr">${ico('print')} ${LT('printsticker')}</button>${i.orderId ? '<button class="btn g" id="iOrd">Order</button>' : ''}` });
@@ -1592,53 +1608,64 @@ async function V_quote() {
 }
 function qLocked() { return QE.status === 'Converted'; }
 function drawQuote() {
-  const a = isAdmin(), e = QE, lock = qLocked(), dis = lock ? 'disabled' : '', c = qcalc(e), intra = qIntra(e);
-  const rows = e.lines.map((l, i) => `<tr><td class="nl"><b>${esc(l.name)}</b>${l.part ? ` <span class="tag">${esc(l.part)}</span>` : ''}<br><small>${esc([l.brand, l.model].filter(Boolean).join(' · '))}${l.spec ? ' · ' + esc(String(l.spec).slice(0, 60)) : ''}</small>
-    ${l.belowMin ? '<br><small style="color:#dc2626">⚠ Below minimum selling price</small>' : ''}${l.productId && l.available != null && l.qty > l.available ? `<br><small style="color:#b45309">⚠ Only ${nf(l.available)} in stock</small>` : ''}${a && l.cost ? `` : ''}${a ? `<br><small style="color:#64748b">Cost ₹ <input data-q="cost" data-i="${i}" inputmode="decimal" value="${l.cost || 0}" style="width:76px" ${dis}> · Profit ${inr((l.unitPrice - (l.cost || 0)) * l.qty - (+l.lineDisc || 0))}</small>` : ''}</td>
-    <td><input data-q="qty" data-i="${i}" inputmode="decimal" value="${l.qty}" style="width:64px" ${dis}></td><td><input data-q="unitPrice" data-i="${i}" inputmode="decimal" value="${l.unitPrice}" style="width:92px" ${dis}></td>
-    <td><input data-q="lineDisc" data-i="${i}" inputmode="decimal" value="${l.lineDisc || 0}" style="width:76px" ${dis}></td><td class="r"><b>${inr(l._tot)}</b></td><td>${lock ? '' : `<button class="btn bad s" data-act="qdel" data-i="${i}">✕</button>`}</td></tr>`).join('');
+  const a = isAdmin(), e = QE, lock = qLocked(), dis = lock ? 'disabled' : '', c = qcalc(e), intra = qIntra(e), sh = e.shop || {};
+  if (!e.validUntil && !e.id) { const d = new Date(e.date || Date.now()); d.setMonth(d.getMonth() + 2); e.validUntil = d.toISOString().slice(0, 10); }
+  e.forTick = e.forTick || {};
+  const rows = e.lines.map((l, i) => `<tr><td class="c">${i + 1}</td><td class="nl"><b>${esc(l.name)}</b>${l.part ? ` <span class="tag">${esc(l.part)}</span>` : ''}<br><small>${esc([l.brand, l.model].filter(Boolean).join(' · '))}${l.spec ? ' · ' + esc(String(l.spec).slice(0, 80)) : ''}</small>
+    ${l.belowMin ? '<br><small style="color:#dc2626">⚠ Below minimum selling price</small>' : ''}${l.productId && l.available != null && l.qty > l.available ? `<br><small style="color:#b45309">⚠ Only ${nf(l.available)} in stock</small>` : ''}${a ? `<br><small class="qint">Cost ₹ <input data-q="cost" data-i="${i}" inputmode="decimal" value="${l.cost || 0}" style="width:76px" ${dis}> · Profit ${inr((l.unitPrice - (l.cost || 0)) * l.qty - (+l.lineDisc || 0))}</small>` : ''}</td>
+    <td class="c"><input data-q="qty" data-i="${i}" inputmode="decimal" value="${l.qty}" style="width:56px" ${dis}></td><td class="r"><input data-q="unitPrice" data-i="${i}" inputmode="decimal" value="${l.unitPrice}" style="width:92px" ${dis}></td>
+    <td class="r"><input data-q="lineDisc" data-i="${i}" inputmode="decimal" value="${l.lineDisc || 0}" style="width:72px" ${dis}></td><td class="r"><b>${inr(l._tot)}</b></td><td>${lock ? '' : `<button class="btn bad s" data-act="qdel" data-i="${i}">✕</button>`}</td></tr>`).join('');
   const brk = c.brk.map(b => intra ? `<div class="qrow"><span>CGST ${b.rate / 2}%</span><b>${inr(r2(b.tax / 2))}</b></div><div class="qrow"><span>SGST ${b.rate / 2}%</span><b>${inr(b.tax - r2(b.tax / 2))}</b></div>` : `<div class="qrow"><span>IGST ${b.rate}%</span><b>${inr(b.tax)}</b></div>`).join('');
   const saved = !!e.id, st = e.status;
+  const FOR = ['Laptop', 'Desktop', 'Gaming PC', 'Monitor', 'Printer', 'CCTV', 'Networking', 'Accessories', 'Service / AMC'];
+  const terms = String(sh.terms || '').split('\n').map(x => x.trim()).filter(Boolean).map(x => `<li>${esc(x.replace(/^\d+[.)]\s*/, ''))}</li>`).join('') || '<li>Prices are valid till the date shown.</li><li>Warranty as per manufacturer terms.</li><li>Payment: 100% advance / on delivery.</li>';
   const acts = !saved ? '' : `<div class="card" style="margin-top:12px"><h3>Status: ${qpill(st)} ${e.discStatus === 'Pending' ? '<span class="pill p-warn">Discount needs admin approval</span>' : e.discStatus === 'Approved' ? '<span class="pill p-ok">Discount approved</span>' : ''}</h3>
     ${a && e.discStatus === 'Pending' ? '<div style="margin-bottom:8px"><button class="btn ok" data-act="qapprove">Approve discount</button></div>' : ''}
     ${lock ? `<p>Converted to sale <b>${esc(e.orderId)}</b>. This quotation is locked.</p>` : `<div style="display:flex;flex-wrap:wrap;gap:6px"><button class="btn g" data-act="qst" data-s="Sent">Mark Sent</button><button class="btn g" data-act="qst" data-s="Follow-up Required">Follow-up</button><button class="btn g" data-act="qst" data-s="Approved">Approved</button><button class="btn g" data-act="qst" data-s="Rejected">Rejected</button><button class="btn ok" data-act="qconvert">Convert to Sale</button></div>`}
     <div class="row" style="margin-top:10px"><div class="fld"><label>Next follow-up date</label><input type="date" id="qfd" value="${esc(e.followDate || '')}" ${dis}></div><div class="fld"><label>Follow-up note</label><input id="qfn" value="${esc(e.followNote || '')}" ${dis}></div></div>
     ${lock ? '' : '<button class="btn g s" data-act="qfollow">Save follow-up</button>'} <small>Assigned: ${esc(e.followBy || e.createdBy || '')}</small></div>`;
-  const share = !saved ? '' : `<div class="card" style="margin-top:12px"><h3>PDF / Print / WhatsApp</h3><div class="fld"><label>Design</label><select id="qfmt"><option value="simple" ${e.format === 'simple' ? 'selected' : ''}>1. Simple (no photos)</option><option value="premium" ${e.format === 'premium' ? 'selected' : ''}>2. With product photos</option><option value="detailed" ${e.format === 'detailed' ? 'selected' : ''}>3. Photos + full specifications</option></select></div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px"><button class="btn" data-act="qpdf">Download PDF</button><button class="btn g" data-act="qprint">Print</button><button class="btn g" data-act="qwa">Share on WhatsApp</button><button class="btn g" data-act="qdup">Duplicate</button>${lock ? '<button class="btn g" data-act="qinv">Invoice</button>' : ''}</div>
-    <small style="display:block;margin-top:6px">PDF: in the print window choose "Save as PDF". WhatsApp opens with the message ready; attach the saved PDF yourself.</small></div>`;
+  const share = !saved ? '' : `<div class="card" style="margin-top:12px"><h3>PDF design</h3><div class="fld"><select id="qfmt"><option value="simple" ${e.format === 'simple' ? 'selected' : ''}>1. Simple (no photos)</option><option value="premium" ${e.format === 'premium' ? 'selected' : ''}>2. With product photos</option><option value="detailed" ${e.format === 'detailed' ? 'selected' : ''}>3. Photos + full specifications</option></select></div>
+    <small>PDF: in the print window choose "Save as PDF". WhatsApp opens with the message ready; attach the saved PDF yourself.</small></div>`;
   const hist = e.log && e.log.length ? `<div class="card" style="margin-top:12px"><h3>History</h3>${tbl([{ h: 'When', k: r => esc(dtm('', r.dt)), l: 'When' }, { h: 'Who', k: r => esc(r.who), l: 'Who' }, { h: 'What', k: r => `<b>${esc(r.event)}</b> ${esc(r.detail)}`, l: 'What' }], e.log)}</div>` : '';
-  $('#page').innerHTML = `<div class="ph"><h1>${e.id ? esc(e.id) : 'New Quotation'}</h1><span><button class="btn g" data-act="go" data-r="quotes">Back</button> ${lock ? '' : `<button class="btn" data-act="qsave">${ico('plus')} Save</button>`}</span></div>
-  <div class="grid g21 stack"><div>
-    <div class="card"><h3>Customer</h3><div class="row"><div class="fld"><label>Customer name *</label><input id="qn" value="${esc(e.name)}" ${dis}></div><div class="fld"><label>Mobile</label><input id="qm" inputmode="numeric" maxlength="13" value="${esc(e.mobile)}" ${dis}></div></div>
-      <div class="fld"><label>Address</label><input id="qa" value="${esc(e.address)}" ${dis}></div>
-      <div class="row"><div class="fld"><label>GST number (customer)</label><input id="qg" value="${esc(e.gstNo)}" maxlength="15" style="text-transform:uppercase" ${dis}></div><div class="fld"><label>Tax</label><select id="qgst" ${dis}><option value="0" ${!e.gst ? 'selected' : ''}>Without GST</option><option value="1" ${e.gst ? 'selected' : ''}>With GST</option></select></div></div>
-      <div class="row"><div class="fld"><label>Date</label><input type="date" id="qd" value="${esc(e.date)}" ${dis}></div><div class="fld"><label>Valid until</label><input type="date" id="qv" value="${esc(e.validUntil)}" ${dis}></div>${e.gst ? `<div class="fld"><label>GST % (all items)</label><input id="qr" inputmode="decimal" value="${esc(e.gstRate)}" style="max-width:90px" ${dis}></div>` : ''}</div>
-      ${e.gst ? `<small>${intra ? 'Same state: CGST + SGST' : 'Other state: IGST'} ${e.gstNo ? '(decided from GST number)' : '(no customer GST number: treated as same state)'}</small>` : ''}</div>
-    ${lock ? '' : `<div class="card" style="margin-top:12px"><h3>Add items</h3><div id="qpick"></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"><button class="btn g s" data-act="qcustom" data-k="Custom">+ Custom item</button><button class="btn g s" data-act="qcustom" data-k="Service">+ Service</button><button class="btn g s" data-act="qpc">PC Build</button><button class="btn g s" data-act="qtpl">Templates</button><button class="btn g s" data-act="qsavetpl">Save as template</button></div></div>`}
-    <div class="card" style="margin-top:12px"><h3>Items (${e.lines.length})</h3>${e.lines.length ? `<div class="tw"><table class="tbl"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Disc ₹</th><th class="r">Amount</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">Search a product above, or add a custom item / service.</div>'}
-      <div class="fld" style="margin-top:10px"><label>Description / note</label><input id="qnote" value="${esc(e.note)}" ${dis}></div></div>
-    ${lock || !a ? '' : `<div class="card" style="margin-top:12px"><h3>Bulk paste + Add profit <small>(internal, admin only)</small></h3>
+  const bulk = lock || !a ? '' : `<div class="card" style="margin-top:12px"><h3>Bulk paste + Add profit <small>(internal, admin only)</small></h3>
       <p style="font-size:12px;color:#64748b">Vendor ni list paste karo: dar line ma product name ane chhelle purchase price. Photo vala catalogue product match thase to photo aavse.</p>
       <textarea id="qbulk" rows="5" placeholder="I7 7 GEN 2 YEAR WARRANTY 6000&#10;8 GB RAM DDR4 SAMSUNG 3800" style="width:100%"></textarea>
       <div class="row"><div class="fld"><label>Purchase GST %</label><input id="qbg" inputmode="decimal" value="0"></div><div class="fld"><label>One item name (for Single item)</label><input id="qsn" value="Complete Computer Set"></div></div>
       <div style="display:flex;flex-wrap:wrap;gap:6px"><button class="btn g" data-act="qbulk" data-m="sep">Separate items</button><button class="btn g" data-act="qbulk" data-m="one">Single item (total set)</button></div>
       <hr style="margin:10px 0;border:0;border-top:1px solid #e5e7eb">
       <div class="row"><div class="fld"><label>Add profit ₹ (total)</label><input id="qpf" inputmode="decimal"></div><div class="fld"><label>OR Margin % on cost</label><input id="qpm" inputmode="decimal"></div><div class="fld"><label>Round to</label><select id="qpr"><option value="1">₹1</option><option value="10" selected>₹10</option><option value="50">₹50</option></select></div></div>
-      <button class="btn" data-act="qprofit">Apply profit to all lines</button> <small>Selling price = cost + profit. Cost vagar ni line ma kai nahi thay.</small></div>`}
-    ${acts}${share}${hist}</div>
-  <div><div class="card" style="position:sticky;top:12px"><h3>Summary</h3>
-    <div class="qrow"><span>Subtotal</span><b>${inr(c.gross)}</b></div>
-    <div class="qrow"><span>Item discounts</span><b>${inr(c.ld)}</b></div>
-    <div class="qrow"><span>Extra discount ₹</span><input id="qbd" inputmode="decimal" value="${e.billDisc || 0}" style="width:100px;text-align:right" ${dis}></div>
-    <div class="qrow"><span>Taxable amount</span><b>${inr(c.taxable)}</b></div>${brk}
-    ${e.gst ? '' : '<div class="qrow"><span>GST</span><b>Not applied</b></div>'}
-    <div class="qrow"><span>Round off</span><b>${inr(c.round)}</b></div>
-    <div class="qrow" style="font-size:20px;border-top:2px solid #1f6feb;margin-top:6px;padding-top:8px"><span>Grand total</span><b>${inr(c.total)}</b></div>
-    ${a ? `<div style="margin-top:10px;padding:10px;background:#ecfdf5;border-radius:10px"><div class="qrow"><span>Purchase cost</span><b>${inr(c.cost)}</b></div><div class="qrow"><span>Expected profit</span><b style="color:#16a34a">${inr(c.profit)}</b></div><div class="qrow"><span>Margin</span><b>${c.taxable > 0 ? r2(c.profit / c.taxable * 100) : 0}%</b></div></div>` : ''}
-    ${!a && e.lines.some(l => l.belowMin) ? '<p style="color:#dc2626;font-size:12px">⚠ Some prices are below the minimum selling price.</p>' : ''}
-    ${(+c.disc / Math.max(1, c.gross) * 100) > (+e.maxDisc || 5) && !a ? '<p style="color:#b45309;font-size:12px">Discount is high. The admin must approve it before you can send this quotation.</p>' : ''}</div></div></div>
-  <style>.qrow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;gap:10px}</style>`;
+      <button class="btn" data-act="qprofit">Apply profit to all lines</button> <small>Selling price = cost + profit. Cost vagar ni line ma kai nahi thay.</small></div>`;
+  const costp = a ? `<div class="card" style="margin-top:12px;background:#ecfdf5"><h3>Internal costing <small>(admin only, not printed)</small></h3><div class="qrow"><span>Purchase cost</span><b>${inr(c.cost)}</b></div><div class="qrow"><span>Expected profit</span><b style="color:#16a34a">${inr(c.profit)}</b></div><div class="qrow"><span>Margin</span><b>${c.taxable > 0 ? r2(c.profit / c.taxable * 100) : 0}%</b></div></div>` : '';
+  $('#page').innerHTML = `<div class="ph"><h1>${e.id ? esc(e.id) : 'New Quotation'}</h1><span style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end"><button class="btn g" data-act="go" data-r="quotes">Back</button>${saved ? `<button class="btn g" data-act="qpdf">PDF</button><button class="btn g" data-act="qprint">Print</button><button class="btn g" data-act="qwa">WhatsApp</button><button class="btn g" data-act="qdup">Duplicate</button>${lock ? '<button class="btn g" data-act="qinv">Invoice</button>' : ''}` : ''}${lock ? '' : `<button class="btn" data-act="qsave">${ico('plus')} Save</button>`}</span></div>
+  <div class="qdoc">
+    <div class="qd-hd"><img src="${window.LOGO}" alt=""><div class="qd-r">SALES | SERVICE | ACCESSORIES<br>LAPTOP | DESKTOP | GAMING PC | MONITOR<br>PRINTER | CCTV | NETWORKING | AMC</div></div>
+    <div class="qd-pills"><div>✓ Original Products</div><div>₹ Best Prices</div><div>⚙ Expert Service</div><div>⌂ Home &amp; Business</div></div>
+    <div class="qd-bn"><div><h2>QUOTATION</h2><small>TECHNOLOGY YOU CAN TRUST</small></div><div class="qd-m"><label>Quotation No<b>${e.id ? esc(e.id) : 'Auto on save'}</b></label><label>Date<input type="date" id="qd" value="${esc(e.date)}" ${dis}></label><label>Valid Till<input type="date" id="qv" value="${esc(e.validUntil)}" ${dis}></label></div></div>
+    <div class="qd-two"><div class="qd-box"><h4>Customer Details</h4>
+      <div class="fld"><label>Customer name *</label><input id="qn" value="${esc(e.name)}" ${dis}></div>
+      <div class="row"><div class="fld"><label>Mobile</label><input id="qm" inputmode="numeric" maxlength="13" value="${esc(e.mobile)}" ${dis}></div><div class="fld"><label>GST number</label><input id="qg" value="${esc(e.gstNo)}" maxlength="15" style="text-transform:uppercase" ${dis}></div></div>
+      <div class="fld"><label>Address</label><input id="qa" value="${esc(e.address)}" ${dis}></div>
+      <div class="row"><div class="fld"><label>Tax</label><select id="qgst" ${dis}><option value="0" ${!e.gst ? 'selected' : ''}>Without GST</option><option value="1" ${e.gst ? 'selected' : ''}>With GST</option></select></div>${e.gst ? `<div class="fld"><label>GST % (all items)</label><input id="qr" inputmode="decimal" value="${esc(e.gstRate)}" ${dis}></div>` : ''}</div>
+      ${e.gst ? `<small>${intra ? 'Same state: CGST + SGST' : 'Other state: IGST'} ${e.gstNo ? '(from GST number)' : '(no customer GST number: same state)'}</small>` : ''}</div>
+     <div class="qd-box"><h4>Quotation For</h4><div class="qd-chips">${FOR.map(f => `<label class="qd-chip"><input type="checkbox" data-for="${esc(f)}" ${e.forTick[f] ? 'checked' : ''}> ${esc(f)}</label>`).join('')}</div><small>Only for your reference while making the quotation.</small></div></div>
+    <div class="qd-items"><div class="qd-ih"><span>ITEMS (${e.lines.length})</span></div>
+      ${lock ? '' : `<div class="qd-add"><div id="qpick"></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"><button class="btn s" data-act="qcustom" data-k="Custom">+ ADD PRODUCT</button><button class="btn g s" data-act="qcustom" data-k="Service">+ Service</button><button class="btn g s" data-act="qpc">PC Build</button><button class="btn g s" data-act="qtpl">Templates</button><button class="btn g s" data-act="qsavetpl">Save as template</button></div></div>`}
+      ${e.lines.length ? `<div class="tw"><table class="tbl qd-t"><thead><tr><th class="c">#</th><th>Item</th><th class="c">Qty</th><th class="r">Price</th><th class="r">Disc ₹</th><th class="r">Amount</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">Search a product above, or add a custom item / service.</div>'}</div>
+    <div class="qd-two" style="align-items:flex-start"><div><div class="qd-ty">Thank You!<br><small>for choosing C COMPUTER</small></div><div class="fld"><label>Note / description</label><input id="qnote" value="${esc(e.note)}" ${dis}></div>${c.total ? `<small>Amount in words: <b>Rupees ${rupeesWords(c.total)} Only</b></small>` : ''}</div>
+      <div class="qd-tot"><div class="qrow"><span>Subtotal</span><b>${inr(c.gross)}</b></div>
+        <div class="qrow"><span>Item discounts</span><b>${inr(c.ld)}</b></div>
+        <div class="qrow"><span>Extra discount ₹</span><input id="qbd" inputmode="decimal" value="${e.billDisc || 0}" style="width:100px;text-align:right" ${dis}></div>
+        <div class="qrow"><span>Taxable amount</span><b>${inr(c.taxable)}</b></div>${brk}
+        ${e.gst ? '' : '<div class="qrow"><span>GST</span><b>Not applied</b></div>'}
+        <div class="qrow"><span>Round off</span><b>${inr(c.round)}</b></div>
+        <div class="qrow qd-gt"><span>Grand Total</span><b>${inr(c.total)}</b></div>
+        ${!a && e.lines.some(l => l.belowMin) ? '<p style="color:#dc2626;font-size:12px">⚠ Some prices are below the minimum selling price.</p>' : ''}
+        ${(+c.disc / Math.max(1, c.gross) * 100) > (+e.maxDisc || 5) && !a ? '<p style="color:#b45309;font-size:12px">Discount is high. The admin must approve it before you can send this quotation.</p>' : ''}</div></div>
+    <div class="qd-g3"><div><h4>Terms &amp; Conditions</h4><ul>${terms}</ul></div><div><h4>Why Choose C COMPUTER?</h4>✓ Genuine Products<br>✓ Competitive Pricing<br>✓ Expert Service Support<br>✓ After Sales Service<br>✓ Home &amp; Business Solutions</div><div><h4>Need Help?</h4>📞 ${esc(sh.phone || '8160088439')}<br>WhatsApp Support</div></div>
+    <div class="qd-addr">📍 ${esc(sh.addr || 'C-5, Near Business Fair, Laxmi Nagar Society, Katargam, Surat, Gujarat 395004')}</div>
+    <div class="qd-foot">Thank you for choosing C COMPUTER – The Computer House</div>
+  </div>
+  ${bulk}${costp}${acts}${share}${hist}`;
   bindQuote();
 }
 function qRead() {
@@ -1648,6 +1675,7 @@ function qRead() {
 function bindQuote() {
   const e = QE;
   ['#qn', '#qm', '#qa', '#qg', '#qd', '#qv', '#qnote'].forEach(s => { const x = $(s); if (x) x.onchange = () => qRead(); });
+  $$('[data-for]').forEach(x => x.onchange = () => { QE.forTick[x.dataset.for] = x.checked; });
   if ($('#qgst')) $('#qgst').onchange = () => { qRead(); drawQuote(); };
   if ($('#qg')) $('#qg').onchange = () => { qRead(); drawQuote(); };
   if ($('#qr')) $('#qr').onchange = () => { qRead(); drawQuote(); };
@@ -1943,6 +1971,7 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
   const f = ACT[el.dataset.act]; if (!f) return;
   if (el.tagName === 'A') e.preventDefault();
+  if (/page$/.test(el.dataset.act)) window.scrollTo({ top: 0, behavior: 'smooth' });   // next/previous page always starts at the top
   try { const r = f(el.dataset, el, e); if (r && r.catch) r.catch(err => toast(err.message, 'bad')); } catch (err) { toast(err.message, 'bad'); }
 });
 
