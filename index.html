@@ -283,6 +283,7 @@ input,select,textarea{border-color:#dcdcd8}
 .cbt{background:#2f6bff}.cbt small,.cbt b{color:#fff}.cbt.on{background:#2f6bff}.cbt:not(.on){background:#fff}.cbt:not(.on) small{color:#6b7280}.cbt:not(.on) b{color:#111}
 .cbrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .cbhead{margin-top:6px}
+.cbrow>span{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0;max-width:100%}.cbrow input[type=date],.cbrow input[type=month]{width:160px;max-width:100%}
 .cbf{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
 .cbf>*{flex:1 1 130px;min-width:0}.cbf>.btn{flex:0 0 auto;background:#2f6bff;color:#fff;padding:12px 22px}
 .card.cbf{margin:12px 0}
@@ -1709,13 +1710,34 @@ function cbRange() {
   return {};
 }
 async function V_cash() { page('Cash Book', '', `<div id="cbtop">${skel()}</div>`); loadCash(); }
+let cbSeq = 0;
 async function loadCash() {
-  CB.data = await api('cash.list', Object.assign({ month: CB.month, q: CB.q, type: CB.type, mode: CB.mode, by: CB.by }, cbRange()));
-  drawCash();
+  const my = ++cbSeq;
+  const d = await api('cash.list', { month: CB.month });
+  if (my !== cbSeq) return;
+  CB.data = d; drawCash();
+}
+/* All filtering is done here in the browser, so every button reacts instantly. */
+function cbCalc(d) {
+  const rg = cbRange(), all = d.rows;
+  const inRange = r => (!rg.from || r.date >= rg.from) && (!rg.to || r.date <= rg.to);
+  const scope = all.filter(r => inRange(r) && (!CB.mode || r.mode === CB.mode));
+  const view = { in: 0, out: 0 }; scope.forEach(r => { if (r.type === 'in') view.in += r.amount; else view.out += r.amount; }); view.bal = view.in - view.out;
+  const q = CB.q.trim().toLowerCase();
+  const rows = scope.filter(r => (!CB.type || r.type === CB.type) && (!CB.by || r.by === CB.by) && (!q || (r.party + ' ' + r.note + ' ' + r.cat + ' ' + r.amount).toLowerCase().includes(q)));
+  const dm = {};
+  rows.forEach(r => { if (r.cat === 'Transfer' || r.cat === 'Opening Balance') return; const x = dm[r.date] = dm[r.date] || { date: r.date, in: 0, out: 0 }; if (r.type === 'in') x.in += r.amount; else x.out += r.amount; });
+  const days = Object.keys(dm).sort().reverse().map(k => dm[k]);
+  let showBal = false, bm = {};
+  if (CB.mode && !q && !CB.type && !CB.by) {
+    showBal = true; let b = d.balances[CB.mode] || 0;
+    all.forEach(r => { if (r.mode !== CB.mode) return; bm[r.id] = b; b -= r.type === 'in' ? r.amount : -r.amount; });
+  }
+  return { view, days, rows: rows.map(r => Object.assign({}, r, showBal ? { bal: bm[r.id] } : {})), count: rows.length };
 }
 function cbKeep() { const a = document.activeElement; return a && a.id ? { id: a.id, s: a.selectionStart } : null; }
 function drawCash() {
-  const d = CB.data; if (!d || !$('#page')) return; const _sy = window.scrollY, s = d.sum, ad = d.admin, ac = d.accts;
+  const d = CB.data; if (!d || !$('#page')) return; const vm = cbCalc(d), _fk = cbKeep(), _sy = window.scrollY, s = d.sum, ad = d.admin, ac = d.accts;
   const keep = ['cfty', 'cfc', 'cfp', 'cfn', 'cfa', 'cfm', 'cfd', 'tf', 'tt', 'ta', 'tn', 'td'].reduce((o, k) => { const e = $('#' + k); if (e) o[k] = e.value; return o; }, {});
   const sm = (t, v, c, sub) => `<div class="cbc" style="border-left:5px solid ${c}"><small>${t} - Selected Month</small><b>${inr(v)}${sub || ''}</b></div>`;
   const over = s.Personal > d.personalLimit;
@@ -1729,28 +1751,29 @@ function drawCash() {
   <div class="card"><b>Transfer between accounts</b><div class="cbf" style="margin-top:10px"><select id="tf">${op(ac, keep.tf || 'Cash')}</select><select id="tt">${op(ac, keep.tt || 'HDFC')}</select><input id="ta" type="number" inputmode="decimal" placeholder="Amount" value="${esc(keep.ta || '')}"><input id="tn" placeholder="Note" value="${esc(keep.tn || '')}"><input id="td" type="date" value="${keep.td || cbDay(0)}"><button class="btn" id="tsv" data-act="cbtrf" style="background:#f97316">Transfer</button></div></div>
   <div class="card"><div class="cbrow"><b>Tarikh pramane jovo</b><span><input type="date" id="cbf" value="${esc(CB.from)}"> thi <input type="date" id="cbt" value="${esc(CB.to)}"> sudhi</span></div>
     <div class="cbpills">${[['today', 'Aaje'], ['yday', 'Kaal'], ['week', 'Aa week'], ['month', 'Aa mahino'], ['all', 'Badha divas']].map(x => `<button class="pillb ${CB.range === x[0] && CB.view === 'hist' ? 'on' : ''}" data-act="cbrange" data-r="${x[0]}">${x[1]}</button>`).join('')}<button class="pillb ${CB.view === 'days' ? 'on' : ''}" data-act="cbdays">Roj na total</button></div></div>
-  <div class="card cbsum"><b>${CB.mode ? esc(CB.mode) : 'Badhi'} ni noondh</b> — IN <b style="color:#15803d">${inr(d.view.in)}</b> | OUT <b style="color:#d92d20">${inr(d.view.out)}</b> | Balance <b>${inr(d.view.bal)}</b> ${CB.mode ? '<button class="pillb" data-act="cbacct" data-m="">Badhu jovo</button>' : ''}</div>`;
+  <div class="card cbsum"><b>${CB.mode ? esc(CB.mode) : 'Badhi'} ni noondh</b> — IN <b style="color:#15803d">${inr(vm.view.in)}</b> | OUT <b style="color:#d92d20">${inr(vm.view.out)}</b> | Balance <b>${inr(vm.view.bal)}</b> ${CB.mode ? '<button class="pillb" data-act="cbacct" data-m="">Badhu jovo</button>' : ''}</div>`;
   if (CB.view === 'days') {
-    h += `<h3 style="margin:14px 0 6px">Roj na total</h3>` + tbl([{ h: 'Date', k: r => dtm(r.date) }, { h: 'IN', cls: 'r', k: r => `<span style="color:#15803d">${inr(r.in)}</span>` }, { h: 'OUT', cls: 'r', k: r => `<span style="color:#d92d20">${inr(r.out)}</span>` }], d.days, { empty: 'No entries' });
+    h += `<h3 style="margin:14px 0 6px">Roj na total</h3>` + tbl([{ h: 'Date', k: r => dtm(r.date) }, { h: 'IN', cls: 'r', k: r => `<span style="color:#15803d">${inr(r.in)}</span>` }, { h: 'OUT', cls: 'r', k: r => `<span style="color:#d92d20">${inr(r.out)}</span>` }], vm.days, { empty: 'No entries' });
   } else {
-    h += `<div class="cbrow" style="margin-top:12px"><h3 style="margin:0">Complete History <small>(${nf(d.count)})</small></h3><span class="cbflt"><input id="cbq" placeholder="Search..." value="${esc(CB.q)}"><select id="cbty"><option value="">All Type</option><option value="in" ${CB.type === 'in' ? 'selected' : ''}>IN</option><option value="out" ${CB.type === 'out' ? 'selected' : ''}>OUT</option></select><select id="cbmo"><option value="">All Accounts</option>${op(ac, CB.mode)}</select><select id="cbby"><option value="">All Entry By</option>${op(d.by, CB.by)}</select></span></div>`;
+    h += `<div class="cbrow" style="margin-top:12px"><h3 style="margin:0">Complete History <small>(${nf(vm.count)})</small></h3><span class="cbflt"><input id="cbq" placeholder="Search..." value="${esc(CB.q)}"><select id="cbty"><option value="">All Type</option><option value="in" ${CB.type === 'in' ? 'selected' : ''}>IN</option><option value="out" ${CB.type === 'out' ? 'selected' : ''}>OUT</option></select><select id="cbmo"><option value="">All Accounts</option>${op(ac, CB.mode)}</select><select id="cbby"><option value="">All Entry By</option>${op(d.by, CB.by)}</select></span></div>`;
     h += tbl([{ h: 'Date', k: r => `${esc(r.date)}<br><small>${cbT12(r.time)}</small>` }, { h: 'Category', k: r => esc(r.cat) }, { h: 'Party', k: r => esc(r.party) + (r.note ? `<br><small>${esc(r.note)}</small>` : '') }, { h: 'Account', k: r => esc(r.mode) },
       { h: 'In', k: r => r.type === 'in' ? `<b style="color:#15803d">${inr(r.amount)}</b>` : '' }, { h: 'Out', k: r => r.type === 'out' ? `<b style="color:#d92d20">${inr(r.amount)}</b>` : '' },
-      ...(d.rows.some(r => r.bal !== undefined) ? [{ h: 'Balance', k: r => r.bal === undefined ? '' : inr(r.bal) }] : []),
+      ...(vm.rows.some(r => r.bal !== undefined) ? [{ h: 'Balance', k: r => r.bal === undefined ? '' : inr(r.bal) }] : []),
       { h: 'By', k: r => `<small>${esc(r.by)}</small>` },
-      ...(ad ? [{ h: '', nl: 1, k: r => `<button class="btn g s" data-act="cbedit" data-id="${esc(r.id)}">Edit</button> <button class="btn g s" style="color:#d92d20" data-act="cbdel" data-id="${esc(r.id)}">Delete</button>` }] : [])], d.rows, { empty: 'No entries' });
+      ...(ad ? [{ h: '', nl: 1, k: r => `<button class="btn g s" data-act="cbedit" data-id="${esc(r.id)}">Edit</button> <button class="btn g s" style="color:#d92d20" data-act="cbdel" data-id="${esc(r.id)}">Delete</button>` }] : [])], vm.rows, { empty: 'No entries' });
   }
   page('Cash Book', '', h); window.scrollTo(0, _sy);
+  if (_fk) { const e = $('#' + _fk.id); if (e) { e.focus(); try { e.setSelectionRange(_fk.s, _fk.s); } catch (x) {} } }
   $('#cbm').onchange = () => { CB.month = $('#cbm').value || CB.month; loadCash(); };
-  const bind = (id, k, fn) => { const e = $('#' + id); if (e) e.onchange = () => { CB[k] = e.value; if (fn) fn(); loadCash(); }; };
+  const bind = (id, k, fn) => { const e = $('#' + id); if (e) e.onchange = () => { CB[k] = e.value; if (fn) fn(); drawCash(); }; };
   bind('cbty', 'type'); bind('cbmo', 'mode'); bind('cbby', 'by');
-  bind('cbf', 'from', () => { CB.range = 'custom'; }); bind('cbt', 'to', () => { CB.range = 'custom'; });
-  const q = $('#cbq'); if (q) q.oninput = debounce(() => { CB.q = q.value; loadCash(); }, 350);
+  bind('cbf', 'from', () => { CB.range = 'custom'; CB.view = 'hist'; }); bind('cbt', 'to', () => { CB.range = 'custom'; CB.view = 'hist'; });
+  const q = $('#cbq'); if (q) q.oninput = debounce(() => { CB.q = q.value; drawCash(); }, 200);
   $('#cfty').onchange = () => drawCash();
 }
 ACT.cbcur = () => { CB.month = new Date().toISOString().slice(0, 7); loadCash(); };
-ACT.cbacct = d => { CB.mode = d.m || ''; CB.type = ''; CB.q = ''; CB.by = ''; CB.view = 'hist'; loadCash(); };
-ACT.cbrange = d => { CB.range = d.r; CB.view = 'hist'; if (d.r !== 'custom') { CB.from = ''; CB.to = ''; } loadCash(); };
+ACT.cbacct = d => { CB.mode = d.m || ''; CB.type = ''; CB.q = ''; CB.by = ''; CB.view = 'hist'; drawCash(); };
+ACT.cbrange = d => { CB.range = d.r; CB.view = 'hist'; CB.from = ''; CB.to = ''; drawCash(); };
 ACT.cbdays = () => { CB.view = CB.view === 'days' ? 'hist' : 'days'; drawCash(); };
 ACT.cbsave = (d, el) => work(el, async () => {
   await api('cash.add', { _rid: rid(), type: $('#cfty').value, cat: $('#cfc').value, party: $('#cfp').value, note: $('#cfn').value, amount: $('#cfa').value, mode: $('#cfm').value, date: $('#cfd').value });
