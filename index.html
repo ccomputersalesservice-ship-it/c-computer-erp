@@ -293,6 +293,20 @@ input,select,textarea{border-color:#dcdcd8}
 .cbsum{margin:12px 0;background:#eef3ff}
 .cbflt{display:flex;gap:8px;flex-wrap:wrap}.cbflt>*{width:auto!important;flex:0 1 170px;min-width:110px}.cbflt>input{flex-basis:220px}
 @media (max-width:820px){.cbg3{grid-template-columns:1fr}.cbc b{font-size:20px}}
+
+/* ---------- Dashboard top sections (white / light grey / navy) ---------- */
+.opsw{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:linear-gradient(110deg,#0a1a40,#10296a);color:#fff;border-radius:16px;padding:18px 22px;margin:0 0 14px;box-shadow:0 6px 18px rgba(16,41,106,.18)}
+.opsw small{opacity:.8;font-size:13px}.opsw h2{margin:2px 0;font-size:24px;color:#fff}.opsw span{opacity:.85;font-size:13px}
+.opsb{text-align:right}.opsb b{display:block;font-size:20px;letter-spacing:.5px}.opsb small{opacity:.75}
+.opsh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 8px;font-size:15px;font-weight:800;color:#0f2a5e}.opsh small{font-weight:600;color:#6b7280}.opsh input{width:auto;padding:5px 8px;font-size:13px}
+.opsg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.opsc{background:#fff;border:1px solid #e5e7eb;border-top:3px solid #0f2a5e;border-radius:12px;padding:10px 12px;cursor:pointer;min-width:0;transition:box-shadow .15s}
+.opsc:hover{box-shadow:0 4px 12px rgba(16,36,94,.12)}.opsc small{display:block;color:#6b7280;font-size:12px}.opsc b{display:block;font-size:20px;margin-top:2px;color:#0f1f46;overflow-wrap:anywhere}.opsc.wide b{font-size:24px}
+.opsal{display:grid;gap:8px}.opsa{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid #e5e7eb;border-left:4px solid #f59e0b;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:600;font-size:14px}.opsa i{font-style:normal;color:#9ca3af;font-size:20px}.opsa.ok{border-left-color:#16a34a;cursor:default}
+.opsbox,#opsbox{margin-bottom:16px}
+.opsbt{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+@media (min-width:1100px){.ops9{grid-template-columns:repeat(9,1fr)}}
+@media (max-width:600px){.opsg{grid-template-columns:repeat(2,1fr)}.opsw h2{font-size:20px}.opsc b{font-size:18px}}
 </style>
 
 </head>
@@ -410,8 +424,24 @@ function busy(on) {
   if (busyN > 0 && !el) { el = document.createElement('div'); el.id = 'spin'; el.className = 'spin'; el.innerHTML = '<i></i>'; document.body.appendChild(el); }
   if (busyN <= 0) { busyN = 0; if (el) el.remove(); }
 }
+/* Short memory for repeat reads (25 s). Any write clears it, so screens never show data older than your own last change. */
+const APIC = new Map(), API_READ = /^(stock\.list|stock\.moves|prod\.list|prod\.get|cust\.list|cust\.search|ord\.list|ord\.get|pur\.list|pur\.get|serial\.list|serial\.item|quote\.list|quote\.get|quote\.dash|cash\.list|crm\.jobs|crm\.job|rep\.[a-z]+|dash|dash\.ops|aud\.list|print\.history)$/;
 function api(action, payload, opt) {
   opt = opt || {}; payload = Object.assign({}, payload || {});
+  const rk = API_READ.test(action) && !opt.fresh ? action + '|' + JSON.stringify(payload) : null;
+  if (rk) {
+    const c = APIC.get(rk);
+    if (c && c.s !== undefined && Date.now() - c.t < 25000) return Promise.resolve(JSON.parse(c.s));
+    if (c && c.p) return c.p.then(x => JSON.parse(JSON.stringify(x)));
+  } else APIC.clear();
+  const pr = api_(action, payload, opt);
+  if (rk) {
+    APIC.set(rk, { p: pr, t: Date.now() });
+    pr.then(d => { const c = APIC.get(rk); if (c && c.p === pr) { c.s = JSON.stringify(d); c.t = Date.now(); delete c.p; } }, () => APIC.delete(rk));
+  } else pr.then(() => APIC.clear(), () => APIC.clear());
+  return pr;
+}
+function api_(action, payload, opt) {
   if (opt.rid) payload._rid = opt.rid;
   return new Promise((resolve, reject) => {
     if (opt.loader) busy(true);
@@ -679,8 +709,9 @@ async function V_dash() {
     `<div class="card"><h3>${LI('recentorders')}</h3>${tbl([{ h: 'Order ID', k: r => esc(r.orderId), l: 'Order' }, { h: LT('customers'), k: r => esc(r.customer), l: LT('customers') }].concat(a ? [{ h: LT('total'), k: r => inr(r.total), cls: 'r', l: LT('total') }] : []).concat([{ h: LT('status'), k: r => pill(r.status), l: LT('status') }]), d.recentOrders, { click: 'openorder', id: r => r.orderId, empty: 'No orders yet' })}</div></div>`;
   h += '<div class="grid g2 stack" style="margin-top:14px">' + (a ? `<div class="card"><h3>${LI('recentpur')}</h3>${tbl([{ h: 'ID', k: r => esc(r.purchaseId), l: 'ID' }, { h: LT('vendor'), k: r => esc(r.vendor), l: LT('vendor') }, { h: LT('total'), k: r => inr(r.amount), cls: 'r', l: LT('total') }, { h: LT('status'), k: r => pill(r.status), l: LT('status') }], d.recentPurchases, { click: 'openpur', id: r => r.purchaseId, empty: 'No purchases yet' })}</div>` : '') +
     `<div class="card"><h3>${LI('recentact')}</h3>${tbl([{ h: LT('date'), k: r => esc(r.dt.slice(5, 16)), l: LT('date') }, { h: LT('products'), k: r => esc(r.product) + (r.serial ? '<br><small>' + esc(r.serial) + '</small>' : ''), l: LT('products') }, { h: 'Type', k: r => `<span class="tag">${esc(r.type)}</span>`, l: 'Type' }, { h: LT('qty'), k: r => nf(r.qty), cls: 'r', l: LT('qty') }], d.recentActivity, { empty: 'No activity yet' })}</div></div>`;
-  $('#page').innerHTML = `<div class="ph"><h1>${LI('dash')}</h1><select id="per" class="fix" style="max-width:170px">${[['month', 'thismonth'], ['lastmonth', 'lastmonth'], ['year', 'thisyear'], ['all', 'alltime']].map(p => `<option value="${p[0]}" ${p[0] === d.period ? 'selected' : ''}>${LT(p[1])}</option>`).join('')}</select></div>` + h;
+  $('#page').innerHTML = `<div class="ph"><h1>${LI('dash')}</h1><select id="per" class="fix" style="max-width:170px">${[['month', 'thismonth'], ['lastmonth', 'lastmonth'], ['year', 'thisyear'], ['all', 'alltime']].map(p => `<option value="${p[0]}" ${p[0] === d.period ? 'selected' : ''}>${LT(p[1])}</option>`).join('')}</select></div>` + '<div id="opsbox"></div>' + h;
   $('#per').onchange = e => { S.params.period = e.target.value; V_dash(); };
+  loadOps();
 }
 
 
@@ -718,6 +749,62 @@ ACT.dashal = d => {
   const rows = (S.dash && S.dash.alerts.lists[d.k]) || [], ttl = { out: 'Out of Stock', low: 'Low Stock / Reorder Required', dead: 'Dead Stock (no sale in 90 days)', slow: 'Slow Moving (no sale in 30-90 days)', noCost: 'Products Without Purchase Price' }[d.k];
   const m = modal(ttl, tbl([{ h: '', k: r => thumbBox(r.productId), nl: true }, { h: 'Product', k: r => `<b>${esc(r.name)}</b><br><small>${esc([r.brand, r.model, r.category].filter(Boolean).join(' · '))}</small>`, nl: true }, { h: 'Stock', k: r => nf(r.available), cls: 'r', l: 'Stock' }].concat(d.k === 'low' ? [{ h: 'Reorder', k: r => nf(r.reorder), cls: 'r', l: 'Reorder' }] : []), rows, { click: 'openprod', id: r => r.productId, empty: 'All good - nothing here' }), { cls: 'n' });
   loadThumbs(rows.map(r => r.productId), m.el);
+};
+
+/* ---------- Dashboard top sections: welcome, service summary, smart alerts, daily summary, accounts, dues ---------- */
+const OPS = { date: '', data: null };
+const opsToday = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+async function loadOps() {
+  try { OPS.data = await api('dash.ops', { date: OPS.date || opsToday() }); } catch (e) { OPS.data = null; }
+  drawOps();
+}
+function opsText(d) {
+  const x = d.daily, c = x.closing;
+  return `*C COMPUTER - Daily Summary*\nDate: ${d.date}\nIncome: ${inr(x.income)}\nTotal IN: ${inr(x.totalIn)}\nTotal OUT: ${inr(x.totalOut)}\nService completed: ${nf(x.serviceDone)}\nCustomer outstanding: ${inr(x.outstanding)}\nCash balance: ${inr(x.cashBalance)}\nDaily closing: ${c ? 'Done (expected ' + inr(c.expected) + ', actual ' + inr(c.actual) + ', difference ' + inr(c.diff) + ')' : 'Not done yet'}`;
+}
+function drawOps() {
+  const box = $('#opsbox'); if (!box) return; const d = OPS.data;
+  const nm = String((S.user && S.user.name) || '').trim().split(/\s+/)[0], dt = new Date(Date.now() + 330 * 60000);
+  const dateTxt = dt.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  let h = `<div class="opsw"><div><small>${esc(greetWord())}</small><h2>${esc(nm)} 👋</h2><span>${esc(dateTxt)}</span></div><div class="opsb"><b>C COMPUTER</b><small>The Computer House</small></div></div>`;
+  if (!d) { box.innerHTML = ''; return; }
+  const sv_ = d.services, card = (lab, v, act, col) => `<div class="opsc" data-act="${act}" ${col ? `style="border-top-color:${col}"` : ''}><small>${lab}</small><b>${v}</b></div>`;
+  h += `<div class="opsh">Service Summary</div><div class="opsg ops9">${[['Total', sv_.total, '', '#0f2a5e'], ['Pending', sv_.Pending, 'Pending', '#f59e0b'], ['Processing', sv_.Processing, 'Processing', '#2563eb'], ['Ready', sv_.Ready, 'Ready', '#16a34a'], ['Delivered', sv_.Delivered, 'Delivered', '#64748b'], ['Urgent', sv_.urgent, '', '#dc2626'], ['On-site', sv_.onsite, '', '#7c3aed'], ['Returned', sv_.Returned, 'Returned', '#ef4444'], ['Replacement', sv_.Replacement, 'Replacement', '#0891b2']].map(x => `<div class="opsc" data-act="opssv" data-s="${x[2]}" style="border-top-color:${x[3]}"><small>${x[0]}</small><b>${nf(x[1])}</b></div>`).join('')}</div>`;
+  if (d.full) {
+    const al = d.alerts, items = [['overdue', al.overdue.count, `${nf(al.overdue.count)} service job(s) pending/processing for 3+ days`, '#dc2626'], ['tasks', al.tasks.count, `${nf(al.tasks.count)} task(s) pending today`, '#f59e0b'], ['expenses', al.expenses.count, `${nf(al.expenses.count)} monthly expense(s) not paid yet (${inr(al.expenses.amount)})`, '#f59e0b'], ['vendor', al.vendor.count, `${nf(al.vendor.count)} vendor bill(s) overdue (${inr(al.vendor.amount)})`, '#dc2626'], ['requests', al.requests.count, `${nf(al.requests.count)} new service request(s)`, '#2563eb']].filter(x => x[1] > 0);
+    h += `<div class="opsh">Smart Alerts</div>` + (items.length ? `<div class="opsal">${items.map(x => `<div class="opsa" data-act="opsal" data-k="${x[0]}" style="border-left-color:${x[3]}"><span>${esc(x[2])}</span><i>›</i></div>`).join('')}</div>` : '<div class="opsa ok"><span>All clear - no pending alerts 👍</span></div>');
+    const x = d.daily, c = x.closing;
+    h += `<div class="opsh">Daily Business Summary <input type="date" id="opsdate" value="${esc(d.date)}" max="${esc(opsToday())}"></div><div class="opsg">
+      ${card('Income', inr(x.income), 'opscash', '#16a34a')}${card('Total IN', inr(x.totalIn), 'opscash', '#16a34a')}${card('Total OUT', inr(x.totalOut), 'opscash', '#dc2626')}${card('Service completed', nf(x.serviceDone), 'opssv', '#64748b').replace('data-act="opssv"', 'data-act="opssv" data-s="Delivered"')}
+      ${card('Customer outstanding', inr(x.outstanding), 'opsrec', '#f59e0b')}${card('Cash balance', inr(x.cashBalance), 'opscash', '#0f2a5e')}
+      <div class="opsc" data-act="opsclose" style="border-top-color:${c ? '#16a34a' : '#f59e0b'}"><small>Daily closing</small><b style="font-size:16px">${c ? 'Done ✔' : 'Not done yet'}</b>${c ? `<small>Expected ${inr(c.expected)} · Actual ${inr(c.actual)} · Diff ${inr(c.diff)}</small>` : ''}</div></div>
+      <div class="opsbt"><button class="btn g" data-act="opscopy">Copy summary</button><button class="btn" data-act="opswa" style="background:#25d366">WhatsApp share</button></div>`;
+    const ac = d.accounts.balances;
+    h += `<div class="opsh">Account Balances <small>Total ${inr(d.accounts.total)}</small></div><div class="opsg">${['Cash', 'HDFC', 'IDBI', 'Wallet', 'Saving'].map(a => `<div class="opsc" data-act="opsacct" data-m="${a}" style="border-top-color:#0f2a5e"><small>${a}${a === 'HDFC' || a === 'IDBI' ? ' (Bank)' : ''}</small><b>${inr(ac[a] || 0)}</b></div>`).join('')}</div>`;
+    h += `<div class="opsh">Receivables &amp; Payables</div><div class="grid g2 stack"><div class="opsc wide" data-act="opsrec" style="border-top-color:#f59e0b"><small>Customer Receivables (${nf(d.receivables.count)} customers)</small><b>${inr(d.receivables.total)}</b></div><div class="opsc wide" data-act="opspay" style="border-top-color:#dc2626"><small>Vendor Payables (${nf(d.payables.count)} bills${d.payables.overdueCount ? ' · ' + nf(d.payables.overdueCount) + ' overdue ' + inr(d.payables.overdueAmount) : ''})</small><b>${inr(d.payables.total)}</b></div></div>`;
+  }
+  box.innerHTML = h;
+  const dd = $('#opsdate'); if (dd) dd.onchange = () => { OPS.date = dd.value === opsToday() ? '' : dd.value; loadOps(); };
+}
+ACT.opssv = d => { sv.status = d.s || ''; sv.q = ''; sv.page = 1; go('service'); };
+ACT.opscash = () => { CB.mode = ''; CB.range = 'all'; go('cash'); };
+ACT.opsacct = d => { CB.mode = d.m; CB.type = ''; CB.q = ''; CB.by = ''; CB.view = 'hist'; CB.range = 'all'; CB.from = ''; CB.to = ''; go('cash'); };
+ACT.opsclose = () => { const c = OPS.data && OPS.data.daily.closing; const m = modal('Daily closing - ' + OPS.data.date, c ? `<div class="note ok">Closed by ${esc(c.by)} ${esc(c.time)}</div><p>Expected cash: <b>${inr(c.expected)}</b><br>Actual cash: <b>${inr(c.actual)}</b><br>Difference: <b>${inr(c.diff)}</b>${c.note ? '<br>Note: ' + esc(c.note) : ''}</p>` : '<div class="note warn">Daily closing is not done for this date. Do it in the CRM.</div>', { foot: '<button class="btn" id="opsgo">Open CRM</button>' }); m.$('#opsgo').onclick = () => { m.close(); go('crm'); }; };
+ACT.opscopy = async () => { try { await navigator.clipboard.writeText(opsText(OPS.data)); toast('Summary copied', 'ok'); } catch (e) { toast('Copy not allowed in this browser', 'bad'); } };
+ACT.opswa = () => window.open('https://wa.me/?text=' + encodeURIComponent(opsText(OPS.data)), '_blank', 'noopener');
+function opsList(title, cols, rows, empty) { const m = modal(title, tbl(cols, rows, { empty: empty || 'Nothing here' }) + '<div style="text-align:right;margin-top:10px"><button class="btn g" id="opsgo">Open CRM</button></div>', { cls: 'n' }); m.$('#opsgo').onclick = () => { m.close(); go('crm'); }; }
+ACT.opsrec = () => opsList('Customer Receivables', [{ h: 'Customer', k: r => `<b>${esc(r.name)}</b><br><small>${esc(r.phone)}</small>`, nl: true }, { h: 'Status', k: r => esc(r.status), l: 'Status' }, { h: 'Pending', k: r => inr(r.left), cls: 'r', l: 'Pending' }], OPS.data.receivables.rows);
+ACT.opspay = () => opsList('Vendor Payables', [{ h: 'Vendor', k: r => `<b>${esc(r.vendor)}</b><br><small>${esc(r.item)}</small>`, nl: true }, { h: 'Due date', k: r => esc(r.due), l: 'Due' }, { h: 'Pending', k: r => inr(r.left), cls: 'r', l: 'Pending' }], OPS.data.payables.rows);
+ACT.opsal = d => {
+  const al = OPS.data.alerts, k = d.k, T = {
+    overdue: ['Overdue service work', [{ h: 'Job', k: r => `<b>${esc(r.sid)}</b>`, l: 'Job' }, { h: 'Customer', k: r => esc(r.name), l: 'Customer' }, { h: 'Device', k: r => esc(r.device), l: 'Device' }, { h: 'Status', k: r => esc(r.status), l: 'Status' }, { h: 'Days', k: r => nf(r.days), cls: 'r', l: 'Days' }]],
+    tasks: ["Today's pending tasks", [{ h: 'Staff', k: r => `<b>${esc(r.who)}</b>`, l: 'Staff' }, { h: 'Task', k: r => esc(r.title), l: 'Task', nl: true }, { h: 'Due', k: r => esc(r.due), l: 'Due' }]],
+    expenses: ['Monthly expenses not paid yet', [{ h: 'Expense', k: r => `<b>${esc(r.name)}</b>`, l: 'Expense' }, { h: 'Day', k: r => nf(r.day), cls: 'r', l: 'Day' }, { h: 'Amount', k: r => inr(r.amount), cls: 'r', l: 'Amount' }]],
+    vendor: ['Vendor payments overdue', [{ h: 'Vendor', k: r => `<b>${esc(r.vendor)}</b><br><small>${esc(r.item)}</small>`, nl: true }, { h: 'Due', k: r => esc(r.due), l: 'Due' }, { h: 'Pending', k: r => inr(r.left), cls: 'r', l: 'Pending' }]],
+    requests: ['New service requests', [{ h: 'Customer', k: r => `<b>${esc(r.name)}</b><br><small>${esc(r.phone)}</small>`, nl: true }, { h: 'Device', k: r => esc(r.device), l: 'Device' }, { h: 'Issue', k: r => esc(r.issue), l: 'Issue', nl: true }, { h: 'Date', k: r => esc(r.date), l: 'Date' }]]
+  }[k];
+  if (k === 'overdue') { sv.status = ''; sv.q = ''; sv.page = 1; }
+  opsList(T[0] + ` (${nf(al[k].count)})`, T[1], al[k].rows);
 };
 
 /* ---------- Products ---------- */
@@ -1915,6 +2002,7 @@ function renderLogin(msg) {
   setTimeout(() => $('#li') && $('#li').focus(), 50);
 }
 function doLogout(auto) {
+  APIC.clear();
   const t = S.token; S.stack = []; store.del('tok'); store.del('route');
   if (t && !auto) { try { google.script.run.api(t, 'logout', {}); } catch (e) { } }
   S.token = null; S.user = null; S.boot = null; PQ && (PQ.items = []);
