@@ -323,6 +323,9 @@ input,select,textarea{border-color:#dcdcd8}
 .qd-addr{margin-top:10px;background:#f6f7f8;border-radius:8px;padding:8px 10px;font-size:12px}.qd-foot{margin-top:10px;background:#2b2d31;color:#fff;text-align:center;border-radius:8px;padding:8px;font-size:12px}
 @media(max-width:720px){.qd-two,.qd-g3{grid-template-columns:1fr}.qd-pills{grid-template-columns:1fr 1fr}.qd-r{display:none}}
 .qrow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;gap:10px}
+.qbk h3{font-size:14px;letter-spacing:.3px}.qbrow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:8px 0}.qbrow .fld{flex:1 1 170px;min-width:130px}
+.qtile{flex:1 1 150px;background:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 2px 10px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:4px}.qtile span{font-size:12px;color:#64748b}.qtile b{font-size:20px}
+.qd-addr{background:#eef0f3;border:1px solid #d1d5db}.qd-foot{display:flex;justify-content:space-between;gap:10px;border-top:3px solid #f97316;border-radius:0 0 8px 8px;text-align:left;flex-wrap:wrap}.qd-foot b{color:#f97316}
 </style>
 
 </head>
@@ -379,6 +382,7 @@ const IC = {
   serial: '<path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M21 5v14"/>',
   customers: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.5a5 5 0 0 1 4.5 5"/>',
   service: '<path d="M14 6l4 4-9 9H5v-4z"/>',
+  pcmp: '<path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/>',
   cash: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9v.01M18 15v.01"/>',
   crm: '<path d="M4 5h16v11H8l-4 4z"/>',
   quotes: '<path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h8"/>',
@@ -402,7 +406,7 @@ const ico = (n, cls) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 /* ---------- language (English / Gujarati) ---------- */
 const T = {
   dash: ['Dashboard', 'ડેશબોર્ડ'], products: ['Products', 'પ્રોડક્ટ્સ'], purchase: ['Purchase', 'ખરીદી'], sales: ['Sales', 'વેચાણ'], stock: ['Stock', 'સ્ટોક'],
-  serial: ['Serial No.', 'સિરિયલ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'],
+  serial: ['Serial No.', 'સિરિયલ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], pcmp: ['Price Compare', 'Price Compare'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'],
   print: ['Print Stickers', 'સ્ટીકર પ્રિન્ટ'], users: ['Users & Roles', 'યુઝર્સ'], settings: ['Settings', 'સેટિંગ્સ'], scan: ['Scan', 'સ્કેન'],
   search: ['Search Product, Serial, Customer...', 'પ્રોડક્ટ, સિરિયલ, ગ્રાહક શોધો...'], save: ['Save', 'સાચવો'], cancel: ['Cancel', 'રદ કરો'], close: ['Close', 'બંધ'], add: ['Add', 'ઉમેરો'],
   edit: ['Edit', 'ફેરફાર'], del: ['Delete', 'કાઢો'], login: ['Login', 'લૉગિન'], logout: ['Logout', 'લૉગઆઉટ'], loginid: ['Login ID', 'લૉગિન ID'], pin: ['PIN', 'પિન'],
@@ -1627,15 +1631,20 @@ function drawQuote() {
   const share = !saved ? '' : `<div class="card" style="margin-top:12px"><h3>PDF design</h3><div class="fld"><select id="qfmt"><option value="simple" ${e.format === 'simple' ? 'selected' : ''}>1. Simple (no photos)</option><option value="premium" ${e.format === 'premium' ? 'selected' : ''}>2. With product photos</option><option value="detailed" ${e.format === 'detailed' ? 'selected' : ''}>3. Photos + full specifications</option></select></div>
     <small>PDF: in the print window choose "Save as PDF". WhatsApp opens with the message ready; attach the saved PDF yourself.</small></div>`;
   const hist = e.log && e.log.length ? `<div class="card" style="margin-top:12px"><h3>History</h3>${tbl([{ h: 'When', k: r => esc(dtm('', r.dt)), l: 'When' }, { h: 'Who', k: r => esc(r.who), l: 'Who' }, { h: 'What', k: r => `<b>${esc(r.event)}</b> ${esc(r.detail)}`, l: 'What' }], e.log)}</div>` : '';
-  const bulk = lock || !a ? '' : `<div class="card" style="margin-top:12px"><h3>Bulk paste + Add profit <small>(internal, admin only)</small></h3>
-      <p style="font-size:12px;color:#64748b">Vendor ni list paste karo: dar line ma product name ane chhelle purchase price. Photo vala catalogue product match thase to photo aavse.</p>
-      <textarea id="qbulk" rows="5" placeholder="I7 7 GEN 2 YEAR WARRANTY 6000&#10;8 GB RAM DDR4 SAMSUNG 3800" style="width:100%"></textarea>
-      <div class="row"><div class="fld"><label>Purchase GST %</label><input id="qbg" inputmode="decimal" value="0"></div><div class="fld"><label>One item name (for Single item)</label><input id="qsn" value="Complete Computer Set"></div></div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px"><button class="btn g" data-act="qbulk" data-m="sep">Separate items</button><button class="btn g" data-act="qbulk" data-m="one">Single item (total set)</button></div>
-      <hr style="margin:10px 0;border:0;border-top:1px solid #e5e7eb">
-      <div class="row"><div class="fld"><label>Add profit ₹ (total)</label><input id="qpf" inputmode="decimal"></div><div class="fld"><label>OR Margin % on cost</label><input id="qpm" inputmode="decimal"></div><div class="fld"><label>Round to</label><select id="qpr"><option value="1">₹1</option><option value="10" selected>₹10</option><option value="50">₹50</option></select></div></div>
-      <button class="btn" data-act="qprofit">Apply profit to all lines</button> <small>Selling price = cost + profit. Cost vagar ni line ma kai nahi thay.</small></div>`;
-  const costp = a ? `<div class="card" style="margin-top:12px;background:#ecfdf5"><h3>Internal costing <small>(admin only, not printed)</small></h3><div class="qrow"><span>Purchase cost</span><b>${inr(c.cost)}</b></div><div class="qrow"><span>Expected profit</span><b style="color:#16a34a">${inr(c.profit)}</b></div><div class="qrow"><span>Margin</span><b>${c.taxable > 0 ? r2(c.profit / c.taxable * 100) : 0}%</b></div></div>` : '';
+  const bk = e.bulk || {};
+  const bulk = lock || !a ? '' : `<div class="card qbk" style="margin-top:12px"><h3>BULK PRODUCT → PURCHASE COST → AUTO QUOTATION <small>(internal, admin only)</small></h3>
+      <p style="font-size:12px;color:#64748b">Vendor ni list paste karo, dar line ma product name ane chhelle price. Purchase GST kya lagavvo te niche select karo.</p>
+      <textarea id="qbulk" rows="5" placeholder="I5 10 GEN 2050&#10;16 GB RAM DDR4 8000&#10;MOTHERBOARD 4500+" style="width:100%">${esc(bk.txt || '')}</textarea>
+      <div class="qbrow"><div class="fld"><label>Purchase GST %</label><input id="qbg" inputmode="decimal" value="${esc(bk.g != null ? bk.g : 18)}"></div><div class="fld"><label>GST kya par lagavo</label><select id="qgw"><option value="all" ${bk.gw !== 'none' ? 'selected' : ''}>Badhi line par</option><option value="none" ${bk.gw === 'none' ? 'selected' : ''}>GST nahi (0%)</option></select></div>
+        <div class="qtile"><span>Base Purchase Total</span><b id="qt1">₹0</b></div><div class="qtile"><span>Purchase GST</span><b id="qt2">₹0</b></div><div class="qtile"><span>Final Landed Cost</span><b id="qt3">₹0</b></div></div>
+      <div class="qbrow"><div class="fld"><label>Add Profit ₹</label><input id="qpf" inputmode="decimal" value="${esc(bk.pf || '')}"></div><div class="fld"><label>OR Margin %</label><input id="qpm" inputmode="decimal" value="${esc(bk.pm || '')}"></div><div class="fld"><label>Customer Quotation ₹</label><input id="qcq" inputmode="decimal" value="${esc(bk.cq || '')}"></div></div>
+      <input type="hidden" id="qpr" value="10"><input type="hidden" id="qsn" value="Complete Computer Set">
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"><button class="btn" data-act="qbulk" data-m="one">Single item (total set)</button><button class="btn" data-act="qbulk" data-m="sep">Separate items</button><button class="btn g" data-act="qprofit">Apply profit to all lines</button></div>
+      <small id="qbsum">Final Purchase: ₹0 | Customer Quote: ₹0 | Profit: ₹0 | Margin: 0%</small></div>`;
+  const costp = lock || !a ? '' : `<div class="card qbk" style="margin-top:12px"><h3>INTERNAL COSTING — C COMPUTER <small>(cost, profit ane margin print / PDF ma nahi aave)</small></h3>
+      <div class="qbrow"><div class="fld"><label>Product</label><input id="ic_n" value="${esc((e.ic || {}).n || '')}"></div><div class="fld"><label>Base Cost</label><input id="ic_b" inputmode="decimal" value="${esc((e.ic || {}).b || '')}"></div><div class="fld"><label>Purchase GST</label><select id="ic_g">${[0, 5, 12, 18, 28].map(g => `<option value="${g}" ${((e.ic || {}).g != null ? +(e.ic || {}).g : 18) === g ? 'selected' : ''}>${g}%</option>`).join('')}</select></div><div class="qtile"><span>Landed</span><b id="ic_l">₹0</b></div><div class="fld"><label>Selling Price</label><input id="ic_s" inputmode="decimal" value="${esc((e.ic || {}).s || '')}"></div></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><button class="btn" data-act="qicadd">Add to quotation</button><small id="ic_p">Profit: ₹0 | Margin: 0%</small></div>
+      <hr style="margin:10px 0;border:0;border-top:1px solid #e5e7eb"><div class="qrow"><span>This quotation: Purchase cost</span><b>${inr(c.cost)}</b></div><div class="qrow"><span>Expected profit</span><b style="color:#16a34a">${inr(c.profit)}</b></div><div class="qrow"><span>Margin</span><b>${c.taxable > 0 ? r2(c.profit / c.taxable * 100) : 0}%</b></div></div>`;
   $('#page').innerHTML = `<div class="ph"><h1>${e.id ? esc(e.id) : 'New Quotation'}</h1><span style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end"><button class="btn g" data-act="go" data-r="quotes">Back</button>${saved ? `<button class="btn g" data-act="qpdf">PDF</button><button class="btn g" data-act="qprint">Print</button><button class="btn g" data-act="qwa">WhatsApp</button><button class="btn g" data-act="qdup">Duplicate</button>${lock ? '<button class="btn g" data-act="qinv">Invoice</button>' : ''}` : ''}${lock ? '' : `<button class="btn" data-act="qsave">${ico('plus')} Save</button>`}</span></div>
   <div class="qdoc">
     <div class="qd-hd"><img src="${window.LOGO}" alt=""><div class="qd-r">SALES | SERVICE | ACCESSORIES<br>LAPTOP | DESKTOP | GAMING PC | MONITOR<br>PRINTER | CCTV | NETWORKING | AMC</div></div>
@@ -1662,12 +1671,28 @@ function drawQuote() {
         ${!a && e.lines.some(l => l.belowMin) ? '<p style="color:#dc2626;font-size:12px">⚠ Some prices are below the minimum selling price.</p>' : ''}
         ${(+c.disc / Math.max(1, c.gross) * 100) > (+e.maxDisc || 5) && !a ? '<p style="color:#b45309;font-size:12px">Discount is high. The admin must approve it before you can send this quotation.</p>' : ''}</div></div>
     <div class="qd-g3"><div><h4>Terms &amp; Conditions</h4><ul>${terms}</ul></div><div><h4>Why Choose C COMPUTER?</h4>✓ Genuine Products<br>✓ Competitive Pricing<br>✓ Expert Service Support<br>✓ After Sales Service<br>✓ Home &amp; Business Solutions</div><div><h4>Need Help?</h4>📞 ${esc(sh.phone || '8160088439')}<br>WhatsApp Support</div></div>
-    <div class="qd-addr">📍 ${esc(sh.addr || 'C-5, Near Business Fair, Laxmi Nagar Society, Katargam, Surat, Gujarat 395004')}</div>
-    <div class="qd-foot">Thank you for choosing C COMPUTER – The Computer House</div>
+    <div class="qd-addr"><b>C COMPUTER – The Computer House</b><br>${esc(sh.addr || 'C-5, Near Business Fair, Laxmi Nagar Society, Katargam Road, Surat – 395004')}<br>Call / WhatsApp: +91 81600 88439 | Monday – Saturday: 10:00 AM – 7:30 PM</div>
+    <div class="qd-foot"><span>SALES | SERVICE | SUPPORT</span><b>KATARGAM, SURAT</b><span>C COMPUTER – The Computer House</span></div>
   </div>
   ${bulk}${costp}${acts}${share}${hist}`;
   bindQuote();
 }
+function qBulkParse(txt, g) { const out = []; String(txt || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(ln => { const mt = ln.match(/^(.*?)[\s:=-]*₹?\s*([\d,]+(?:\.\d+)?)\s*\+?\s*$/); if (mt && mt[1].trim()) out.push({ name: mt[1].trim(), cost: Math.round(+mt[2].replace(/,/g, '') * (1 + g / 100) * 100) / 100, base: +mt[2].replace(/,/g, '') }); }); return out; }
+function qBulkG() { return $('#qgw') && $('#qgw').value === 'none' ? 0 : (+($('#qbg') && $('#qbg').value) || 0); }
+function qBulkBind() {
+  const f = () => {
+    if (!$('#qbulk')) return; const g = qBulkG(), L = qBulkParse($('#qbulk').value, g), base = L.reduce((a, x) => a + x.base, 0), landed = L.reduce((a, x) => a + x.cost, 0);
+    $('#qt1').textContent = inr(base); $('#qt2').textContent = inr(landed - base); $('#qt3').textContent = inr(landed);
+    const pf = +$('#qpf').value || 0, pm = +$('#qpm').value || 0, cq = +$('#qcq').value || 0; const tc = landed || qcalc(QE).cost;
+    const profit = cq ? cq - tc : pm ? tc * pm / 100 : pf, quote = tc + profit;
+    $('#qbsum').textContent = `Final Purchase: ${inr(tc)} | Customer Quote: ${inr(quote)} | Profit: ${inr(profit)} | Margin: ${quote > 0 ? r2(profit / quote * 100) : 0}%`;
+    QE.bulk = { txt: $('#qbulk').value, g: $('#qbg').value, gw: $('#qgw').value, pf: $('#qpf').value, pm: $('#qpm').value, cq: $('#qcq').value };
+  };
+  ['#qbulk', '#qbg', '#qgw', '#qpf', '#qpm', '#qcq'].forEach(x => { const el = $(x); if (el) { el.oninput = f; el.onchange = f; } }); f();
+  const h = () => { if (!$('#ic_b')) return; const b = +$('#ic_b').value || 0, g = +$('#ic_g').value || 0, l = Math.round(b * (1 + g / 100) * 100) / 100, s = +$('#ic_s').value || 0; $('#ic_l').textContent = inr(l); $('#ic_p').textContent = `Profit: ${inr(s - l)} | Margin: ${s > 0 ? r2((s - l) / s * 100) : 0}%`; QE.ic = { n: $('#ic_n').value, b: $('#ic_b').value, g: $('#ic_g').value, s: $('#ic_s').value }; };
+  ['#ic_n', '#ic_b', '#ic_g', '#ic_s'].forEach(x => { const el = $(x); if (el) { el.oninput = h; el.onchange = h; } }); h();
+}
+ACT.qicadd = () => { qRead(); const n = $('#ic_n').value.trim(), b = +$('#ic_b').value || 0, g = +$('#ic_g').value || 0, s = +$('#ic_s').value || 0; if (!n) return toast('Enter product name', 'bad'); if (!s) return toast('Enter selling price', 'bad'); QE.lines.push({ kind: 'Custom', part: '', productId: '', name: n, brand: '', model: '', spec: '', qty: 1, unitPrice: s, lineDisc: 0, gstRate: '', cost: Math.round(b * (1 + g / 100) * 100) / 100 }); QE.ic = null; drawQuote(); toast('Added to quotation'); };
 function qRead() {
   const e = QE, v = id => { const x = $(id); return x ? x.value : undefined; };
   if ($('#qn')) { e.name = v('#qn'); e.mobile = v('#qm'); e.address = v('#qa'); e.gstNo = (v('#qg') || '').toUpperCase(); e.gst = v('#qgst') === '1'; e.date = v('#qd'); e.validUntil = v('#qv'); e.note = v('#qnote'); e.billDisc = v('#qbd'); if ($('#qr')) e.gstRate = v('#qr'); }
@@ -1675,6 +1700,7 @@ function qRead() {
 function bindQuote() {
   const e = QE;
   ['#qn', '#qm', '#qa', '#qg', '#qd', '#qv', '#qnote'].forEach(s => { const x = $(s); if (x) x.onchange = () => qRead(); });
+  qBulkBind();
   $$('[data-for]').forEach(x => x.onchange = () => { QE.forTick[x.dataset.for] = x.checked; });
   if ($('#qgst')) $('#qgst').onchange = () => { qRead(); drawQuote(); };
   if ($('#qg')) $('#qg').onchange = () => { qRead(); drawQuote(); };
@@ -1697,9 +1723,9 @@ async function qAddProduct(pid, part, qty) {
   drawQuote();
 }
 ACT.qbulk = (d, el) => work(el, async () => {
-  qRead(); const one = d.m === 'one', parsed = []; const txt = ($('#qbulk').value || '').split('\n').map(x => x.trim()).filter(Boolean), g = +($('#qbg').value) || 0; let n = 0, m = 0;
+  qRead(); const one = d.m === 'one', parsed = []; const txt = ($('#qbulk').value || '').split('\n').map(x => x.trim()).filter(Boolean), g = qBulkG(); let n = 0, m = 0;
   for (const ln of txt) {
-    const mt = ln.match(/^(.*?)[\s:=-]*₹?\s*([\d,]+(?:\.\d+)?)\s*$/); if (!mt || !mt[1].trim()) continue;
+    const mt = ln.match(/^(.*?)[\s:=-]*₹?\s*([\d,]+(?:\.\d+)?)\s*\+?\s*$/); if (!mt || !mt[1].trim()) continue;
     const name = mt[1].trim(), price = +mt[2].replace(/,/g, ''), cost = Math.round(price * (1 + g / 100) * 100) / 100; let prod = null;
     if (one) { parsed.push({ name, cost }); n++; continue; }
     try { const r = await api('prod.quick', { q: name.split(/\s+/).slice(0, 3).join(' ') }); const w = name.toLowerCase().split(/\s+/).filter(x => x.length > 1); const sc = p => { const t = (p.Name + ' ' + (p.Brand || '') + ' ' + (p.Model || '')).toLowerCase(); return w.filter(x => t.includes(x)).length / Math.max(1, w.length); }; const b = r.map(p => [sc(p), p]).sort((x, y) => y[0] - x[0])[0]; if (b && b[0] >= 0.7) prod = b[1]; } catch (e) { }
@@ -1710,9 +1736,9 @@ ACT.qbulk = (d, el) => work(el, async () => {
   drawQuote(); toast(one && n ? `1 set item added (${n} parts, cost ${inr(parsed.reduce((a, x) => a + x.cost, 0))}). Now add profit.` : n ? `${n} lines added (${m} with catalogue photo). Now add profit.` : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
 });
 ACT.qprofit = d => {
-  qRead(); const pf = +($('#qpf').value) || 0, pm = +($('#qpm').value) || 0, rd = +($('#qpr').value) || 1; const ls = QE.lines.filter(l => +l.cost > 0); if (!ls.length) return toast('Cost is not set on any line', 'bad'); if (!pf && !pm) return toast('Enter profit ₹ or margin %', 'bad');
-  const tc = ls.reduce((a, l) => a + l.cost * l.qty, 0);
-  ls.forEach(l => { const up = pm ? l.cost * (1 + pm / 100) : l.cost + pf * (l.cost * l.qty / tc) / l.qty; l.unitPrice = Math.ceil(up / rd - 1e-9) * rd; l.belowMin = false; });
+  qRead(); const pf = +($('#qpf').value) || 0, pm = +($('#qpm').value) || 0, rd = +($('#qpr').value) || 1; const ls = QE.lines.filter(l => +l.cost > 0); if (!ls.length) return toast('Cost is not set on any line', 'bad'); const cq = +($('#qcq') && $('#qcq').value) || 0; if (!pf && !pm && !cq) return toast('Enter profit ₹, margin % or Customer Quotation', 'bad');
+  const tc = ls.reduce((a, l) => a + l.cost * l.qty, 0), pf2 = cq ? cq - tc : pf;
+  ls.forEach(l => { const up = pm && !cq ? l.cost * (1 + pm / 100) : l.cost + pf2 * (l.cost * l.qty / tc) / l.qty; l.unitPrice = Math.ceil(up / rd - 1e-9) * rd; l.belowMin = false; });
   drawQuote(); toast('Profit added to ' + ls.length + ' lines');
 };
 ACT.qdel = d => { qRead(); QE.lines.splice(+d.i, 1); drawQuote(); };
@@ -1805,6 +1831,45 @@ ACT.qwa = async () => {
   api('quote.log', { id: QE.id, event: 'WhatsApp', detail: 'opened (message not auto-sent)' }, { rid: rid() }).catch(() => { });
   toast('WhatsApp opened with the message ready. Press Send there and attach the PDF yourself.');
 };
+
+/* ---------- Price Compare (admin only, read-only; nothing is saved) ---------- */
+const csvBtn = (n, h, rows) => { setTimeout(() => { const el = $('#csvb'); if (el) el.onclick = () => csvDownload(n, h, rows); }, 0); return `<button class="btn g s" id="csvb">${ico('down')} CSV</button>`; };
+const PCM = { n: 3, tab: 'paste', v: [{ n: '', t: '' }, { n: '', t: '' }, { n: '', t: '' }], g: 0 };
+function pcmNorm(x) { return String(x || '').toLowerCase().replace(/(\d)\s+(gb|tb|mb|gen|mhz|w|inch)\b/g, '$1$2').replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(Boolean); }
+function pcmSim(a, b) { const A = new Set(a), B = new Set(b); let i = 0; A.forEach(x => { if (B.has(x)) i++; }); return i / Math.max(1, Math.max(A.size, B.size)); }
+function pcmCalc() {
+  const g = +PCM.g || 0, items = [];
+  PCM.v.forEach((v, vi) => { qBulkParse(v.t, 0).forEach(l => { const tk = pcmNorm(l.name); let it = items.find(x => pcmSim(x.tk, tk) >= 0.75); if (!it) { it = { name: l.name, tk, p: [] }; items.push(it); } const pr = Math.round(l.base * (1 + g / 100) * 100) / 100; if (it.p[vi] == null || pr < it.p[vi]) it.p[vi] = pr; }); });
+  const act = PCM.v.map((v, i) => i).filter(i => PCM.v[i].t.trim());
+  items.forEach(it => { const vals = act.filter(i => it.p[i] != null); it.best = vals.length ? vals.reduce((a, i) => it.p[i] < it.p[a] ? i : a, vals[0]) : -1; it.min = it.best >= 0 ? it.p[it.best] : 0; it.max = vals.length ? Math.max(...vals.map(i => it.p[i])) : 0; it.cnt = vals.length; });
+  const tot = act.map(i => items.reduce((s, it) => s + (it.p[i] != null ? it.p[i] : 0), 0)), cnt = act.map(i => items.filter(it => it.p[i] != null).length);
+  const all = items.filter(it => it.cnt === act.length);
+  return { act, items, tot, cnt, bestMix: items.reduce((s, it) => s + it.min, 0), allCommon: all.length };
+}
+async function V_pcmp() {
+  page('Price Compare', '', `<div style="display:flex;gap:6px;margin-bottom:12px"><button class="btn ${PCM.tab === 'paste' ? '' : 'g'}" data-act="pcmtab" data-t="paste">Paste lists &amp; compare</button><button class="btn ${PCM.tab === 'hist' ? '' : 'g'}" data-act="pcmtab" data-t="hist">Old purchase bills</button></div><div id="pcb"></div>`);
+  if (PCM.tab === 'paste') drawPcm(); else {
+    const b = $('#pcb'); b.innerHTML = skel(); const r = await api('rep.vendors', {}, { loader: true });
+    b.innerHTML = `<div class="note info">Juna received purchase bill par thi. Green = sauthi sasto vendor (latest price). ${r.multi} products ek thi vadhare vendor pase thi kharidela chhe.</div>` + csvBtn('vendor-prices.csv', ['Product', 'Vendor', 'Last price', 'Last date', 'Lowest', 'Times'], r.rows.flatMap(x => x.vendors.map(v => [x.name, v.vendor, v.last, v.lastDate, v.min, v.n]))) + tbl([{ h: 'Product', k: x => `<b>${esc(x.name)}</b><br><small>${esc(x.category)}</small>`, nl: true }, { h: 'Vendors (latest price)', k: x => x.vendors.map(v => `<div${v.vendor === x.best && x.vendors.length > 1 ? ' style="color:#16a34a;font-weight:700"' : ''}>${esc(v.vendor)}: ${inr(v.last)} <small>(${esc(v.lastDate)}${v.min !== v.max ? `, ${inr(v.min)}–${inr(v.max)}` : ''})</small></div>`).join(''), l: 'Vendors' }, { h: 'Saving', k: x => x.saving ? inr(x.saving) : '-', cls: 'r', l: 'Saving' }], r.rows, { empty: 'No purchase bills yet' });
+  }
+}
+function drawPcm() {
+  const b = $('#pcb'); if (!b) return;
+  b.innerHTML = `<div class="card"><h3>Vendor ni price list paste karo <small>(dar line: product name ane chhelle price)</small></h3>
+    <div class="qbrow">${PCM.v.map((v, i) => `<div class="fld" style="flex:1 1 260px"><label>Vendor ${i + 1} name</label><input data-pv="${i}" data-f="n" value="${esc(v.n)}" placeholder="Vendor ${i + 1}"><textarea data-pv="${i}" data-f="t" rows="7" style="width:100%;margin-top:6px" placeholder="I5 10 GEN 2050&#10;16 GB RAM DDR4 8000">${esc(v.t)}</textarea></div>`).join('')}</div>
+    <div class="qbrow"><div class="fld" style="max-width:200px"><label>GST % (sab vendor par)</label><input id="pcg" inputmode="decimal" value="${esc(PCM.g)}"></div><button class="btn" data-act="pcmgo">Compare</button></div></div><div id="pcr"></div>`;
+  $$('[data-pv]', b).forEach(x => x.oninput = () => { PCM.v[+x.dataset.pv][x.dataset.f] = x.value; }); $('#pcg').oninput = () => { PCM.g = $('#pcg').value; };
+  pcmShow();
+}
+function pcmShow() {
+  const r = $('#pcr'); if (!r) return; const c = pcmCalc(); if (!c.act.length || !c.items.length) { r.innerHTML = '<div class="empty">Kam se kam ek vendor ni list paste karo, pachhi Compare dabavo.</div>'; return; }
+  const nm = i => PCM.v[i].n.trim() || 'Vendor ' + (i + 1), cols = [{ h: 'Item', k: it => `<b>${esc(it.name)}</b>`, nl: true, l: 'Item' }].concat(c.act.map(i => ({ h: nm(i), k: it => it.p[i] == null ? '<span style="color:#94a3b8">-</span>' : `<span${it.best === i && it.cnt > 1 ? ' style="color:#16a34a;font-weight:700"' : ''}>${inr(it.p[i])}</span>`, cls: 'r', l: nm(i) }))).concat([{ h: 'Best', k: it => it.cnt > 1 ? `<b style="color:#16a34a">${esc(nm(it.best))}</b>` : it.cnt === 1 ? '<small>only 1 vendor</small>' : '', l: 'Best' }, { h: 'Saving', k: it => it.cnt > 1 ? inr(it.max - it.min) : '-', cls: 'r', l: 'Saving' }]);
+  const tiles = c.act.map((i, k) => `<div class="qtile"><span>${esc(nm(i))} total (${c.cnt[k]} items)</span><b>${inr(c.tot[k])}</b></div>`).join('');
+  const full = c.act.map((i, k) => c.cnt[k] === c.items.length ? [c.tot[k], nm(i)] : null).filter(Boolean).sort((a, b) => a[0] - b[0])[0];
+  r.innerHTML = `<div class="qbrow">${tiles}<div class="qtile" style="background:#ecfdf5"><span>Sab item sauthi sasta vendor thi</span><b style="color:#16a34a">${inr(c.bestMix)}</b></div></div>${full ? `<div class="note info">Ek j vendor thi badhu levu hoy to sauthi sasto: <b>${esc(full[1])}</b> ${inr(full[0])}. Alag alag sasta thi levathi bachat: <b>${inr(full[0] - c.bestMix)}</b>.</div>` : '<div class="note info">Koi ek vendor pase badha item nathi. Je item ma "-" chhe te te vendor pase nathi.</div>'}${csvBtn('price-compare.csv', ['Item'].concat(c.act.map(nm), ['Best vendor', 'Lowest']), c.items.map(it => [it.name].concat(c.act.map(i => it.p[i] == null ? '' : it.p[i]), [it.best >= 0 ? nm(it.best) : '', it.min])))}${tbl(cols, c.items, { empty: '' })}`;
+}
+ACT.pcmtab = d => { PCM.tab = d.t; V_pcmp(); };
+ACT.pcmgo = () => { PCM.g = $('#pcg').value; pcmShow(); };
 </script>
 
 <script>
@@ -1929,9 +1994,9 @@ ACT.cbdel = d => work(null, async () => {
 const ROUTES = {
   dash: () => V_dash(), products: () => V_products(), purchase: () => V_purchase(), sales: () => V_sales(), stock: () => V_stock(),
   serial: () => V_serial(), customers: () => V_customers(), reports: () => V_reports(), audit: () => V_audit(), build: () => V_build(),
-  print: () => V_print(), users: () => V_users(), settings: () => V_settings(), scan: () => V_scan(), crm: () => V_crm(), service: () => V_service(), quotes: () => V_quotes(), quote: () => V_quote(), cash: () => V_cash()
+  print: () => V_print(), users: () => V_users(), settings: () => V_settings(), scan: () => V_scan(), crm: () => V_crm(), service: () => V_service(), quotes: () => V_quotes(), quote: () => V_quote(), cash: () => V_cash(), pcmp: () => V_pcmp()
 };
-const ADMIN_ONLY = ['users', 'settings'];
+const ADMIN_ONLY = ['users', 'settings', 'pcmp'];
 /* Which menus each staff member sees (by name). Admin sees everything. */
 const STAFF_MENUS = { USTAV: ['quotes', 'crm', 'sales', 'build', 'serial', 'products'], NAKUL: ['quotes', 'crm', 'cash', 'purchase', 'sales', 'stock'] };
 function userMenus() {
@@ -1943,7 +2008,7 @@ function navItems() {
   const a = isAdmin();
   if (isAcct()) return ['sales', 'customers'];
   if (userMenus()) return userMenus();
-  const l = ['dash', 'products', 'purchase', 'sales', 'quotes', 'stock', 'serial', 'customers', 'build', 'audit', 'print', 'reports', 'service', 'cash', 'crm'];
+  const l = ['dash', 'products', 'purchase', 'pcmp', 'sales', 'quotes', 'stock', 'serial', 'customers', 'build', 'audit', 'print', 'reports', 'service', 'cash', 'crm'];
   if (a) l.push('users', 'settings');
   return l;
 }
