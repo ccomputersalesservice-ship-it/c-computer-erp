@@ -1320,6 +1320,10 @@ ACT.openorder = async d => {
     ${seesPrice() ? `<div style="text-align:right;font-size:18px;margin-top:10px"><b>${LT('total')}: <span id="optot">${inr(o.total)}</span></b></div>` : `<div class="note info">Price will be added by Accounts.</div>`}${o.note ? `<div class="note">${esc(o.note)}</div>` : ''}`,
     { cls: 'w', foot: (seesPrice() && o.status !== 'Cancelled' ? `<button class="btn ok" id="savePrice">${ico('down')} Save price</button>` : '') + (isAcct() ? '' : o.next).map(s => `<button class="btn ${s === 'Cancelled' ? 'bad' : s === 'Delivered' ? 'ok' : ''}" data-st="${s}">${LI(STAT_KEY[s])}</button>`).join('') || `<span style="color:#64748b">No further status change</span>` });
   loadThumbs(o.lines.map(l => l.productId), m.el);
+  if (isAdmin() && o.status === 'Cancelled') {
+    const ft = m.el.querySelector('.mf, .foot, footer') || m.el.querySelector('.modal'); const db = document.createElement('button'); db.className = 'btn bad'; db.textContent = '🗑 Delete order'; (ft || m.el).appendChild(db);
+    db.onclick = async () => { if (!(await confirmBox(`Delete ${o.orderId}? It will be removed from the Sales list. The record is kept safely for audit.`))) return; work(db, async () => { await api('ord.delete', { orderId: o.orderId }, { rid: rid() }); toast(o.orderId + ' deleted', 'ok'); m.close(); if (S.route === 'sales') loadOrders(); }); };
+  }
   if (needAssign) for (const s of m.$$('[data-assign]')) { const fl = await freeItems(s.dataset.pid); s.innerHTML += fl.map(f => `<option value="${esc(f.itemId)}">${esc(f.serial || f.itemId)}</option>`).join(''); }
   const _rid = rid();
   const reTot = () => { let t = 0; m.$$('[data-price]').forEach(i => { t += (+i.value || 0) * (+i.dataset.q || 0); }); const x = m.$('#optot'); if (x) x.textContent = inr(t); };
