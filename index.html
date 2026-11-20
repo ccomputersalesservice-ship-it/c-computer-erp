@@ -326,6 +326,33 @@ input,select,textarea{border-color:#dcdcd8}
 .qbk h3{font-size:14px;letter-spacing:.3px}.qbrow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:8px 0}.qbrow .fld{flex:1 1 170px;min-width:130px}
 .qtile{flex:1 1 150px;background:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 2px 10px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:4px}.qtile span{font-size:12px;color:#64748b}.qtile b{font-size:20px}
 .qd-addr{background:#eef0f3;border:1px solid #d1d5db}.qd-foot{display:flex;justify-content:space-between;gap:10px;border-top:3px solid #f97316;border-radius:0 0 8px 8px;text-align:left;flex-wrap:wrap}.qd-foot b{color:#f97316}
+/* POS */
+.pos{max-width:1500px;margin:0 auto}.pos-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.pos-tabs{display:flex;background:#eef0f3;border-radius:10px;padding:3px}.pos-tabs button{border:0;background:transparent;padding:8px 14px;border-radius:8px;font-weight:600;cursor:pointer}.pos-tabs button.on{background:#fff;color:#2563eb;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.pos-main{display:grid;grid-template-columns:200px 1fr 340px;gap:12px;align-items:start}
+.pos-cats,.pos-cart{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:10px}.pos-cats h4{margin:2px 6px 8px}.pos-catl{display:flex;flex-direction:column;gap:2px;max-height:72vh;overflow:auto}
+.pos-catl button{display:flex;justify-content:space-between;align-items:center;border:0;background:transparent;padding:9px 10px;border-radius:9px;cursor:pointer;font-size:13px;text-align:left}.pos-catl button.on{background:#e8f0fe;color:#2563eb;font-weight:700}.pos-catl b{font-size:11px;color:#64748b}
+.pos-center{min-width:0}.pos-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.pos-tools input{flex:2 1 220px;width:auto}.pos-tools select{flex:1 1 120px;width:auto}
+.pos-chips{display:none;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:4px}.pos-chips button{flex:0 0 auto;border:1px solid #d1d5db;background:#fff;border-radius:18px;padding:6px 14px;font-size:13px;cursor:pointer}.pos-chips button.on{background:#2563eb;color:#fff;border-color:#2563eb}
+.pos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}.pos-card{position:relative;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.pos-img{height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden}.pos-img img{max-width:100%;max-height:120px;object-fit:contain}.pos-fav{position:absolute;right:8px;top:6px;border:0;background:transparent;font-size:18px;cursor:pointer;color:#94a3b8}.pos-fav.on{color:#ef4444}
+.pos-info{display:flex;flex-direction:column;gap:3px;flex:1}.pos-nm{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.pos-info small{color:#64748b;font-size:11px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pos-pr{font-size:17px;font-weight:800;color:#2563eb;margin-top:auto}.pos-st{display:flex;justify-content:space-between;align-items:center}.pos-stock{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px}.pos-stock.ok{background:#dcfce7;color:#15803d}.pos-stock.low{background:#fef3c7;color:#b45309}.pos-stock.no{background:#fee2e2;color:#b91c1c}
+.pos-add{width:34px;height:34px;border-radius:9px;border:0;background:#2563eb;color:#fff;font-size:20px;cursor:pointer}
+.pos-list{grid-template-columns:1fr}.pos-list .pos-card{flex-direction:row;align-items:center}.pos-list .pos-img{width:80px;height:70px;flex:0 0 80px}.pos-list .pos-info{flex-direction:row;align-items:center;gap:14px;flex-wrap:wrap}.pos-list .pos-pr{margin:0}
+.pos-cart{position:sticky;top:10px;max-height:calc(100vh - 30px);overflow:auto}.pos-ch{display:flex;justify-content:space-between;align-items:center}.pos-ch h3{margin:0;font-size:15px}.pos-back{display:none}
+.pos-line{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;align-items:flex-start}.pos-lth{width:46px;flex:0 0 46px}.pos-lth img{width:46px;height:46px;object-fit:contain}.pos-lb{flex:1;min-width:0}.pos-lb b{font-size:13px}.pos-lb small{display:block;color:#64748b;font-size:11px}
+.pos-lr{display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap}.pos-q{display:flex;align-items:center;gap:6px;border:1px solid #d1d5db;border-radius:8px;padding:2px 6px}.pos-q button{border:0;background:transparent;font-size:16px;cursor:pointer}.pos-pi{width:72px!important;padding:4px 6px!important;font-size:12px}.pos-x{border:0;background:transparent;color:#ef4444;cursor:pointer}
+.pos-sum{margin:8px 0}.pos-tot{font-size:18px;background:#e8f0fe;color:#1d4ed8;border-radius:8px;padding:8px 10px!important}.pos-cust{width:100%;text-align:left;border:1px solid #d1d5db;background:#fff;border-radius:10px;padding:10px;margin:6px 0;cursor:pointer}
+.pos-pays{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}.pos-pays button{border:1px solid #d1d5db;background:#fff;border-radius:9px;padding:8px 4px;font-size:12px;cursor:pointer}.pos-pays button.on{border-color:#2563eb;background:#e8f0fe;color:#1d4ed8;font-weight:700}
+.pos-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px}.pos-btns .btn:first-child,.pos-btns .btn:nth-child(2){grid-column:1/-1}
+.pos-float{display:none}
+@media(max-width:1100px){.pos-main{grid-template-columns:1fr}.pos-cats{display:none}.pos-chips{display:flex}.pos-cart{display:none;position:static;max-height:none}
+ .pos-cartview .pos-cart{display:block}.pos-cartview .pos-center,.pos-cartview .pos-float{display:none}.pos-cartview .pos-back{display:inline-block}
+ .pos-float{display:flex;position:fixed;left:12px;right:12px;bottom:76px;z-index:30;background:#2563eb;color:#fff;border-radius:14px;padding:12px 16px;justify-content:space-between;align-items:center;box-shadow:0 6px 18px rgba(37,99,235,.4);cursor:pointer}.pos-go{font-weight:700}
+ .pos-grid{grid-template-columns:1fr}.pos-grid:not(.pos-list) .pos-card{flex-direction:row;align-items:center}.pos-grid:not(.pos-list) .pos-img{width:84px;height:84px;flex:0 0 84px}}
+@media(max-width:1100px){.pos-tools{display:grid;grid-template-columns:1fr 1fr 1fr}.pos-tools input{grid-column:1/-1}.pos-tools select,.pos-tools .btn{width:100%}}
+.pos-pi::placeholder{font-size:11px}
 </style>
 
 </head>
@@ -382,6 +409,7 @@ const IC = {
   serial: '<path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M21 5v14"/>',
   customers: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.5a5 5 0 0 1 4.5 5"/>',
   service: '<path d="M14 6l4 4-9 9H5v-4z"/>',
+  pos: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M16 15h0"/>',
   pcmp: '<path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/>',
   cash: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9v.01M18 15v.01"/>',
   crm: '<path d="M4 5h16v11H8l-4 4z"/>',
@@ -406,7 +434,7 @@ const ico = (n, cls) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 /* ---------- language (English / Gujarati) ---------- */
 const T = {
   dash: ['Dashboard', 'ડેશબોર્ડ'], products: ['Products', 'પ્રોડક્ટ્સ'], purchase: ['Purchase', 'ખરીદી'], sales: ['Sales', 'વેચાણ'], stock: ['Stock', 'સ્ટોક'],
-  serial: ['Serial No.', 'સિરિયલ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], pcmp: ['Price Compare', 'Price Compare'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'],
+  serial: ['Serial No.', 'સિરિયલ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], pcmp: ['Price Compare', 'Price Compare'], pos: ['POS / Quick Order', 'POS / Quick Order'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'],
   print: ['Print Stickers', 'સ્ટીકર પ્રિન્ટ'], users: ['Users & Roles', 'યુઝર્સ'], settings: ['Settings', 'સેટિંગ્સ'], scan: ['Scan', 'સ્કેન'],
   search: ['Search Product, Serial, Customer...', 'પ્રોડક્ટ, સિરિયલ, ગ્રાહક શોધો...'], save: ['Save', 'સાચવો'], cancel: ['Cancel', 'રદ કરો'], close: ['Close', 'બંધ'], add: ['Add', 'ઉમેરો'],
   edit: ['Edit', 'ફેરફાર'], del: ['Delete', 'કાઢો'], login: ['Login', 'લૉગિન'], logout: ['Logout', 'લૉગઆઉટ'], loginid: ['Login ID', 'લૉગિન ID'], pin: ['PIN', 'પિન'],
@@ -1989,12 +2017,142 @@ ACT.cbdel = d => work(null, async () => {
 </script>
 
 <script>
+/* ================= POS – photo based quick order (uses existing products, stock, orders, quotations) ================= */
+const POS = { cat: 'all', q: '', brand: '', stock: '', sort: 'pop', view: 'grid', prods: null, price: {}, cart: [], cust: null, pay: 'Cash', disc: 0, gst: false, mode: 'walkin', fav: {}, loading: false, step: 'shop' };
+try { POS.fav = JSON.parse(store.lget('pos_fav') || '{}'); } catch (e) { }
+const POS_CATS = [['Laptop', '💻'], ['Desktop', '🖥'], ['Processor', '⚙'], ['Motherboard', '🔌'], ['RAM', '🧩'], ['SSD', '💾'], ['Monitor', '🖵'], ['Printer', '🖨'], ['Keyboard', '⌨'], ['Accessor', '🎧'], ['Network', '📡'], ['CCTV', '📹']];
+const posIcon = c => { const k = POS_CATS.find(x => String(c).toLowerCase().includes(x[0].toLowerCase())); return k ? k[1] : '📦'; };
+async function posLoad() {
+  if (POS.prods || POS.loading) return; POS.loading = true; const all = [];
+  try { let page = 1, total = 1; while ((page - 1) * 50 < total && page < 30) { const r = await api('prod.list', { page, size: 50, status: 'active' }); total = r.total; all.push(...r.rows); page++; } POS.prods = all; }
+  catch (e) { POS.loading = false; throw e; }
+  POS.loading = false;
+}
+async function posPrices(ids) {
+  const need = ids.filter(i => POS.price[i] === undefined); if (!need.length) return;
+  for (let i = 0; i < need.length; i += 40) { try { (await api('quote.prod', { ids: need.slice(i, i + 40) })).forEach(r => { POS.price[r.productId] = r; }); } catch (e) { } }
+  need.forEach(i => { if (POS.price[i] === undefined) POS.price[i] = null; });
+}
+const posAvail = p => p.stock ? p.stock.available : 0;
+const posPriceOf = p => { const r = POS.price[p.ProductID]; return r ? r.sellPrice : (p.SellPrice != null ? +p.SellPrice : 0); };
+function posFiltered() {
+  const q = POS.q.trim().toLowerCase(), toks = q.split(/\s+/).filter(Boolean);
+  let l = (POS.prods || []).filter(p => {
+    if (POS.cat !== 'all' && (p.Category || 'Other') !== POS.cat) return false;
+    if (POS.brand && p.Brand !== POS.brand) return false;
+    if (POS.stock === 'in' && posAvail(p) <= 0) return false; if (POS.stock === 'out' && posAvail(p) > 0) return false; if (POS.stock === 'fav' && !POS.fav[p.ProductID]) return false;
+    if (toks.length) { const h = [p.Name, p.Brand, p.Model, p.SKU, p.Barcode, p.Description].join(' ').toLowerCase(); if (!toks.every(t => h.includes(t))) return false; }
+    return true;
+  });
+  if (POS.sort === 'lo') l.sort((a, b) => posPriceOf(a) - posPriceOf(b)); else if (POS.sort === 'hi') l.sort((a, b) => posPriceOf(b) - posPriceOf(a)); else if (POS.sort === 'name') l.sort((a, b) => a.Name < b.Name ? -1 : 1); else l.sort((a, b) => posAvail(b) - posAvail(a) || (a.Name < b.Name ? -1 : 1));
+  return l;
+}
+function posTotals() {
+  let gross = 0, ld = 0; POS.cart.forEach(l => { gross += l.qty * l.price; ld += Math.min(+l.disc || 0, l.qty * l.price); });
+  const after = gross - ld, od = Math.min(Math.max(+POS.disc || 0, 0), after), taxable = after - od, gst = POS.gst ? Math.round(taxable * 0.18 * 100) / 100 : 0;
+  return { gross, ld, od, taxable, gst, total: Math.round(taxable + gst), count: POS.cart.reduce((a, l) => a + l.qty, 0) };
+}
+async function V_pos() {
+  const a = isAdmin(); page('POS – Quick Order', '', `<div class="pos"><div class="pos-note">${skel()}</div></div>`);
+  try { await posLoad(); } catch (e) { $('#page').innerHTML = `<div class="note">${esc(e.message)}</div>`; return; }
+  drawPos();
+}
+function drawPos() {
+  const root = $('#page'); if (!root || !POS.prods) return; const a = isAdmin();
+  const cats = {}; POS.prods.forEach(p => { const c = p.Category || 'Other'; cats[c] = (cats[c] || 0) + 1; });
+  const brands = Array.from(new Set(POS.prods.map(p => p.Brand).filter(Boolean))).sort();
+  const t = posTotals();
+  root.innerHTML = `<div class="pos ${POS.step === 'cart' ? 'pos-cartview' : ''}">
+   <div class="pos-top"><div class="pos-tabs">${[['walkin', 'Walk-in Sale'], ['order', 'Order'], ['quote', 'Quotation']].map(x => `<button class="${POS.mode === x[0] ? 'on' : ''}" data-act="posmode" data-m="${x[0]}">${x[1]}</button>`).join('')}</div>
+     <div style="display:flex;gap:6px"><button class="btn g s" data-act="poshold">Hold</button><button class="btn g s" data-act="posheld">Held orders</button><button class="btn s" data-act="posnew">+ New</button></div></div>
+   <div class="pos-main">
+    <aside class="pos-cats"><h4>Categories</h4><div class="pos-catl"><button class="${POS.cat === 'all' ? 'on' : ''}" data-act="poscat" data-c="all"><span>▦ All Products</span><b>${POS.prods.length}</b></button>${Object.keys(cats).sort().map(c => `<button class="${POS.cat === c ? 'on' : ''}" data-act="poscat" data-c="${esc(c)}"><span>${posIcon(c)} ${esc(c)}</span><b>${cats[c]}</b></button>`).join('')}</div></aside>
+    <section class="pos-center"><div class="pos-tools"><input id="posq" placeholder="Search name / model / SKU / barcode" value="${esc(POS.q)}"><select id="posb"><option value="">All Brands</option>${brands.map(b => `<option ${POS.brand === b ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select><select id="poss"><option value="">All Stock</option><option value="in" ${POS.stock === 'in' ? 'selected' : ''}>In stock</option><option value="out" ${POS.stock === 'out' ? 'selected' : ''}>Out of stock</option><option value="fav" ${POS.stock === 'fav' ? 'selected' : ''}>★ Favourites</option></select><select id="posso"><option value="pop" ${POS.sort === 'pop' ? 'selected' : ''}>Sort: Popular</option><option value="lo" ${POS.sort === 'lo' ? 'selected' : ''}>Price low→high</option><option value="hi" ${POS.sort === 'hi' ? 'selected' : ''}>Price high→low</option><option value="name" ${POS.sort === 'name' ? 'selected' : ''}>Name A–Z</option></select><button class="btn g s" data-act="posview">${POS.view === 'grid' ? '☰ List' : '▦ Grid'}</button></div>
+     <div class="pos-chips">${['all'].concat(Object.keys(cats).sort()).map(c => `<button class="${POS.cat === c ? 'on' : ''}" data-act="poscat" data-c="${esc(c)}">${c === 'all' ? 'All' : esc(c)}</button>`).join('')}</div>
+     <div id="posgrid" class="pos-grid ${POS.view === 'list' ? 'pos-list' : ''}"></div></section>
+    <aside class="pos-cart" id="poscart"></aside></div>
+   <div class="pos-float" data-act="posshowcart"><span>🛒 ${t.count} item${t.count === 1 ? '' : 's'}</span><b>${inr(t.total)}</b><span class="pos-go">Checkout ›</span></div></div>`;
+  const q = $('#posq'); q.oninput = debounce(() => { POS.q = q.value; drawPosGrid(); }, 150);
+  q.onkeydown = ev => { if (ev.key === 'Enter') { const code = q.value.trim().toLowerCase(), hit = POS.prods.find(p => [p.Barcode, p.SKU].some(x => x && String(x).toLowerCase() === code)); if (hit) { posAdd(hit.ProductID); q.value = ''; POS.q = ''; drawPosGrid(); } } };
+  $('#posb').onchange = e => { POS.brand = e.target.value; drawPosGrid(); }; $('#poss').onchange = e => { POS.stock = e.target.value; drawPosGrid(); }; $('#posso').onchange = e => { POS.sort = e.target.value; drawPosGrid(); };
+  drawPosGrid(); drawPosCart();
+}
+let posGridSeq = 0;
+async function drawPosGrid() {
+  const g = $('#posgrid'); if (!g) return; const seq = ++posGridSeq, l = posFiltered(), shown = l.slice(0, 60);
+  await posPrices(shown.map(p => p.ProductID)); if (seq !== posGridSeq || !$('#posgrid')) return;
+  g.innerHTML = shown.map(p => { const av = posAvail(p), pr = posPriceOf(p), spec = [p.Model, String(p.Description || '').slice(0, 60)].filter(Boolean).join(' | ');
+    return `<div class="pos-card"><button class="pos-fav ${POS.fav[p.ProductID] ? 'on' : ''}" data-act="posfav" data-id="${esc(p.ProductID)}">${POS.fav[p.ProductID] ? '♥' : '♡'}</button><div class="pos-img">${thumbBox(p.ProductID)}</div><div class="pos-info"><b class="pos-nm">${esc(p.Name)}</b><small>${esc(p.Brand || '')}${spec ? ' · ' + esc(spec) : ''}</small><div class="pos-pr">${pr ? inr(pr) : '<span style="color:#b45309;font-size:12px">Price not set</span>'}</div><div class="pos-st"><span class="pos-stock ${av > 0 ? (av <= 3 ? 'low' : 'ok') : 'no'}">${av > 0 ? 'In Stock: ' + nf(av) : 'Out of stock'}</span><button class="pos-add" data-act="posadd" data-id="${esc(p.ProductID)}">+</button></div></div></div>`; }).join('') || '<div class="empty">No product found</div>';
+  if (l.length > shown.length) g.insertAdjacentHTML('beforeend', `<div class="empty" style="grid-column:1/-1">Showing 60 of ${l.length}. Search or choose a category to narrow down.</div>`);
+  loadThumbs(shown.map(p => p.ProductID), g);
+}
+function posAdd(pid) {
+  const p = POS.prods.find(x => x.ProductID === pid); if (!p) return; const ex = POS.cart.find(l => l.id === pid);
+  const pr = posPriceOf(p), isQty = p.TrackingType === 'QTY';
+  if (ex) { if (isQty) ex.qty++; else return toast('This item is tracked by serial; add one at a time in the order.', 'bad'); }
+  else POS.cart.push({ id: pid, name: p.Name, brand: p.Brand, model: p.Model, qty: 1, price: pr, disc: 0, track: p.TrackingType, av: posAvail(p), cost: (POS.price[pid] || {}).cost });
+  if (posAvail(p) <= 0) toast(p.Name + ' is out of stock. Order will wait for stock.', 'bad');
+  drawPosCart(); posFloat();
+}
+function posFloat() { const t = posTotals(), f = $('.pos-float'); if (f) f.innerHTML = `<span>🛒 ${t.count} item${t.count === 1 ? '' : 's'}</span><b>${inr(t.total)}</b><span class="pos-go">Checkout ›</span>`; }
+function drawPosCart() {
+  const c = $('#poscart'); if (!c) return; const t = posTotals(), a = isAdmin(), pays = ['Cash', 'UPI', 'Card', 'Bank Transfer', 'Credit / Udhar', 'Split'];
+  c.innerHTML = `<div class="pos-ch"><h3>🛒 Cart (${POS.cart.length} items)</h3><span><button class="btn g s pos-back" data-act="posback">‹ Shop</button> <button class="btn bad s" data-act="posclear">Clear</button></span></div>
+   <div class="pos-lines">${POS.cart.map((l, i) => `<div class="pos-line"><div class="pos-lth">${thumbBox(l.id)}</div><div class="pos-lb"><b>${esc(l.name)}</b><small>${esc([l.brand, l.model].filter(Boolean).join(' · '))}</small>
+     <div class="pos-lr"><span class="pos-q"><button data-act="posq" data-i="${i}" data-d="-1">−</button><b>${l.qty}</b><button data-act="posq" data-i="${i}" data-d="1">+</button></span><input class="pos-pi" data-pi="${i}" data-f="price" inputmode="decimal" value="${l.price}" title="Unit price" placeholder="Price"><input class="pos-pi" data-pi="${i}" data-f="disc" inputmode="decimal" value="${l.disc || 0}" title="Discount ₹" placeholder="Disc ₹"><b>${inr(l.qty * l.price - (+l.disc || 0))}</b></div></div><button class="pos-x" data-act="posdel" data-i="${i}">✕</button></div>`).join('') || '<div class="empty">Cart is empty. Tap + on a product.</div>'}</div>
+   <div class="pos-sum"><div class="qrow"><span>Subtotal</span><b>${inr(t.gross)}</b></div><div class="qrow"><span>Item discount</span><b>${inr(t.ld)}</b></div><div class="qrow"><span>Overall discount ₹</span><input id="posdisc" inputmode="decimal" value="${POS.disc || 0}" style="width:90px;text-align:right"></div>
+    <div class="qrow"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="posgst" ${POS.gst ? 'checked' : ''} style="width:auto"> GST 18%</label><b>${inr(t.gst)}</b></div><div class="qrow pos-tot"><span>Total ${POS.gst ? '(incl. GST)' : ''}</span><b>${inr(t.total)}</b></div></div>
+   <button class="pos-cust" data-act="poscust">👤 ${POS.cust ? esc(POS.cust.name) + (POS.cust.mobile ? ' · ' + esc(POS.cust.mobile) : '') : 'Select Customer'} ›</button>
+   <div class="pos-pays">${pays.map(x => `<button class="${POS.pay === x ? 'on' : ''}" data-act="pospay" data-p="${esc(x)}">${esc(x)}</button>`).join('')}</div>
+   <div class="pos-btns"><button class="btn ok" data-act="possave" data-k="${POS.mode === 'walkin' ? 'walkin' : 'order'}">${POS.mode === 'walkin' ? 'Save Walk-in Sale' : 'Save Order'}</button><button class="btn" data-act="possave" data-k="invoice">Generate Invoice</button><button class="btn g" data-act="possave" data-k="quote">Save as Quotation</button><button class="btn g" data-act="poshold">Hold Order</button></div>`;
+  $$('[data-pi]', c).forEach(x => x.onchange = () => { POS.cart[+x.dataset.pi][x.dataset.f] = +x.value || 0; drawPosCart(); posFloat(); });
+  $('#posdisc').onchange = e => { POS.disc = +e.target.value || 0; drawPosCart(); posFloat(); }; $('#posgst').onchange = e => { POS.gst = e.target.checked; drawPosCart(); posFloat(); };
+  loadThumbs(POS.cart.map(l => l.id), c);
+}
+ACT.posmode = d => { POS.mode = d.m; drawPos(); };
+ACT.poscat = d => { POS.cat = d.c; drawPos(); };
+ACT.posview = () => { POS.view = POS.view === 'grid' ? 'list' : 'grid'; drawPos(); };
+ACT.posadd = d => posAdd(d.id);
+ACT.posfav = d => { POS.fav[d.id] = !POS.fav[d.id]; if (!POS.fav[d.id]) delete POS.fav[d.id]; store.lset('pos_fav', JSON.stringify(POS.fav)); drawPosGrid(); };
+ACT.posq = d => { const l = POS.cart[+d.i]; if (l.track !== 'QTY' && +d.d > 0) return toast('Serial tracked item: quantity is 1', 'bad'); l.qty = Math.max(1, l.qty + +d.d); drawPosCart(); posFloat(); };
+ACT.posdel = d => { POS.cart.splice(+d.i, 1); drawPosCart(); posFloat(); };
+ACT.posclear = () => { POS.cart = []; POS.disc = 0; drawPosCart(); posFloat(); };
+ACT.posnew = () => { POS.cart = []; POS.disc = 0; POS.cust = null; POS.pay = 'Cash'; POS.gst = false; POS.step = 'shop'; drawPos(); };
+ACT.pospay = d => { POS.pay = d.p; drawPosCart(); };
+ACT.posshowcart = () => { POS.step = 'cart'; drawPos(); window.scrollTo(0, 0); };
+ACT.posback = () => { POS.step = 'shop'; drawPos(); };
+ACT.poscust = () => {
+  const m = modal('Customer', `<div id="pcs"></div><div style="margin-top:10px"><b>New customer</b></div><div class="row"><div class="fld"><label>Name *</label><input id="pcn"></div><div class="fld"><label>Mobile *</label><input id="pcm" inputmode="numeric" maxlength="10"></div></div><div class="fld"><label>Address</label><input id="pca"></div>`, { foot: '<button class="btn" id="pcok">Use this customer</button>' });
+  m.$('#pcs').innerHTML = '<input id="pcq" placeholder="Search existing customer by name / mobile" autocomplete="off"><div id="pcl"></div>';
+  m.$('#pcq').oninput = debounce(async () => { const q = m.$('#pcq').value.trim(); if (q.length < 2) { m.$('#pcl').innerHTML = ''; return; } try { const r = await api('cust.search', { q }); m.$('#pcl').innerHTML = r.slice(0, 8).map((c, i) => `<div class="qrow" style="cursor:pointer" data-ci="${i}"><span><b>${esc(c.name || c.Name)}</b><br><small>${esc(c.mobile || c.Mobile || '')}</small></span><button class="btn s">Use</button></div>`).join('') || '<small>No customer found</small>'; $$('[data-ci]', m.el).forEach(b => b.onclick = () => { const c = r[+b.dataset.ci]; POS.cust = { name: c.name || c.Name, mobile: c.mobile || c.Mobile, address: c.address || c.Address || '', id: c.id || c.CustomerID }; m.close(); drawPosCart(); }); } catch (e) { } }, 250);
+  m.$('#pcok').onclick = () => { const n = m.$('#pcn').value.trim(), mo = m.$('#pcm').value.replace(/\D/g, ''); if (!n) return toast('Enter customer name', 'bad'); POS.cust = { name: n, mobile: mo, address: m.$('#pca').value.trim() }; m.close(); drawPosCart(); };
+};
+ACT.poshold = () => { if (!POS.cart.length) return toast('Cart is empty', 'bad'); let h = []; try { h = JSON.parse(store.lget('pos_hold') || '[]'); } catch (e) { } h.unshift({ at: Date.now(), cart: POS.cart, cust: POS.cust, disc: POS.disc, gst: POS.gst, mode: POS.mode, pay: POS.pay }); store.lset('pos_hold', JSON.stringify(h.slice(0, 10))); ACT.posnew(); toast('Order held. Open "Held orders" to continue.'); };
+ACT.posheld = () => { let h = []; try { h = JSON.parse(store.lget('pos_hold') || '[]'); } catch (e) { } if (!h.length) return toast('No held orders'); const m = modal('Held orders', h.map((x, i) => `<div class="qrow"><span><b>${esc(x.cust ? x.cust.name : 'No customer')}</b> · ${x.cart.length} items<br><small>${new Date(x.at).toLocaleString()}</small></span><span><button class="btn s" data-u="${i}">Open</button> <button class="btn bad s" data-d="${i}">✕</button></span></div>`).join(''));
+  $$('[data-u]', m.el).forEach(b => b.onclick = () => { const x = h[+b.dataset.u]; Object.assign(POS, { cart: x.cart, cust: x.cust, disc: x.disc, gst: x.gst, mode: x.mode, pay: x.pay }); h.splice(+b.dataset.u, 1); store.lset('pos_hold', JSON.stringify(h)); m.close(); drawPos(); });
+  $$('[data-d]', m.el).forEach(b => b.onclick = () => { h.splice(+b.dataset.d, 1); store.lset('pos_hold', JSON.stringify(h)); m.close(); }); };
+ACT.possave = (d, el) => work(el, async () => {
+  if (!POS.cart.length) return toast('Cart is empty', 'bad'); const t = posTotals(), c = POS.cust, k = d.k;
+  if (!c || !c.name) { ACT.poscust(); return toast('Select or add a customer first', 'bad'); }
+  if (k === 'quote') {
+    const ld = Math.max(0, t.od);
+    const body = { name: c.name, mobile: c.mobile, address: c.address || '', customerId: c.id || '', gst: POS.gst, gstRate: 18, date: new Date().toISOString().slice(0, 10), billDisc: t.od, note: 'POS', lines: POS.cart.map(l => ({ kind: 'Product', part: '', productId: l.id, name: l.name, brand: l.brand, model: l.model, spec: '', qty: l.qty, unitPrice: l.price, lineDisc: l.disc || 0, cost: isAdmin() ? l.cost : undefined })) };
+    const r = await api('quote.save', body, { rid: rid(), loader: true }); toast('Quotation ' + r.id + ' saved'); ACT.posnew(); go('quote', { id: r.id }); return;
+  }
+  if (!/^\d{10}$/.test(String(c.mobile || '').replace(/\D/g, '').slice(-10))) { ACT.poscust(); return toast('Mobile number (10 digits) is needed for an order', 'bad'); }
+  const body = { status: 'Pending', customerId: c.id || undefined, customer: { name: c.name, mobile: c.mobile, address: c.address || '' }, note: ('POS ' + (k === 'walkin' ? 'walk-in' : k) + ' · Pay: ' + POS.pay + (t.od ? ' · Disc ' + t.od : '')).slice(0, 200), lines: POS.cart.map(l => ({ productId: l.id, qty: l.qty, unitPrice: l.price })) };
+  const r = await api('ord.create', body, { rid: rid(), loader: true }); toast('Order ' + r.orderId + ' saved'); ACT.posnew();
+  if (k === 'walkin' || k === 'invoice') { go('sales'); setTimeout(() => ACT.openorder({ id: r.orderId }), 600); }
+});
+</script>
+
+<script>
 'use strict';
 /* ================= main: login, shell, routing, init ================= */
 const ROUTES = {
   dash: () => V_dash(), products: () => V_products(), purchase: () => V_purchase(), sales: () => V_sales(), stock: () => V_stock(),
   serial: () => V_serial(), customers: () => V_customers(), reports: () => V_reports(), audit: () => V_audit(), build: () => V_build(),
-  print: () => V_print(), users: () => V_users(), settings: () => V_settings(), scan: () => V_scan(), crm: () => V_crm(), service: () => V_service(), quotes: () => V_quotes(), quote: () => V_quote(), cash: () => V_cash(), pcmp: () => V_pcmp()
+  print: () => V_print(), users: () => V_users(), settings: () => V_settings(), scan: () => V_scan(), crm: () => V_crm(), service: () => V_service(), quotes: () => V_quotes(), quote: () => V_quote(), cash: () => V_cash(), pcmp: () => V_pcmp(), pos: () => V_pos()
 };
 const ADMIN_ONLY = ['users', 'settings', 'pcmp'];
 /* Which menus each staff member sees (by name). Admin sees everything. */
@@ -2008,7 +2166,7 @@ function navItems() {
   const a = isAdmin();
   if (isAcct()) return ['sales', 'customers'];
   if (userMenus()) return userMenus();
-  const l = ['dash', 'products', 'purchase', 'pcmp', 'sales', 'quotes', 'stock', 'serial', 'customers', 'build', 'audit', 'print', 'reports', 'service', 'cash', 'crm'];
+  const l = ['dash', 'products', 'purchase', 'pcmp', 'pos', 'sales', 'quotes', 'stock', 'serial', 'customers', 'build', 'audit', 'print', 'reports', 'service', 'cash', 'crm'];
   if (a) l.push('users', 'settings');
   return l;
 }
