@@ -1691,7 +1691,7 @@ function drawQuote() {
   const bulk = lock || !a ? '' : `<div class="card qbk" style="margin-top:12px"><h3>BULK PRODUCT → PURCHASE COST → AUTO QUOTATION <small>(internal, admin only)</small></h3>
       <p style="font-size:12px;color:#64748b">Vendor ni list paste karo, dar line ma product name ane chhelle price. Purchase GST kya lagavvo te niche select karo.</p>
       <textarea id="qbulk" rows="5" placeholder="I5 10 GEN 2050&#10;16 GB RAM DDR4 8000&#10;MOTHERBOARD 4500+" style="width:100%">${esc(bk.txt || '')}</textarea>
-      <div class="qbrow"><div class="fld"><label>Purchase GST %</label><input id="qbg" inputmode="decimal" value="${esc(bk.g != null ? bk.g : 18)}"></div><div class="fld"><label>GST kya par lagavo</label><select id="qgw"><option value="all" ${bk.gw !== 'none' ? 'selected' : ''}>Badhi line par</option><option value="none" ${bk.gw === 'none' ? 'selected' : ''}>GST nahi (0%)</option></select></div>
+      <div class="qbrow"><div class="fld"><label>Purchase GST %</label><input id="qbg" inputmode="decimal" value="${esc(bk.g != null && bk.g !== '' ? bk.g : 18)}"></div><div class="fld"><label>GST kya par lagavo</label><select id="qgw"><option value="all" ${bk.gw !== 'none' ? 'selected' : ''}>Badhi line par</option><option value="none" ${bk.gw === 'none' ? 'selected' : ''}>GST nahi (0%)</option></select></div>
         <div class="qtile"><span>Base Purchase Total</span><b id="qt1">₹0</b></div><div class="qtile"><span>Purchase GST</span><b id="qt2">₹0</b></div><div class="qtile"><span>Final Landed Cost</span><b id="qt3">₹0</b></div></div>
       <div class="qbrow"><div class="fld"><label>Add Profit ₹</label><input id="qpf" inputmode="decimal" value="${esc(bk.pf || '')}"></div><div class="fld"><label>OR Margin %</label><input id="qpm" inputmode="decimal" value="${esc(bk.pm || '')}"></div><div class="fld"><label>Customer Quotation ₹</label><input id="qcq" inputmode="decimal" value="${esc(bk.cq || '')}"></div></div>
       <input type="hidden" id="qpr" value="10"><input type="hidden" id="qsn" value="Complete Computer Set">
@@ -1734,7 +1734,7 @@ function drawQuote() {
   bindQuote();
 }
 function qBulkParse(txt, g) { const out = []; String(txt || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(ln => { const mt = ln.match(/^(.*?)[\s:=-]*₹?\s*([\d,]+(?:\.\d+)?)\s*\+?\s*$/); if (mt && mt[1].trim()) out.push({ name: mt[1].trim(), cost: Math.round(+mt[2].replace(/,/g, '') * (1 + g / 100) * 100) / 100, base: +mt[2].replace(/,/g, '') }); }); return out; }
-function qBulkG() { return $('#qgw') && $('#qgw').value === 'none' ? 0 : (+($('#qbg') && $('#qbg').value) || 0); }
+function qBulkG() { if ($('#qgw') && $('#qgw').value === 'none') return 0; const v = $('#qbg') && $('#qbg').value.trim(); return v === '' || v == null ? 18 : (+v || 0); }
 function qBulkBind() {
   const f = () => {
     if (!$('#qbulk')) return; const g = qBulkG(), L = qBulkParse($('#qbulk').value, g), base = L.reduce((a, x) => a + x.base, 0), landed = L.reduce((a, x) => a + x.cost, 0);
@@ -1780,22 +1780,38 @@ async function qAddProduct(pid, part, qty) {
 }
 ACT.qbulk = (d, el) => work(el, async () => {
   qRead(); const one = d.m === 'one', parsed = []; const txt = ($('#qbulk').value || '').split('\n').map(x => x.trim()).filter(Boolean), g = qBulkG(); let n = 0, m = 0;
+  const items = [];
   for (const ln of txt) {
     const mt = ln.match(/^(.*?)[\s:=-]*₹?\s*([\d,]+(?:\.\d+)?)\s*\+?\s*$/); if (!mt || !mt[1].trim()) continue;
-    const name = mt[1].trim(), price = +mt[2].replace(/,/g, ''), cost = Math.round(price * (1 + g / 100) * 100) / 100; let prod = null;
-    if (one) { parsed.push({ name, cost }); n++; continue; }
-    try { const r = await api('prod.quick', { q: name.split(/\s+/).slice(0, 3).join(' ') }); const w = name.toLowerCase().split(/\s+/).filter(x => x.length > 1); const sc = p => { const t = (p.Name + ' ' + (p.Brand || '') + ' ' + (p.Model || '')).toLowerCase(); return w.filter(x => t.includes(x)).length / Math.max(1, w.length); }; const b = r.map(p => [sc(p), p]).sort((x, y) => y[0] - x[0])[0]; if (b && b[0] >= 0.7) prod = b[1]; } catch (e) { }
+    const name = mt[1].trim(), price = +mt[2].replace(/,/g, ''), cost = Math.round(price * (1 + g / 100) * 100) / 100; items.push({ name, cost });
+  }
+  /* catalogue lookups run ALL AT ONCE (one wait, not one wait per line) */
+  const found = one ? [] : await Promise.all(items.map(it => api('prod.quick', { q: it.name.split(/\s+/).slice(0, 3).join(' ') }).then(r => {
+    const w = it.name.toLowerCase().split(/\s+/).filter(x => x.length > 1); const sc = p => { const t = (p.Name + ' ' + (p.Brand || '') + ' ' + (p.Model || '')).toLowerCase(); return w.filter(x => t.includes(x)).length / Math.max(1, w.length); };
+    const b = r.map(p => [sc(p), p]).sort((x, y) => y[0] - x[0])[0]; return b && b[0] >= 0.7 ? b[1] : null;
+  }).catch(() => null)));
+  items.forEach((it, i) => {
+    const name = it.name, cost = it.cost;
+    if (one) { parsed.push({ name, cost }); n++; return; }
+    const prod = found[i];
     if (prod) { QE.lines.push({ kind: 'Product', part: '', productId: prod.ProductID, name: prod.Name, brand: prod.Brand, model: prod.Model, spec: '', qty: 1, unitPrice: cost, lineDisc: 0, gstRate: '', cost, available: prod.available }); m++; }
     else QE.lines.push({ kind: 'Custom', part: '', productId: '', name, brand: '', model: '', spec: '', qty: 1, unitPrice: cost, lineDisc: 0, gstRate: '', cost }); n++;
-  }
+  });
   if (one && parsed.length) { const tc = Math.round(parsed.reduce((a, x) => a + x.cost, 0) * 100) / 100; QE.lines.push({ kind: 'Custom', part: '', productId: '', name: ($('#qsn').value || 'Complete Computer Set').trim(), brand: '', model: '', spec: parsed.map(x => x.name).join(' + '), qty: 1, unitPrice: tc, lineDisc: 0, gstRate: '', cost: tc }); }
-  drawQuote(); toast(one && n ? `1 set item added (${n} parts, cost ${inr(parsed.reduce((a, x) => a + x.cost, 0))}). Now add profit.` : n ? `${n} lines added (${m} with catalogue photo). Now add profit.` : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
+  const pn = n ? qProfitApply() : 0;
+  drawQuote(); toast(one && n ? `1 set item added (${n} parts, cost ${inr(parsed.reduce((a, x) => a + x.cost, 0))}).` + (pn ? ' Profit added too.' : ' Now add profit.') : n ? `${n} lines added (${m} with catalogue photo).` + (pn ? ' Profit added too.' : ' Now add profit.') : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
 });
-ACT.qprofit = d => {
-  qRead(); const pf = +($('#qpf').value) || 0, pm = +($('#qpm').value) || 0, rd = +($('#qpr').value) || 1; const ls = QE.lines.filter(l => +l.cost > 0); if (!ls.length) return toast('Cost is not set on any line', 'bad'); const cq = +($('#qcq') && $('#qcq').value) || 0; if (!pf && !pm && !cq) return toast('Enter profit ₹, margin % or Customer Quotation', 'bad');
+function qProfitApply() {
+  const pf = +($('#qpf').value) || 0, pm = +($('#qpm').value) || 0, rd = +($('#qpr').value) || 1; const ls = QE.lines.filter(l => +l.cost > 0); const cq = +($('#qcq') && $('#qcq').value) || 0;
+  if (!ls.length || (!pf && !pm && !cq)) return 0;
   const tc = ls.reduce((a, l) => a + l.cost * l.qty, 0), pf2 = cq ? cq - tc : pf;
   ls.forEach(l => { const up = pm && !cq ? l.cost * (1 + pm / 100) : l.cost + pf2 * (l.cost * l.qty / tc) / l.qty; l.unitPrice = Math.ceil(up / rd - 1e-9) * rd; l.belowMin = false; });
-  drawQuote(); toast('Profit added to ' + ls.length + ' lines');
+  return ls.length;
+}
+ACT.qprofit = d => {
+  qRead(); const ls = QE.lines.filter(l => +l.cost > 0); if (!ls.length) return toast('Cost is not set on any line', 'bad');
+  const n = qProfitApply(); if (!n) return toast('Enter profit ₹, margin % or Customer Quotation', 'bad');
+  drawQuote(); toast('Profit added to ' + n + ' lines');
 };
 ACT.qdel = d => { qRead(); QE.lines.splice(+d.i, 1); drawQuote(); };
 ACT.qcustom = d => { qRead(); const m = modal(d.k === 'Service' ? 'Add service' : 'Add custom item', `<div class="fld"><label>Name *</label><input id="cn1"></div><div class="fld"><label>Description</label><input id="cn2"></div><div class="row"><div class="fld"><label>Qty</label><input id="cn3" inputmode="decimal" value="1"></div><div class="fld"><label>Price ₹</label><input id="cn4" inputmode="decimal"></div></div>`, { foot: '<button class="btn" id="cn5">Add</button>' });
