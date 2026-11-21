@@ -1695,7 +1695,7 @@ function drawQuote() {
         <div class="qtile"><span>Base Purchase Total</span><b id="qt1">₹0</b></div><div class="qtile"><span>Purchase GST</span><b id="qt2">₹0</b></div><div class="qtile"><span>Final Landed Cost</span><b id="qt3">₹0</b></div></div>
       <div class="qbrow"><div class="fld"><label>Add Profit ₹</label><input id="qpf" inputmode="decimal" value="${esc(bk.pf || '')}"></div><div class="fld"><label>OR Margin %</label><input id="qpm" inputmode="decimal" value="${esc(bk.pm || '')}"></div><div class="fld"><label>Customer Quotation ₹</label><input id="qcq" inputmode="decimal" value="${esc(bk.cq || '')}"></div></div>
       <input type="hidden" id="qpr" value="10"><input type="hidden" id="qsn" value="Complete Computer Set">
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"><button class="btn" data-act="qbulk" data-m="one">Single item (total set)</button><button class="btn" data-act="qbulk" data-m="sep">Separate items</button><button class="btn g" data-act="qprofit">Apply profit to all lines</button></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"><button class="btn" data-act="qbulk" data-m="sep">Line by line (Separate items)</button><button class="btn g" data-act="qbulk" data-m="one">Single item (total set)</button><button class="btn g" data-act="qprofit">Apply profit to all lines</button></div>
       <small id="qbsum">Final Purchase: ₹0 | Customer Quote: ₹0 | Profit: ₹0 | Margin: 0%</small></div>`;
   const costp = lock || !a ? '' : `<div class="card qbk" style="margin-top:12px"><h3>INTERNAL COSTING — C COMPUTER <small>(cost, profit ane margin print / PDF ma nahi aave)</small></h3>
       <div class="qbrow"><div class="fld"><label>Product</label><input id="ic_n" value="${esc((e.ic || {}).n || '')}"></div><div class="fld"><label>Base Cost</label><input id="ic_b" inputmode="decimal" value="${esc((e.ic || {}).b || '')}"></div><div class="fld"><label>Purchase GST</label><select id="ic_g">${[0, 5, 12, 18, 28].map(g => `<option value="${g}" ${((e.ic || {}).g != null ? +(e.ic || {}).g : 18) === g ? 'selected' : ''}>${g}%</option>`).join('')}</select></div><div class="qtile"><span>Landed</span><b id="ic_l">₹0</b></div><div class="fld"><label>Selling Price</label><input id="ic_s" inputmode="decimal" value="${esc((e.ic || {}).s || '')}"></div></div>
@@ -1744,7 +1744,9 @@ function qBulkBind() {
     $('#qbsum').textContent = `Final Purchase: ${inr(tc)} | Customer Quote: ${inr(quote)} | Profit: ${inr(profit)} | Margin: ${quote > 0 ? r2(profit / quote * 100) : 0}%`;
     QE.bulk = { txt: $('#qbulk').value, g: $('#qbg').value, gw: $('#qgw').value, pf: $('#qpf').value, pm: $('#qpm').value, cq: $('#qcq').value };
   };
-  ['#qbulk', '#qbg', '#qgw', '#qpf', '#qpm', '#qcq'].forEach(x => { const el = $(x); if (el) { el.oninput = f; el.onchange = f; } }); f();
+  ['#qbulk', '#qbg', '#qgw'].forEach(x => { const el = $(x); if (el) { el.oninput = f; el.onchange = f; } });
+  /* profit / margin / customer quotation: price of every line is recalculated automatically as soon as the value is entered */
+  ['#qpf', '#qpm', '#qcq'].forEach(x => { const el = $(x); if (el) { el.oninput = f; el.onchange = () => { f(); qRead(); if (QE.lines.some(l => +l.cost > 0) && qProfitApply()) { drawQuote(); toast('Profit auto lagi gayo'); } }; } }); f();
   const h = () => { if (!$('#ic_b')) return; const b = +$('#ic_b').value || 0, g = +$('#ic_g').value || 0, l = Math.round(b * (1 + g / 100) * 100) / 100, s = +$('#ic_s').value || 0; $('#ic_l').textContent = inr(l); $('#ic_p').textContent = `Profit: ${inr(s - l)} | Margin: ${s > 0 ? r2((s - l) / s * 100) : 0}%`; QE.ic = { n: $('#ic_n').value, b: $('#ic_b').value, g: $('#ic_g').value, s: $('#ic_s').value }; };
   ['#ic_n', '#ic_b', '#ic_g', '#ic_s'].forEach(x => { const el = $(x); if (el) { el.oninput = h; el.onchange = h; } }); h();
 }
@@ -1794,14 +1796,25 @@ ACT.qbulk = (d, el) => work(el, async () => {
     const name = it.name, cost = it.cost;
     if (one) { parsed.push({ name, cost }); n++; return; }
     const prod = found[i];
-    if (prod) { QE.lines.push({ kind: 'Product', part: '', productId: prod.ProductID, name: prod.Name, brand: prod.Brand, model: prod.Model, spec: '', qty: 1, unitPrice: cost, lineDisc: 0, gstRate: '', cost, available: prod.available }); m++; }
-    else QE.lines.push({ kind: 'Custom', part: '', productId: '', name, brand: '', model: '', spec: '', qty: 1, unitPrice: cost, lineDisc: 0, gstRate: '', cost }); n++;
+    if (prod) { QE.lines.push({ kind: 'Product', part: '', productId: prod.ProductID, name: prod.Name, brand: prod.Brand, model: prod.Model, spec: '', qty: 1, unitPrice: 0, lineDisc: 0, gstRate: '', cost, available: prod.available }); m++; }
+    else QE.lines.push({ kind: 'Custom', part: '', productId: '', name, brand: '', model: '', spec: '', qty: 1, unitPrice: 0, lineDisc: 0, gstRate: '', cost }); n++;
   });
+  if (!one && n) qSetLine(true);   /* CRM style: parts have no price, ONE final line carries the total */
   if (one && parsed.length) { const tc = Math.round(parsed.reduce((a, x) => a + x.cost, 0) * 100) / 100; QE.lines.push({ kind: 'Custom', part: '', productId: '', name: ($('#qsn').value || 'Complete Computer Set').trim(), brand: '', model: '', spec: parsed.map(x => x.name).join(' + '), qty: 1, unitPrice: tc, lineDisc: 0, gstRate: '', cost: tc }); }
   const pn = n ? qProfitApply() : 0;
   drawQuote(); toast(one && n ? `1 set item added (${n} parts, cost ${inr(parsed.reduce((a, x) => a + x.cost, 0))}).` + (pn ? ' Profit added too.' : ' Now add profit.') : n ? `${n} lines added (${m} with catalogue photo).` + (pn ? ' Profit added too.' : ' Now add profit.') : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
 });
+const QSET = 'TOTAL COMPLETE SET';
+function qSetLine(make) { let s = QE.lines.find(l => l.name === QSET); if (!s && make) { s = { kind: 'Custom', part: '', productId: '', name: QSET, brand: '', model: '', spec: '', qty: 1, unitPrice: 0, lineDisc: 0, gstRate: '', cost: 0 }; QE.lines.push(s); } else if (s && make) { QE.lines.splice(QE.lines.indexOf(s), 1); QE.lines.push(s); } return s; }
 function qProfitApply() {
+  const st = qSetLine(false);
+  if (st) {   /* line-by-line mode: parts stay at no price, the TOTAL COMPLETE SET line gets cost + profit */
+    const pt = QE.lines.filter(l => l !== st && +l.cost > 0); if (!pt.length) return 0;
+    const pf = +($('#qpf').value) || 0, pm = +($('#qpm').value) || 0, rd = +($('#qpr').value) || 1, cq = +($('#qcq') && $('#qcq').value) || 0;
+    const tc = pt.reduce((a, l) => a + l.cost * l.qty, 0), up = cq ? cq : pm ? tc * (1 + pm / 100) : tc + pf;
+    pt.forEach(l => { l.unitPrice = 0; l.belowMin = false; }); st.qty = 1; st.cost = 0; st.unitPrice = Math.ceil(up / rd - 1e-9) * rd;
+    return (cq || pm || pf) ? pt.length : 0;
+  }
   const pf = +($('#qpf').value) || 0, pm = +($('#qpm').value) || 0, rd = +($('#qpr').value) || 1; const ls = QE.lines.filter(l => +l.cost > 0); const cq = +($('#qcq') && $('#qcq').value) || 0;
   if (!ls.length || (!pf && !pm && !cq)) return 0;
   const tc = ls.reduce((a, l) => a + l.cost * l.qty, 0), pf2 = cq ? cq - tc : pf;
@@ -1857,11 +1870,12 @@ function rupeesWords(n) {
   let o = ''; const cr = Math.floor(n / 1e7), la = Math.floor(n / 1e5) % 100, th = Math.floor(n / 1e3) % 100, rest = n % 1000;
   if (cr) o += three(cr) + ' Crore '; if (la) o += two(la) + ' Lakh '; if (th) o += two(th) + ' Thousand '; if (rest) o += three(rest); return o.trim();
 }
-async function qDocData() { qRead(); const q = await api('quote.get', { id: QE.id }); const ids = q.lines.map(l => l.productId).filter(Boolean); try { await loadThumbs(ids); } catch (e) { } return q; }
+async function qDocData() { qRead(); const q = await api('quote.get', { id: QE.id }); const ids = q.lines.map(l => l.productId).filter(Boolean); try { await loadThumbs(ids); } catch (e) { } q.forTick = QE.forTick || {}; return q; }
 function qDocHtml(q, fmt, invoice) {
   const sh = q.shop, intra = q.taxType !== 'IGST', title = invoice ? (q.gst ? 'TAX INVOICE' : 'INVOICE') : 'QUOTATION', no = invoice ? q.orderId : q.id;
   const ph = fmt !== 'simple' && q.lines.some(l => l.productId && S.thumbs[l.productId]), det = fmt === 'detailed';
-  const rows = q.lines.map((l, i) => `<tr><td>${i + 1}</td>${ph ? `<td class="pc">${l.productId && S.thumbs[l.productId] ? `<img src="${S.thumbs[l.productId]}">` : ''}</td>` : ''}<td><b>${esc(l.name)}</b>${l.part ? ` <i>(${esc(l.part)})</i>` : ''}${(l.brand || l.model) ? `<br><span class="s">${esc([l.brand, l.model].filter(Boolean).join(' · '))}</span>` : ''}${(det || !l.productId) && l.spec ? `<br><span class="s">${esc(l.spec)}</span>` : ''}</td><td class="r">${l.qty}</td><td class="r">${inr(l.unitPrice)}${l.lineDisc ? `<br><span class="s">- ${inr(l.lineDisc)} disc</span>` : ''}</td>${q.gst ? `<td class="r">${l.gstRate}%</td>` : ''}<td class="r"><b>${inr(q.gst ? l.taxable : l.total)}</b></td></tr>`).join('');
+  const setMode = q.lines.some(l => l.name === 'TOTAL COMPLETE SET'), blank = l => setMode && l.name !== 'TOTAL COMPLETE SET' && !(+l.unitPrice);
+  const rows = q.lines.map((l, i) => `<tr${l.name === 'TOTAL COMPLETE SET' ? ' class="ts"' : ''}><td>${i + 1}</td>${ph ? `<td class="pc">${l.productId && S.thumbs[l.productId] ? `<img src="${S.thumbs[l.productId]}">` : ''}</td>` : ''}<td><b>${esc(l.name)}</b>${l.part ? ` <i>(${esc(l.part)})</i>` : ''}${(l.brand || l.model) ? `<br><span class="s">${esc([l.brand, l.model].filter(Boolean).join(' · '))}</span>` : ''}${(det || !l.productId) && l.spec ? `<br><span class="s">${esc(l.spec)}</span>` : ''}</td><td class="r">${l.qty}</td><td class="r">${blank(l) ? '' : inr(l.unitPrice)}${l.lineDisc ? `<br><span class="s">- ${inr(l.lineDisc)} disc</span>` : ''}</td>${q.gst ? `<td class="r">${l.gstRate}%</td>` : ''}<td class="r"><b>${inr(q.gst ? l.taxable : l.total)}</b></td></tr>`).join('');
   const brk = (q.breakup || []).map(b => intra ? `<tr><td>CGST ${b.rate / 2}% on ${inr(b.taxable)}</td><td class="r">${inr(b.cgst)}</td></tr><tr><td>SGST ${b.rate / 2}% on ${inr(b.taxable)}</td><td class="r">${inr(b.sgst)}</td></tr>` : `<tr><td>IGST ${b.rate}% on ${inr(b.taxable)}</td><td class="r">${inr(b.igst)}</td></tr>`).join('');
   const terms = String(sh.terms || '').split('\n').map(x => x.trim()).filter(Boolean).map(x => `<li>${esc(x.replace(/^\d+[.)]\s*/, ''))}</li>`).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><title>${title} ${esc(no)}</title><style>
@@ -1870,7 +1884,7 @@ function qDocHtml(q, fmt, invoice) {
   .bd{display:flex;gap:8px;margin:10px 0}.bd div{flex:1;background:#eef0f3;border-radius:8px;padding:8px;text-align:center;font-weight:700;font-size:11px}
   .bn{display:flex;justify-content:space-between;align-items:center;background:#2b2d31;color:#fff;border-left:7px solid #f97316;border-radius:8px;padding:14px 16px}.bn h1{margin:0;font-size:30px;letter-spacing:3px}.bn small{letter-spacing:2px;font-size:10px;color:#d1d5db}.bn .m{text-align:right;line-height:1.8;font-size:12px}
   .two{display:flex;gap:12px;margin:12px 0}.two>div{flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;background:#fafafa}
-  table{width:100%;border-collapse:collapse}th{background:#2b2d31;color:#fff;text-align:left;padding:7px}td{padding:6px 7px;border-bottom:1px solid #e5e7eb;vertical-align:middle}.r{text-align:right}.s{color:#6b7280;font-size:11px}.pc{width:64px}.pc img{width:58px;height:58px;object-fit:contain;display:block}
+  table{width:100%;border-collapse:collapse}th{background:#1f8a4c;color:#fff;text-align:left;padding:7px}tr.ts td{background:#fff7ed;font-weight:700;border-top:2px solid #f97316}.ab{margin-top:8px;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;text-align:center;font-size:11px;background:#fafafa}.fb{margin-top:8px;background:#2b2d31;color:#fff;border-radius:6px;padding:8px 12px;display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:1px}.fq{display:flex;flex-wrap:wrap;gap:3px 10px;margin-top:3px}td{padding:6px 7px;border-bottom:1px solid #e5e7eb;vertical-align:middle}.r{text-align:right}.s{color:#6b7280;font-size:11px}.pc{width:64px}.pc img{width:58px;height:58px;object-fit:contain;display:block}
   .tot{width:46%;margin-left:54%;margin-top:8px}.tot td{padding:4px 8px;border:1px solid #e5e7eb}.gt td{font-size:15px;font-weight:700;background:#f97316;color:#fff;border-color:#f97316}
   .g3{display:flex;gap:10px;margin-top:12px}.g3>div{flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:11px;background:#f6f7f8}.g3 h4{margin:0 0 4px;font-size:12px}.g3 ul{margin:0;padding-left:16px}
   .box{margin-top:10px;background:#f6f7f8;border-radius:8px;padding:8px 10px;white-space:pre-line}.ty{text-align:center;margin:12px 0 2px;font-size:16px;font-weight:700;font-style:italic}.foot{margin-top:10px;display:flex;justify-content:space-between;color:#6b7280;font-size:11px}
@@ -1878,13 +1892,13 @@ function qDocHtml(q, fmt, invoice) {
   <div class="hd"><div><img src="${window.LOGO}" alt=""></div><div class="r2">SALES | SERVICE | ACCESSORIES<br>LAPTOP | DESKTOP | GAMING PC | MONITOR<br>PRINTER | CCTV | NETWORKING | AMC</div></div>
   <div class="bd"><div>✓ Original Products</div><div>₹ Best Prices</div><div>⚙ Expert Service</div><div>⌂ Home &amp; Business</div></div>
   <div class="bn"><div><h1>${title}</h1><small>TECHNOLOGY YOU CAN TRUST</small></div><div class="m">${invoice ? 'Invoice' : 'Quotation'} No: <b>${esc(no)}</b><br>Date: ${esc(dtm(q.date))}${invoice ? '<br>Against: ' + esc(q.id) : '<br>Valid till: ' + esc(dtm(q.validUntil))}</div></div>
-  <div class="two"><div><b>Customer Details</b><br>${esc(q.name)}${q.mobile ? '<br>Mobile: ' + esc(q.mobile) : ''}${q.address ? '<br>' + esc(q.address) : ''}${q.gstNo ? '<br>GSTIN: ' + esc(q.gstNo) : ''}</div><div><b>${esc(sh.name)}</b><br>${esc(sh.addr)}<br>Phone / WhatsApp: ${esc(sh.phone)}${sh.gstin ? '<br>GSTIN: ' + esc(sh.gstin) : ''}<br><span class="s">Prepared by ${esc(q.createdBy)} · ${q.gst ? (intra ? 'CGST + SGST' : 'IGST') : 'Prices without GST'}</span></div></div>
+  <div class="two"><div><b>Customer Details</b><br>${esc(q.name)}${q.mobile ? '<br>Mobile: ' + esc(q.mobile) : ''}${q.address ? '<br>' + esc(q.address) : ''}${q.gstNo ? '<br>GSTIN: ' + esc(q.gstNo) : ''}</div><div><b>Quotation For</b><div class="fq">${['Laptop', 'Desktop', 'Monitor', 'Printer', 'CCTV', 'Accessories', 'Gaming PC', 'Others'].map(f => `<span>${(q.forTick || {})[f] ? '☑' : '☐'} ${f}</span>`).join('')}</div>${sh.gstin ? '<br>GSTIN: ' + esc(sh.gstin) : ''}<div class="s" style="margin-top:4px">${q.gst ? (intra ? 'CGST + SGST' : 'IGST') : 'No GST'}</div></div></div>
   <table><thead><tr><th>#</th>${ph ? '<th>Photo</th>' : ''}<th>Item</th><th class="r">Qty</th><th class="r">Rate</th>${q.gst ? '<th class="r">GST</th>' : ''}<th class="r">Amount</th></tr></thead><tbody>${rows}</tbody></table>
   <div style="display:flex;gap:12px;align-items:flex-start"><div style="flex:1"><div class="ty">Thank You!<br><span style="font-size:12px">for choosing C COMPUTER</span></div>${q.note ? `<div class="box"><b>Note:</b> ${esc(q.note)}</div>` : ''}<div class="s" style="margin-top:6px">Amount in words: <b>Rupees ${rupeesWords(q.total)} Only</b></div></div>
-  <table class="tot" style="margin:8px 0 0;width:46%"><tr><td>Subtotal</td><td class="r">${inr(q.subtotal)}</td></tr>${q.discount ? `<tr><td>Discount</td><td class="r">- ${inr(q.discount)}</td></tr>` : ''}${brk}${q.roundOff ? `<tr><td>Round off</td><td class="r">${inr(q.roundOff)}</td></tr>` : ''}<tr class="gt"><td>Grand Total</td><td class="r">${inr(q.total)}</td></tr></table></div>
+  <table class="tot" style="margin:8px 0 0;width:46%"><tr><td>Subtotal</td><td class="r">${inr(q.subtotal)}</td></tr><tr><td>Discount (₹)</td><td class="r">${q.discount ? '- ' + inr(q.discount) : '₹0'}</td></tr>${q.gst ? brk : '<tr><td>GST</td><td class="r">No GST</td></tr>'}${q.roundOff ? `<tr><td>Round off</td><td class="r">${inr(q.roundOff)}</td></tr>` : ''}<tr class="gt"><td>Grand Total</td><td class="r">${inr(q.total)}</td></tr></table></div>
   ${sh.bank ? `<div class="box"><b>Payment details</b>\n${esc(sh.bank)}</div>` : ''}
   <div class="sp"></div><div class="g3"><div><h4>Terms &amp; Conditions</h4><ul>${terms}</ul></div><div><h4>Why Choose C COMPUTER?</h4>✓ Genuine Products<br>✓ Competitive Pricing<br>✓ Expert Service Support<br>✓ After Sales Service<br>✓ Home &amp; Business Solutions</div><div><h4>Need Help?</h4>📞 ${esc(sh.phone)}<br>WhatsApp Support<br>${esc(sh.addr)}</div></div>
-  <div class="foot"><span>Thank you for choosing C COMPUTER – The Computer House</span><span>${invoice ? 'Authorised signatory' : 'This is a quotation, not a tax invoice'}</span></div></div></body></html>`;
+  <div class="ab"><b>C COMPUTER – The Computer House</b><br>${esc(sh.addr || 'C-5, Near Business Fair, Laxmi Nagar Society, Katargam Road, Surat – 395004')}<br>Call / WhatsApp: +91 81600 88439 | Monday – Saturday: 10:00 AM – 7:30 PM</div><div class="fb"><span>SALES | SERVICE | SUPPORT</span><span>KATARGAM, SURAT</span><span>C COMPUTER – The Computer House</span></div></div></body></html>`;
 }
 function qPrintHtml(html) {
   const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
@@ -1898,7 +1912,7 @@ ACT.qinv = () => qDoc('PDF', true);
 ACT.qwa = async () => {
   if (!QE.id) { await ACT.qsave({}, null); if (!QE.id) return; }   /* not saved yet: save first, then send */
   const q = await qDocData(), d = (q.mobile || '').replace(/\D/g, '').slice(-10);
-  const items = q.lines.slice(0, 15).map(l => `• ${l.name}${l.spec ? ' (' + l.spec + ')' : ''} x${l.qty} = ${inr(l.qty * l.unitPrice - (l.lineDisc || 0))}`).join('\n');
+  const sm = q.lines.some(l => l.name === 'TOTAL COMPLETE SET'), items = q.lines.slice(0, 25).map(l => sm && l.name !== 'TOTAL COMPLETE SET' && !(+l.unitPrice) ? `• ${l.name}${l.spec ? ' (' + l.spec + ')' : ''}` : `• ${l.name}${l.spec ? ' (' + l.spec + ')' : ''} x${l.qty} = ${inr(l.qty * l.unitPrice - (l.lineDisc || 0))}`).join('\n');
   const msg = `Hello ${q.name},\nThank you for visiting C COMPUTER – The Computer House.\n\n*Quotation ${q.id}*\n${items}\n\n*Total: ${inr(q.total)}*${q.gst ? ' (incl. GST)' : ''}\nValid until: ${dtm(q.validUntil)}\n\nPlease reply to confirm.\nC COMPUTER, Katargam, Surat · ${q.shop.phone}`;
   api('quote.log', { id: QE.id, event: 'WhatsApp', detail: 'opened (message not auto-sent)' }, { rid: rid() }).catch(() => { });
   const url = `https://wa.me/${d.length === 10 ? '91' + d : ''}?text=${encodeURIComponent(msg)}`;
