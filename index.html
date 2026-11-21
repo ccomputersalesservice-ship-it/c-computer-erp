@@ -377,8 +377,8 @@ input,select,textarea{border-color:#dcdcd8}
  .lg-card{position:relative;right:auto;top:auto;transform:none;margin:92px auto 0;padding:18px 20px;width:min(380px,92vw)}.lg-card h2{font-size:24px}.lg-logo{display:none}.lg-trust{display:none}.lg-ar{display:none}.lg-dots{bottom:10px}
  .lg-ft{margin-top:10px}}
 .lg-card .lang{border:0;background:none;padding:0;box-shadow:none}
-</style>
 .cbk{cursor:pointer;transition:.15s}.cbk:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(16,36,94,.14)}.cbk.on{outline:2px solid #2f6bff;background:#eef3ff}
+</style>
 
 </head>
 <body>
@@ -2341,7 +2341,7 @@ function lgShow(n) {
 function lgStart() { lgStop(); lgTimer = setInterval(() => { if (!$('.lg-s')) return lgStop(); if (!document.hidden) lgShow(lgIdx + 1); }, 5000); }
 function renderLogin(msg) {
   S.token = null; S.user = null; document.body.classList.remove('in'); hideSplash(); lgStop();
-  const ll = store.lget('lgl') || (S.lang === 'gu' ? 'gu' : 'en'), T = LGT[ll] || LGT.en, bgs = window.LBG && window.LBG.length ? window.LBG : [window.DREAM], remId = store.lget('rem_id') || '';
+  const ll = store.lget('lgl') || (S.lang === 'gu' ? 'gu' : 'en'), T = LGT[ll] || LGT.en, bgs = window.LBG && window.LBG.length ? (window.innerWidth <= 820 ? [window.LBG[0]] : window.LBG) : [window.DREAM], remId = store.lget('rem_id') || '';
   const cats = ['laptop', 'desktop', 'service', 'cctv', 'acc'], trs = ['shield', 'head', 'tool'];
   $('#root').innerHTML = `<div class="lg">
     <div class="lg-slides">${bgs.map((b, i) => `<div class="lg-s ${i === 0 ? 'on' : ''}" data-bg="${b}" ${i === 0 ? `style="background-image:url(${b})"` : ''}></div>`).join('')}<div class="lg-shade"></div></div>
@@ -2399,10 +2399,8 @@ function renderShell() {
         <div class="me" id="me"><div class="av">${esc(nm.charAt(0).toUpperCase())}</div><div style="line-height:1.15"><b style="font-size:13px">${esc(nm)}</b><br><small style="color:#64748b">${a ? 'Admin' : 'Staff'}</small></div></div>
       </header>
       <main id="page" class="page"></main></div>
-    <nav class="bnav" ${userMenus() ? 'style="display:none"' : ''}><a data-act="go" data-r="dash" data-r2="dash" class="${S.route === 'dash' ? 'on' : ''}" data-r="dash">${ico('dash')}${LT('home')}</a>
-      <a data-act="go" data-r="products" class="${S.route === 'products' ? 'on' : ''}">${ico('products')}${LT('products')}</a>
-      <a class="plus" data-act="plus">${ico('plus')}</a>
-      <a data-act="go" data-r="stock" class="${S.route === 'stock' ? 'on' : ''}">${ico('stock')}${LT('stock')}</a>
+    <nav class="bnav" ${userMenus() ? 'style="display:none"' : ''}><a data-act="go" data-r="quotes" class="${S.route === 'quotes' || S.route === 'quote' ? 'on' : ''}">${ico('quotes')}Quotation</a>
+      ${a || (S.user.name || '').toUpperCase().startsWith('NAKUL') ? `<a data-act="go" data-r="cash" class="${S.route === 'cash' ? 'on' : ''}">${ico('cash')}Cash</a>` : ''}
       <a data-act="more">${ico('menu')}${LT('more')}</a></nav></div>`;
   $('#burger').onclick = () => $('.side').classList.toggle('open');
   $('#me').onclick = userMenu;
