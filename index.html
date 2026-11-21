@@ -1701,7 +1701,7 @@ function drawQuote() {
       <div class="qbrow"><div class="fld"><label>Product</label><input id="ic_n" value="${esc((e.ic || {}).n || '')}"></div><div class="fld"><label>Base Cost</label><input id="ic_b" inputmode="decimal" value="${esc((e.ic || {}).b || '')}"></div><div class="fld"><label>Purchase GST</label><select id="ic_g">${[0, 5, 12, 18, 28].map(g => `<option value="${g}" ${((e.ic || {}).g != null ? +(e.ic || {}).g : 18) === g ? 'selected' : ''}>${g}%</option>`).join('')}</select></div><div class="qtile"><span>Landed</span><b id="ic_l">₹0</b></div><div class="fld"><label>Selling Price</label><input id="ic_s" inputmode="decimal" value="${esc((e.ic || {}).s || '')}"></div></div>
       <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><button class="btn" data-act="qicadd">Add to quotation</button><small id="ic_p">Profit: ₹0 | Margin: 0%</small></div>
       <hr style="margin:10px 0;border:0;border-top:1px solid #e5e7eb"><div class="qrow"><span>This quotation: Purchase cost</span><b>${inr(c.cost)}</b></div><div class="qrow"><span>Expected profit</span><b style="color:#16a34a">${inr(c.profit)}</b></div><div class="qrow"><span>Margin</span><b>${c.taxable > 0 ? r2(c.profit / c.taxable * 100) : 0}%</b></div></div>`;
-  $('#page').innerHTML = `<div class="ph"><h1>${e.id ? esc(e.id) : 'New Quotation'}</h1><span style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end"><button class="btn g" data-act="go" data-r="quotes">Back</button>${saved ? `<button class="btn g" data-act="qpdf">PDF</button><button class="btn g" data-act="qprint">Print</button><button class="btn g" data-act="qwa">WhatsApp</button><button class="btn g" data-act="qdup">Duplicate</button>${lock ? '<button class="btn g" data-act="qinv">Invoice</button>' : ''}` : ''}${lock ? '' : `<button class="btn" data-act="qsave">${ico('plus')} Save</button>`}</span></div>
+  $('#page').innerHTML = `<div class="ph"><h1>${e.id ? esc(e.id) : 'New Quotation'}</h1><span style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end"><button class="btn g" data-act="go" data-r="quotes">Back</button><button class="btn" style="background:#16a34a" data-act="qwa">WhatsApp</button>${saved ? `<button class="btn g" data-act="qpdf">PDF</button><button class="btn g" data-act="qprint">Print</button><button class="btn g" data-act="qdup">Duplicate</button>${lock ? '<button class="btn g" data-act="qinv">Invoice</button>' : ''}` : ''}${lock ? '' : `<button class="btn" data-act="qsave">${ico('plus')} Save</button>`}</span></div>
   <div class="qdoc">
     <div class="qd-hd"><img src="${window.LOGO}" alt=""><div class="qd-r">SALES | SERVICE | ACCESSORIES<br>LAPTOP | DESKTOP | GAMING PC | MONITOR<br>PRINTER | CCTV | NETWORKING | AMC</div></div>
     <div class="qd-pills"><div>✓ Original Products</div><div>₹ Best Prices</div><div>⚙ Expert Service</div><div>⌂ Home &amp; Business</div></div>
@@ -1896,12 +1896,14 @@ ACT.qpdf = () => { toast('Choose "Save as PDF" in the print window'); return qDo
 ACT.qprint = () => qDoc('Print');
 ACT.qinv = () => qDoc('PDF', true);
 ACT.qwa = async () => {
-  if (!await qNeedSaved()) return; const q = await qDocData(), d = (q.mobile || '').replace(/\D/g, '').slice(-10);
-  const items = q.lines.slice(0, 12).map(l => `• ${l.name} x${l.qty}`).join('\n');
-  const msg = `Hello ${q.name},\nThank you for visiting C COMPUTER – The Computer House.\n\nQuotation ${q.id}\n${items}\n\nTotal: ${inr(q.total)}${q.gst ? ' (incl. GST)' : ''}\nValid until: ${dtm(q.validUntil)}\n\nI am sending the PDF quotation. Please reply to confirm.\nC COMPUTER, Katargam, Surat · ${q.shop.phone}`;
-  window.open(`https://wa.me/${d.length === 10 ? '91' + d : ''}?text=${encodeURIComponent(msg)}`, '_blank');
+  if (!QE.id) { await ACT.qsave({}, null); if (!QE.id) return; }   /* not saved yet: save first, then send */
+  const q = await qDocData(), d = (q.mobile || '').replace(/\D/g, '').slice(-10);
+  const items = q.lines.slice(0, 15).map(l => `• ${l.name}${l.spec ? ' (' + l.spec + ')' : ''} x${l.qty} = ${inr(l.qty * l.unitPrice - (l.lineDisc || 0))}`).join('\n');
+  const msg = `Hello ${q.name},\nThank you for visiting C COMPUTER – The Computer House.\n\n*Quotation ${q.id}*\n${items}\n\n*Total: ${inr(q.total)}*${q.gst ? ' (incl. GST)' : ''}\nValid until: ${dtm(q.validUntil)}\n\nPlease reply to confirm.\nC COMPUTER, Katargam, Surat · ${q.shop.phone}`;
   api('quote.log', { id: QE.id, event: 'WhatsApp', detail: 'opened (message not auto-sent)' }, { rid: rid() }).catch(() => { });
-  toast('WhatsApp opened with the message ready. Press Send there and attach the PDF yourself.');
+  const url = `https://wa.me/${d.length === 10 ? '91' + d : ''}?text=${encodeURIComponent(msg)}`;
+  toast('WhatsApp khule che - Send daba');
+  setTimeout(() => { location.href = url; }, 400);   /* location (not window.open) so iPhone does not block it */
 };
 
 /* ---------- Price Compare (admin only, read-only; nothing is saved) ---------- */
