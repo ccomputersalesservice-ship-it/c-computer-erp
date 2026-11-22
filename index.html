@@ -378,6 +378,11 @@ input,select,textarea{border-color:#dcdcd8}
  .lg-ft{margin-top:10px}}
 .lg-card .lang{border:0;background:none;padding:0;box-shadow:none}
 .cbk{cursor:pointer;transition:.15s}.cbk:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(16,36,94,.14)}.cbk.on{outline:2px solid #2f6bff;background:#eef3ff}
+.qd-cb{padding:0;overflow:hidden;background:#fff}.qd-cb h4{margin:0;background:#eceff1;padding:12px 14px;font-size:15px;border-bottom:1px solid #e5e7eb}.qd-fr{display:flex;align-items:flex-start;gap:12px;padding:6px 14px}.qd-fr label{width:70px;font-weight:700;padding-top:10px;font-size:14px}.qd-fr input,.qd-fr textarea{flex:1;min-width:0;border:1px solid #d1d5db;border-radius:8px;padding:10px;font:inherit}
+.qd-for{display:grid!important;grid-template-rows:repeat(4,auto);grid-auto-flow:column;gap:10px 8px;padding:14px;margin:0}.qd-for .qd-chip{border:0;border-radius:0;padding:0;background:none;font-size:15px}.qd-for input{width:16px;height:16px}
+.qd-t th{text-align:center}.qd-t td{vertical-align:top}.qd-tot .qrow{align-items:center}
+@media(max-width:720px){.qd-t td,.qd-t th{padding:6px 3px}.qd-t input[data-q=qty]{width:42px!important}.qd-t input[data-q=unitPrice]{width:74px!important}.qd-t .btn.s{padding:4px 7px}.qd-fr label{width:56px}.qd-t .nl{min-width:90px}}
+@media(max-width:720px){.qd-t input[data-q=qty]{width:34px!important;padding:6px 3px}.qd-t input[data-q=unitPrice]{width:62px!important;padding:6px 3px}.qd-t{font-size:12px}.qd-t .btn.s{padding:3px 6px}.qd-t th{font-size:11px}.qd-t .nl{min-width:70px}}
 </style>
 
 </head>
@@ -1672,12 +1677,12 @@ function drawQuote() {
   if (!e.validUntil && !e.id) { const d = new Date(e.date || Date.now()); d.setMonth(d.getMonth() + 2); e.validUntil = d.toISOString().slice(0, 10); }
   e.forTick = e.forTick || {};
   const rows = e.lines.map((l, i) => `<tr><td class="c">${i + 1}</td><td class="nl"><b>${esc(l.name)}</b>${l.part ? ` <span class="tag">${esc(l.part)}</span>` : ''}<br><small>${esc([l.brand, l.model].filter(Boolean).join(' · '))}${l.spec ? ' · ' + esc(String(l.spec).slice(0, 80)) : ''}</small>
-    ${l.belowMin ? '<br><small style="color:#dc2626">⚠ Below minimum selling price</small>' : ''}${l.productId && l.available != null && l.qty > l.available ? `<br><small style="color:#b45309">⚠ Only ${nf(l.available)} in stock</small>` : ''}${a ? `<br><small class="qint">Cost ₹ <input data-q="cost" data-i="${i}" inputmode="decimal" value="${l.cost || 0}" style="width:76px" ${dis}> · Profit ${inr((l.unitPrice - (l.cost || 0)) * l.qty - (+l.lineDisc || 0))}</small>` : ''}</td>
+    ${l.belowMin ? '<br><small style="color:#dc2626">⚠ Below minimum selling price</small>' : ''}${l.productId && l.available != null && l.qty > l.available ? `<br><small style="color:#b45309">⚠ Only ${nf(l.available)} in stock</small>` : ''}${a && l.name !== 'TOTAL COMPLETE SET' ? `<br><small class="qint">Cost ₹ <input data-q="cost" data-i="${i}" inputmode="decimal" value="${l.cost || 0}" style="width:76px" ${dis}>${+l.unitPrice > 0 ? ' · Profit ' + inr((l.unitPrice - (l.cost || 0)) * l.qty - (+l.lineDisc || 0)) : ''}</small>` : ''}</td>
     <td class="c"><input data-q="qty" data-i="${i}" inputmode="decimal" value="${l.qty}" style="width:56px" ${dis}></td><td class="r"><input data-q="unitPrice" data-i="${i}" inputmode="decimal" value="${l.unitPrice}" style="width:92px" ${dis}></td>
-    <td class="r"><input data-q="lineDisc" data-i="${i}" inputmode="decimal" value="${l.lineDisc || 0}" style="width:72px" ${dis}></td><td class="r"><b>${inr(l._tot)}</b></td><td>${lock ? '' : `<button class="btn bad s" data-act="qdel" data-i="${i}">✕</button>`}</td></tr>`).join('');
+    <td class="r"><b>${inr(l._tot)}</b>${+l.lineDisc ? `<br><small class="qint">- ${inr(l.lineDisc)} disc</small>` : ''}</td><td>${lock ? '' : `<button class="btn bad s" data-act="qdel" data-i="${i}">✕</button>`}</td></tr>`).join('');
   const brk = c.brk.map(b => intra ? `<div class="qrow"><span>CGST ${b.rate / 2}%</span><b>${inr(r2(b.tax / 2))}</b></div><div class="qrow"><span>SGST ${b.rate / 2}%</span><b>${inr(b.tax - r2(b.tax / 2))}</b></div>` : `<div class="qrow"><span>IGST ${b.rate}%</span><b>${inr(b.tax)}</b></div>`).join('');
   const saved = !!e.id, st = e.status;
-  const FOR = ['Laptop', 'Desktop', 'Gaming PC', 'Monitor', 'Printer', 'CCTV', 'Networking', 'Accessories', 'Service / AMC'];
+  const FOR = ['Laptop', 'Desktop', 'Monitor', 'Printer', 'CCTV', 'Accessories', 'Gaming PC', 'Others'];
   const terms = String(sh.terms || '').split('\n').map(x => x.trim()).filter(Boolean).map(x => `<li>${esc(x.replace(/^\d+[.)]\s*/, ''))}</li>`).join('') || '<li>Prices are valid till the date shown.</li><li>Warranty as per manufacturer terms.</li><li>Payment: 100% advance / on delivery.</li>';
   const acts = !saved ? '' : `<div class="card" style="margin-top:12px"><h3>Status: ${qpill(st)} ${e.discStatus === 'Pending' ? '<span class="pill p-warn">Discount needs admin approval</span>' : e.discStatus === 'Approved' ? '<span class="pill p-ok">Discount approved</span>' : ''}</h3>
     ${a && e.discStatus === 'Pending' ? '<div style="margin-bottom:8px"><button class="btn ok" data-act="qapprove">Approve discount</button></div>' : ''}
@@ -1706,24 +1711,23 @@ function drawQuote() {
     <div class="qd-hd"><img src="${window.LOGO}" alt=""><div class="qd-r">SALES | SERVICE | ACCESSORIES<br>LAPTOP | DESKTOP | GAMING PC | MONITOR<br>PRINTER | CCTV | NETWORKING | AMC</div></div>
     <div class="qd-pills"><div>✓ Original Products</div><div>₹ Best Prices</div><div>⚙ Expert Service</div><div>⌂ Home &amp; Business</div></div>
     <div class="qd-bn"><div><h2>QUOTATION</h2><small>TECHNOLOGY YOU CAN TRUST</small></div><div class="qd-m"><label>Quotation No<b>${e.id ? esc(e.id) : 'Auto on save'}</b></label><label>Date<input type="date" id="qd" value="${esc(e.date)}" ${dis}></label><label>Valid Till<input type="date" id="qv" value="${esc(e.validUntil)}" ${dis}></label></div></div>
-    <div class="qd-two"><div class="qd-box"><h4>Customer Details</h4>
-      <div class="fld"><label>Customer name *</label><input id="qn" value="${esc(e.name)}" ${dis}></div>
-      <div class="row"><div class="fld"><label>Mobile</label><input id="qm" inputmode="numeric" maxlength="13" value="${esc(e.mobile)}" ${dis}></div><div class="fld"><label>GST number</label><input id="qg" value="${esc(e.gstNo)}" maxlength="15" style="text-transform:uppercase" ${dis}></div></div>
-      <div class="fld"><label>Address</label><input id="qa" value="${esc(e.address)}" ${dis}></div>
-      <div class="row"><div class="fld"><label>Tax</label><select id="qgst" ${dis}><option value="0" ${!e.gst ? 'selected' : ''}>Without GST</option><option value="1" ${e.gst ? 'selected' : ''}>With GST</option></select></div>${e.gst ? `<div class="fld"><label>GST % (all items)</label><input id="qr" inputmode="decimal" value="${esc(e.gstRate)}" ${dis}></div>` : ''}</div>
-      ${e.gst ? `<small>${intra ? 'Same state: CGST + SGST' : 'Other state: IGST'} ${e.gstNo ? '(from GST number)' : '(no customer GST number: same state)'}</small>` : ''}</div>
-     <div class="qd-box"><h4>Quotation For</h4><div class="qd-chips">${FOR.map(f => `<label class="qd-chip"><input type="checkbox" data-for="${esc(f)}" ${e.forTick[f] ? 'checked' : ''}> ${esc(f)}</label>`).join('')}</div><small>Only for your reference while making the quotation.</small></div></div>
-    <div class="qd-items"><div class="qd-ih"><span>ITEMS (${e.lines.length})</span></div>
+    <div class="qd-two"><div class="qd-box qd-cb"><h4>👤 Customer Details</h4>
+      <div class="qd-fr"><label>Name</label><input id="qn" placeholder="Customer Name" value="${esc(e.name)}" ${dis}></div>
+      <div class="qd-fr"><label>Mobile</label><input id="qm" inputmode="numeric" maxlength="13" placeholder="Mobile Number" value="${esc(e.mobile)}" ${dis}></div>
+      <div class="qd-fr"><label>Address</label><textarea id="qa" rows="2" placeholder="Customer Address" ${dis}>${esc(e.address)}</textarea></div>
+      <div class="qd-fr"><label>GST No.</label><input id="qg" value="${esc(e.gstNo)}" maxlength="15" placeholder="Only if customer has GST" style="text-transform:uppercase" ${dis}></div></div>
+     <div class="qd-box qd-cb"><h4>📄 Quotation For</h4><div class="qd-chips qd-for">${FOR.map(f => `<label class="qd-chip"><input type="checkbox" data-for="${esc(f)}" ${e.forTick[f] ? 'checked' : ''}> ${esc(f)}</label>`).join('')}</div></div></div>
+    <div class="qd-items">
       ${lock ? '' : `<div class="qd-add"><div id="qpick"></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"><button class="btn s" data-act="qcustom" data-k="Custom">+ ADD PRODUCT</button><button class="btn g s" data-act="qcustom" data-k="Service">+ Service</button><button class="btn g s" data-act="qpc">PC Build</button><button class="btn g s" data-act="qtpl">Templates</button><button class="btn g s" data-act="qsavetpl">Save as template</button></div></div>`}
-      ${e.lines.length ? `<div class="tw"><table class="tbl qd-t"><thead><tr><th class="c">#</th><th>Item</th><th class="c">Qty</th><th class="r">Price</th><th class="r">Disc ₹</th><th class="r">Amount</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">Search a product above, or add a custom item / service.</div>'}</div>
+      ${e.lines.length ? `<div class="tw"><table class="tbl qd-t"><thead><tr><th class="c">No.</th><th>Product Description</th><th class="c">Qty</th><th class="r">Rate (₹)</th><th class="r">Amount (₹)</th><th class="c">X</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">Search a product above, or add a custom item / service.</div>'}</div>
     <div class="qd-two" style="align-items:flex-start"><div><div class="qd-ty">Thank You!<br><small>for choosing C COMPUTER</small></div><div class="fld"><label>Note / description</label><input id="qnote" value="${esc(e.note)}" ${dis}></div>${c.total ? `<small>Amount in words: <b>Rupees ${rupeesWords(c.total)} Only</b></small>` : ''}</div>
       <div class="qd-tot"><div class="qrow"><span>Subtotal</span><b>${inr(c.gross)}</b></div>
-        <div class="qrow"><span>Item discounts</span><b>${inr(c.ld)}</b></div>
-        <div class="qrow"><span>Extra discount ₹</span><input id="qbd" inputmode="decimal" value="${e.billDisc || 0}" style="width:100px;text-align:right" ${dis}></div>
-        <div class="qrow"><span>Taxable amount</span><b>${inr(c.taxable)}</b></div>${brk}
-        ${e.gst ? '' : '<div class="qrow"><span>GST</span><b>Not applied</b></div>'}
-        <div class="qrow"><span>Round off</span><b>${inr(c.round)}</b></div>
-        <div class="qrow qd-gt"><span>Grand Total</span><b>${inr(c.total)}</b></div>
+        ${c.ld ? `<div class="qrow"><span>Item discounts</span><b>- ${inr(c.ld)}</b></div>` : ''}
+        <div class="qrow"><span><b>Discount (₹)</b></span><input id="qbd" inputmode="decimal" placeholder="0" value="${+e.billDisc ? esc(e.billDisc) : ''}" style="width:110px;text-align:right" ${dis}></div>
+        <div class="qrow"><span><b>GST</b></span><span style="display:flex;gap:6px;align-items:center"><select id="qgst" ${dis}><option value="0" ${!e.gst ? 'selected' : ''}>No GST</option><option value="1" ${e.gst ? 'selected' : ''}>With GST</option></select>${e.gst ? `<input id="qr" inputmode="decimal" value="${esc(e.gstRate)}" style="width:54px" ${dis}> %` : ''}</span></div>
+        ${e.gst ? `<div class="qrow"><span>Taxable amount</span><b>${inr(c.taxable)}</b></div>${brk}<small>${intra ? 'Same state: CGST + SGST' : 'Other state: IGST'}</small>` : ''}
+        ${c.round ? `<div class="qrow"><span>Round off</span><b>${inr(c.round)}</b></div>` : ''}
+        <div class="qrow qd-gt"><span>Grand Total (₹)</span><b>${inr(c.total)}</b></div>
         ${!a && e.lines.some(l => l.belowMin) ? '<p style="color:#dc2626;font-size:12px">⚠ Some prices are below the minimum selling price.</p>' : ''}
         ${(+c.disc / Math.max(1, c.gross) * 100) > (+e.maxDisc || 5) && !a ? '<p style="color:#b45309;font-size:12px">Discount is high. The admin must approve it before you can send this quotation.</p>' : ''}</div></div>
     <div class="qd-g3"><div><h4>Terms &amp; Conditions</h4><ul>${terms}</ul></div><div><h4>Why Choose C COMPUTER?</h4>✓ Genuine Products<br>✓ Competitive Pricing<br>✓ Expert Service Support<br>✓ After Sales Service<br>✓ Home &amp; Business Solutions</div><div><h4>Need Help?</h4>📞 ${esc(sh.phone || '8160088439')}<br>WhatsApp Support</div></div>
