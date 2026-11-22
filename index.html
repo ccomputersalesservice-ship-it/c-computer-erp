@@ -2519,7 +2519,7 @@ function renderLogin(msg) {
     google.script.run.withSuccessHandler(r => {
       busy(false); btn.disabled = false;
       if (!r || !r.ok) { $('#lp').value = ''; return toast((r && r.error) || 'Login failed', 'bad'); }
-      if ($('#lrem') && $('#lrem').checked) store.lset('rem_id', $('#li').value.trim()); else store.lset('rem_id', ''); lgStop(); S.token = r.data.token; S.user = r.data.user; store.set('tok', S.token); startApp();
+      if ($('#lrem') && $('#lrem').checked) store.lset('rem_id', $('#li').value.trim()); else store.lset('rem_id', ''); lgStop(); S.token = r.data.token; S.user = r.data.user; store.set('tok', S.token); store.lset('tok2', JSON.stringify({ t: S.token, at: Date.now(), seen: Date.now() })); startApp();
     }).withFailureHandler(() => { busy(false); btn.disabled = false; toast('Network problem. Check internet and try again.', 'bad'); })
       .api(null, 'login', { loginId: $('#li').value, pin: $('#lp').value });
   };
@@ -2527,7 +2527,7 @@ function renderLogin(msg) {
 }
 function doLogout(auto) {
   APIC.clear();
-  const t = S.token; S.stack = []; store.del('tok'); store.del('route');
+  const t = S.token; S.stack = []; store.del('tok'); store.del('route'); store.lset('tok2', '');
   if (t && !auto) { try { google.script.run.api(t, 'logout', {}); } catch (e) { } }
   S.token = null; S.user = null; S.boot = null; PQ && (PQ.items = []);
   renderLogin(auto ? 'Session ended. Please login again.' : '');
@@ -2599,8 +2599,8 @@ function pinForm() {
 }
 
 /* auto logout after 30 min idle (server session is 6 h) */
-let idleT; const IDLE = 30 * 60 * 1000;
-function idleReset() { clearTimeout(idleT); if (S.token) idleT = setTimeout(() => doLogout(true), IDLE); }
+let idleT, idleW = 0; const IDLE = 3 * 60 * 60 * 1000;   /* 3 hours idle; login also survives a tab reload / app switch (e.g. choosing a photo) */
+function idleReset() { clearTimeout(idleT); if (S.token) { idleT = setTimeout(() => doLogout(true), IDLE); const n = Date.now(); if (n - idleW > 20000) { idleW = n; try { const o = JSON.parse(store.lget('tok2') || 'null'); if (o && o.t === S.token) { o.seen = n; store.lset('tok2', JSON.stringify(o)); } } catch (e) { } } } }
 ['click', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, idleReset, { passive: true }));
 
 /* ---------- start ---------- */
@@ -2626,7 +2626,8 @@ function prefetchLists() {
 }
 (function init() {
   S.lang = store.lget('lang') || 'both';
-  const t = store.get('tok');
+  let t = store.get('tok');
+  if (!t) { try { const o = JSON.parse(store.lget('tok2') || 'null'); if (o && o.t && Date.now() - o.seen < 3 * 3600 * 1000 && Date.now() - o.at < 6 * 3600 * 1000) { t = o.t; store.set('tok', t); } else if (o) store.lset('tok2', ''); } catch (e) { } }
   if (t) { S.token = t; startApp(); } else renderLogin();
 })();
 </script>
