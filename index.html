@@ -1669,7 +1669,7 @@ async function V_quote() {
     lines: q.lines.map(l => ({ kind: l.kind, part: l.part, productId: l.productId, name: l.name, brand: l.brand, model: l.model, spec: l.spec, qty: l.qty, unitPrice: l.unitPrice, lineDisc: l.lineDisc || 0, gstRate: l.gstRate, cost: l.cost, available: l.available, belowMin: l.belowMin })) }
     : { id: '', status: 'Draft', date: new Date().toISOString().slice(0, 10), validUntil: '', name: '', mobile: '', address: '', gstNo: '', customerId: '', gst: false, taxType: '', gstRate: 18, billDisc: 0, note: '', terms: '', format: 'premium', lines: [], log: [], discStatus: 'OK' };
   QE.stateCode = cfg.state; QE.maxDisc = cfg.maxDiscPct; if (!q) QE.gstRate = cfg.gstRate;
-  drawQuote();
+  drawQuote(); qPreload();
 }
 function qLocked() { return QE.status === 'Converted'; }
 function drawQuote() {
@@ -1919,14 +1919,19 @@ ACT.qpdf = async () => {
   if (!QE.id) { await ACT.qsave({}, null); } if (!await qNeedSaved()) return;
   toast('PDF bani rahyu che, 2-3 second...');
   try {
-    const q = await qDocData(), file = await qPdfFile(q), u = URL.createObjectURL(file), a = document.createElement('a'); a.href = u; a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000);
+    const q = await qDocData(), file = await qPdfTimed(q), u = URL.createObjectURL(file), a = document.createElement('a'); a.href = u; a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000);
     api('quote.log', { id: QE.id, event: 'PDF', detail: 'A4 file' }, { rid: rid() }).catch(() => { }); toast('PDF download thayu: ' + file.name);
   } catch (e) { toast('Choose "Save as PDF" in the print window'); return qDoc('PDF'); }
 };
 ACT.qprint = () => qDoc('Print');
 ACT.qinv = () => qDoc('PDF', true);
 /* WhatsApp: the FULL quotation (same design as PDF) goes as a PDF file. Libraries load only when needed (free CDN). */
-function qLoadJs(urls) { return new Promise((res, rej) => { let i = 0; const nx = () => { if (i >= urls.length) return rej(new Error('lib')); const sc = document.createElement('script'); sc.src = urls[i++]; sc.onload = res; sc.onerror = () => { sc.remove(); nx(); }; document.head.appendChild(sc); }; nx(); }); }
+function qLoadJs(urls) { return new Promise((res, rej) => { let i = 0; const nx = () => { if (i >= urls.length) return rej(new Error('lib')); const sc = document.createElement('script'); let done = false; const fail = () => { if (done) return; done = true; sc.remove(); nx(); }; sc.src = urls[i++]; sc.onload = () => { done = true; res(); }; sc.onerror = fail; setTimeout(fail, 8000); document.head.appendChild(sc); }; nx(); }); }
+function qPreload() {   /* load the PDF libraries quietly in the background, so the PDF button is fast */
+  const a = () => window.html2canvas ? 0 : qLoadJs(['https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js']), b = () => window.jspdf && window.jspdf.jsPDF ? 0 : qLoadJs(['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js']);
+  Promise.resolve().then(a).then(b).catch(() => { });
+}
+const qPdfTimed = q => Promise.race([qPdfFile(q), new Promise((_, rj) => setTimeout(() => rj(new Error('timeout')), 25000))]);
 async function qPdfFile(q) {
   if (!window.html2canvas) await qLoadJs(['https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js']);
   if (!(window.jspdf && window.jspdf.jsPDF)) await qLoadJs(['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js']);
@@ -1944,7 +1949,7 @@ ACT.qwa = async () => {
   if (!QE.id) { await ACT.qsave({}, null); if (!QE.id) return; }   /* not saved yet: save first, then send */
   const q = await qDocData(), d = (q.mobile || '').replace(/\D/g, '').slice(-10);
   toast('PDF bani rahyu che, 2-3 second...');
-  let file = null; try { file = await qPdfFile(q); } catch (e) { file = null; }
+  let file = null; try { file = await qPdfTimed(q); } catch (e) { file = null; }
   const sm = q.lines.some(l => l.name === 'TOTAL COMPLETE SET'), items = q.lines.slice(0, 25).map(l => sm && l.name !== 'TOTAL COMPLETE SET' && !(+l.unitPrice) ? `• ${l.name}${l.spec ? ' (' + l.spec + ')' : ''}` : `• ${l.name}${l.spec ? ' (' + l.spec + ')' : ''} x${l.qty} = ${inr(l.qty * l.unitPrice - (l.lineDisc || 0))}`).join('\n');
   const msg = file ? `Hello ${q.name},\nThank you for visiting C COMPUTER – The Computer House.\n\n*Quotation ${q.id}* – *Total: ${inr(q.total)}*\nValid until: ${dtm(q.validUntil)}\n\nQuotation PDF attached. Please reply to confirm.\nC COMPUTER, Katargam, Surat · ${q.shop.phone}`
     : `Hello ${q.name},\nThank you for visiting C COMPUTER – The Computer House.\n\n*Quotation ${q.id}*\n${items}\n\n*Total: ${inr(q.total)}*${q.gst ? ' (incl. GST)' : ''}\nValid until: ${dtm(q.validUntil)}\n\nPlease reply to confirm.\nC COMPUTER, Katargam, Surat · ${q.shop.phone}`;
