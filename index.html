@@ -1700,7 +1700,7 @@ function drawQuote() {
         <div class="qtile"><span>Base Purchase Total</span><b id="qt1">₹0</b></div><div class="qtile"><span>Purchase GST</span><b id="qt2">₹0</b></div><div class="qtile"><span>Final Landed Cost</span><b id="qt3">₹0</b></div></div>
       <div class="qbrow"><div class="fld"><label>Add Profit ₹</label><input id="qpf" inputmode="decimal" value="${esc(bk.pf || '')}"></div><div class="fld"><label>OR Margin %</label><input id="qpm" inputmode="decimal" value="${esc(bk.pm || '')}"></div><div class="fld"><label>Customer Quotation ₹</label><input id="qcq" inputmode="decimal" value="${esc(bk.cq || '')}"></div></div>
       <input type="hidden" id="qpr" value="10"><input type="hidden" id="qsn" value="Complete Computer Set">
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"><button class="btn" data-act="qbulk" data-m="sep">Line by line (Separate items)</button><button class="btn g" data-act="qbulk" data-m="one">Single item (total set)</button><button class="btn g" data-act="qprofit">Apply profit to all lines</button></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"><button class="btn" data-act="qbulk" data-m="one">Single item (total set)</button><button class="btn" data-act="qbulk" data-m="sep">Separate items</button><button class="btn g" data-act="qprofit">Apply profit to all lines</button></div>
       <small id="qbsum">Final Purchase: ₹0 | Customer Quote: ₹0 | Profit: ₹0 | Margin: 0%</small></div>`;
   const costp = lock || !a ? '' : `<div class="card qbk" style="margin-top:12px"><h3>INTERNAL COSTING — C COMPUTER <small>(cost, profit ane margin print / PDF ma nahi aave)</small></h3>
       <div class="qbrow"><div class="fld"><label>Product</label><input id="ic_n" value="${esc((e.ic || {}).n || '')}"></div><div class="fld"><label>Base Cost</label><input id="ic_b" inputmode="decimal" value="${esc((e.ic || {}).b || '')}"></div><div class="fld"><label>Purchase GST</label><select id="ic_g">${[0, 5, 12, 18, 28].map(g => `<option value="${g}" ${((e.ic || {}).g != null ? +(e.ic || {}).g : 18) === g ? 'selected' : ''}>${g}%</option>`).join('')}</select></div><div class="qtile"><span>Landed</span><b id="ic_l">₹0</b></div><div class="fld"><label>Selling Price</label><input id="ic_s" inputmode="decimal" value="${esc((e.ic || {}).s || '')}"></div></div>
@@ -1785,31 +1785,30 @@ async function qAddProduct(pid, part, qty) {
   drawQuote();
 }
 ACT.qbulk = (d, el) => work(el, async () => {
-  qRead(); const one = d.m === 'one', parsed = []; const txt = ($('#qbulk').value || '').split('\n').map(x => x.trim()).filter(Boolean), g = qBulkG(); let n = 0, m = 0;
+  /* "one" = Single item (total set): CRM style, every part listed with NO price + one TOTAL COMPLETE SET line.  "sep" = Separate items: every part gets its own price. */
+  qRead(); const crm = d.m === 'one', txt = ($('#qbulk').value || '').split('\n').map(x => x.trim()).filter(Boolean), g = qBulkG(); let n = 0, m = 0;
+  QE.lines = QE.lines.filter(l => !l._bulk);   /* pressing the button again replaces the earlier bulk lines, no duplicates */
   const items = [];
   for (const ln of txt) {
     const mt = ln.match(/^(.*?)[\s:=-]*₹?\s*([\d,]+(?:\.\d+)?)\s*\+?\s*$/); if (!mt || !mt[1].trim()) continue;
     const name = mt[1].trim(), price = +mt[2].replace(/,/g, ''), cost = Math.round(price * (1 + g / 100) * 100) / 100; items.push({ name, cost });
   }
-  /* catalogue lookups run ALL AT ONCE (one wait, not one wait per line) */
-  const found = one ? [] : await Promise.all(items.map(it => api('prod.quick', { q: it.name.split(/\s+/).slice(0, 3).join(' ') }).then(r => {
+  /* catalogue lookups (only for Separate items) run ALL AT ONCE */
+  const found = crm ? [] : await Promise.all(items.map(it => api('prod.quick', { q: it.name.split(/\s+/).slice(0, 3).join(' ') }).then(r => {
     const w = it.name.toLowerCase().split(/\s+/).filter(x => x.length > 1); const sc = p => { const t = (p.Name + ' ' + (p.Brand || '') + ' ' + (p.Model || '')).toLowerCase(); return w.filter(x => t.includes(x)).length / Math.max(1, w.length); };
     const b = r.map(p => [sc(p), p]).sort((x, y) => y[0] - x[0])[0]; return b && b[0] >= 0.7 ? b[1] : null;
   }).catch(() => null)));
   items.forEach((it, i) => {
-    const name = it.name, cost = it.cost;
-    if (one) { parsed.push({ name, cost }); n++; return; }
-    const prod = found[i];
-    if (prod) { QE.lines.push({ kind: 'Product', part: '', productId: prod.ProductID, name: prod.Name, brand: prod.Brand, model: prod.Model, spec: '', qty: 1, unitPrice: 0, lineDisc: 0, gstRate: '', cost, available: prod.available }); m++; }
-    else QE.lines.push({ kind: 'Custom', part: '', productId: '', name, brand: '', model: '', spec: '', qty: 1, unitPrice: 0, lineDisc: 0, gstRate: '', cost }); n++;
+    const name = it.name, cost = it.cost, up = crm ? 0 : cost, prod = found[i];
+    if (prod) { QE.lines.push({ _bulk: 1, kind: 'Product', part: '', productId: prod.ProductID, name: prod.Name, brand: prod.Brand, model: prod.Model, spec: '', qty: 1, unitPrice: up, lineDisc: 0, gstRate: '', cost, available: prod.available }); m++; }
+    else QE.lines.push({ _bulk: 1, kind: 'Custom', part: '', productId: '', name, brand: '', model: '', spec: '', qty: 1, unitPrice: up, lineDisc: 0, gstRate: '', cost }); n++;
   });
-  if (!one && n) qSetLine(true);   /* CRM style: parts have no price, ONE final line carries the total */
-  if (one && parsed.length) { const tc = Math.round(parsed.reduce((a, x) => a + x.cost, 0) * 100) / 100; QE.lines.push({ kind: 'Custom', part: '', productId: '', name: ($('#qsn').value || 'Complete Computer Set').trim(), brand: '', model: '', spec: parsed.map(x => x.name).join(' + '), qty: 1, unitPrice: tc, lineDisc: 0, gstRate: '', cost: tc }); }
+  if (crm && n) qSetLine(true);   /* ONE final line carries the total price */
   const pn = n ? qProfitApply() : 0;
-  drawQuote(); toast(one && n ? `1 set item added (${n} parts, cost ${inr(parsed.reduce((a, x) => a + x.cost, 0))}).` + (pn ? ' Profit added too.' : ' Now add profit.') : n ? `${n} lines added (${m} with catalogue photo).` + (pn ? ' Profit added too.' : ' Now add profit.') : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
+  drawQuote(); toast(n ? (crm ? `${n} items added, last line TOTAL COMPLETE SET.` : `${n} lines added (${m} with catalogue photo).`) + (pn ? ' Profit added too.' : ' Now add profit.') : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
 });
 const QSET = 'TOTAL COMPLETE SET';
-function qSetLine(make) { let s = QE.lines.find(l => l.name === QSET); if (!s && make) { s = { kind: 'Custom', part: '', productId: '', name: QSET, brand: '', model: '', spec: '', qty: 1, unitPrice: 0, lineDisc: 0, gstRate: '', cost: 0 }; QE.lines.push(s); } else if (s && make) { QE.lines.splice(QE.lines.indexOf(s), 1); QE.lines.push(s); } return s; }
+function qSetLine(make) { let s = QE.lines.find(l => l.name === QSET); if (!s && make) { s = { _bulk: 1, kind: 'Custom', part: '', productId: '', name: QSET, brand: '', model: '', spec: '', qty: 1, unitPrice: 0, lineDisc: 0, gstRate: '', cost: 0 }; QE.lines.push(s); } else if (s && make) { QE.lines.splice(QE.lines.indexOf(s), 1); QE.lines.push(s); } return s; }
 function qProfitApply() {
   const st = qSetLine(false);
   if (st) {   /* line-by-line mode: parts stay at no price, the TOTAL COMPLETE SET line gets cost + profit */
