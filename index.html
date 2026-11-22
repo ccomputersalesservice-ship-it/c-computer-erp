@@ -1674,7 +1674,7 @@ async function V_quote() {
 function qLocked() { return QE.status === 'Converted'; }
 function drawQuote() {
   const a = isAdmin(), e = QE, lock = qLocked(), dis = lock ? 'disabled' : '', c = qcalc(e), intra = qIntra(e), sh = e.shop || {};
-  if (!e.validUntil && !e.id) { const d = new Date(e.date || Date.now()); d.setMonth(d.getMonth() + 2); e.validUntil = d.toISOString().slice(0, 10); }
+  if (!e.validUntil && !e.id) { const d = new Date((e.date || new Date().toISOString().slice(0, 10)) + 'T12:00:00'); d.setDate(d.getDate() + 2); e.validUntil = d.toISOString().slice(0, 10); e._vAuto = true; }   /* valid for 2 days, same as the Terms */
   e.forTick = e.forTick || {};
   const rows = e.lines.map((l, i) => `<tr><td class="c">${i + 1}</td><td class="nl">${l.productId || lock ? `<b>${esc(l.name)}</b>` : `<textarea data-q="name" data-i="${i}" rows="2" style="width:100%">${esc(l.name)}</textarea>`}${l.part ? ` <span class="tag">${esc(l.part)}</span>` : ''}${(l.brand || l.model || l.spec) ? `<br><small>${esc([l.brand, l.model].filter(Boolean).join(' · '))}${l.spec ? (l.brand || l.model ? ' · ' : '') + esc(String(l.spec).slice(0, 80)) : ''}</small>` : ''}
     ${l.belowMin && a ? '<br><small style="color:#dc2626">⚠ Below minimum selling price</small>' : ''}${l.productId && l.available != null && l.qty > l.available ? `<br><small style="color:#b45309">⚠ Only ${nf(l.available)} in stock</small>` : ''}</td>
@@ -1763,6 +1763,8 @@ function qRead() {
 function bindQuote() {
   const e = QE;
   ['#qn', '#qm', '#qa', '#qg', '#qd', '#qv', '#qnote'].forEach(s => { const x = $(s); if (x) x.onchange = () => qRead(); });
+  if ($('#qd')) $('#qd').onchange = () => { qRead(); if (e._vAuto && !e.id) { e.validUntil = ''; drawQuote(); } };   /* date changed: Valid Till follows (+2 days) until it is edited by hand */
+  if ($('#qv')) $('#qv').addEventListener('change', () => { e._vAuto = false; });
   qBulkBind();
   $$('[data-for]').forEach(x => x.onchange = () => { QE.forTick[x.dataset.for] = x.checked; });
   if ($('#qgst')) $('#qgst').onchange = () => { qRead(); drawQuote(); };
