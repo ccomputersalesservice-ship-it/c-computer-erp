@@ -1879,7 +1879,10 @@ function qDocHtml(q, fmt, invoice, full) {
   const sh = q.shop, intra = q.taxType !== 'IGST', title = invoice ? (q.gst ? 'TAX INVOICE' : 'INVOICE') : 'QUOTATION', no = invoice ? q.orderId : q.id;
   const ph = fmt !== 'simple' && q.lines.some(l => l.productId && S.thumbs[l.productId]), det = fmt === 'detailed';
   const setMode = q.lines.some(l => l.name === 'TOTAL COMPLETE SET'), blank = l => setMode && l.name !== 'TOTAL COMPLETE SET' && !(+l.unitPrice);
-  const rows = q.lines.map((l, i) => `<tr${l.name === 'TOTAL COMPLETE SET' ? ' class="ts"' : ''}><td>${i + 1}</td>${ph ? `<td class="pc">${l.productId && S.thumbs[l.productId] ? `<img src="${S.thumbs[l.productId]}">` : ''}</td>` : ''}<td><b>${esc(l.name)}</b>${l.part ? ` <i>(${esc(l.part)})</i>` : ''}${(l.brand || l.model) ? `<br><span class="s">${esc([l.brand, l.model].filter(Boolean).join(' · '))}</span>` : ''}${(det || !l.productId) && l.spec ? `<br><span class="s">${esc(l.spec)}</span>` : ''}</td><td class="r">${l.qty}</td><td class="r">${blank(l) ? '' : inr(l.unitPrice)}${l.lineDisc ? `<br><span class="s">- ${inr(l.lineDisc)} disc</span>` : ''}</td>${q.gst ? `<td class="r">${l.gstRate}%</td>` : ''}<td class="r"><b>${inr(q.gst ? l.taxable : l.total)}</b></td></tr>`).join('');
+  const rowsAll = q.lines.map((l, i) => `<tr${l.name === 'TOTAL COMPLETE SET' ? ' class="ts"' : ''}><td>${i + 1}</td>${ph ? `<td class="pc">${l.productId && S.thumbs[l.productId] ? `<img src="${S.thumbs[l.productId]}">` : ''}</td>` : ''}<td><b>${esc(l.name)}</b>${l.part ? ` <i>(${esc(l.part)})</i>` : ''}${(l.brand || l.model) ? `<br><span class="s">${esc([l.brand, l.model].filter(Boolean).join(' · '))}</span>` : ''}${(det || !l.productId) && l.spec ? `<br><span class="s">${esc(l.spec)}</span>` : ''}</td><td class="r">${l.qty}</td><td class="r">${blank(l) ? '' : inr(l.unitPrice)}${l.lineDisc ? `<br><span class="s">- ${inr(l.lineDisc)} disc</span>` : ''}</td>${q.gst ? `<td class="r">${l.gstRate}%</td>` : ''}<td class="r"><b>${inr(q.gst ? l.taxable : l.total)}</b></td></tr>`);
+  const fill = Array.from({ length: Math.max(0, (full ? 11 : 0) - q.lines.length) }, () => `<tr class="fl">${'<td>&nbsp;</td>'.repeat(5 + (ph ? 1 : 0) + (q.gst ? 1 : 0))}</tr>`).join('');
+  const lastSet = q.lines.length && q.lines[q.lines.length - 1].name === 'TOTAL COMPLETE SET';
+  const rows = (lastSet ? rowsAll.slice(0, -1).join('') + fill + rowsAll[rowsAll.length - 1] : rowsAll.join('') + fill);
   const brk = (q.breakup || []).map(b => intra ? `<tr><td>CGST ${b.rate / 2}% on ${inr(b.taxable)}</td><td class="r">${inr(b.cgst)}</td></tr><tr><td>SGST ${b.rate / 2}% on ${inr(b.taxable)}</td><td class="r">${inr(b.sgst)}</td></tr>` : `<tr><td>IGST ${b.rate}% on ${inr(b.taxable)}</td><td class="r">${inr(b.igst)}</td></tr>`).join('');
   const terms = String(sh.terms || '').split('\n').map(x => x.trim()).filter(Boolean).map(x => `<li>${esc(x.replace(/^\d+[.)]\s*/, ''))}</li>`).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><title>${title} ${esc(no)}</title><style>
@@ -1892,7 +1895,7 @@ function qDocHtml(q, fmt, invoice, full) {
   .tot{width:46%;margin-left:54%;margin-top:8px}.tot td{padding:4px 8px;border:1px solid #e5e7eb}.gt td{font-size:15px;font-weight:700;background:#f97316;color:#fff;border-color:#f97316}
   .g3{display:flex;gap:10px;margin-top:12px}.g3>div{flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:11px;background:#f6f7f8}.g3 h4{margin:0 0 4px;font-size:12px}.g3 ul{margin:0;padding-left:16px}
   .box{margin-top:10px;background:#f6f7f8;border-radius:8px;padding:8px 10px;white-space:pre-line}.ty{text-align:center;margin:12px 0 2px;font-size:16px;font-weight:700;font-style:italic}.foot{margin-top:10px;display:flex;justify-content:space-between;color:#6b7280;font-size:11px}
-  tr{page-break-inside:avoid}${full ? '.pg{min-height:297mm;padding:10mm 10mm}body{font-size:12px}' : ''}</style></head><body><div class="pg">
+  tr{page-break-inside:avoid}tr.fl td{height:30px}${full ? '.pg{min-height:297mm;padding:10mm 11mm}body{font-size:13px}td{padding:9px 8px}th{padding:10px 8px}.hd img{height:70px}.bn{padding:18px 18px}' : ''}</style></head><body><div class="pg">
   <div class="hd"><div><img src="${window.LOGO}" alt=""></div><div class="r2">SALES | SERVICE | ACCESSORIES<br>LAPTOP | DESKTOP | GAMING PC | MONITOR<br>PRINTER | CCTV | NETWORKING | AMC</div></div>
   <div class="bd"><div>✓ Original Products</div><div>₹ Best Prices</div><div>⚙ Expert Service</div><div>⌂ Home &amp; Business</div></div>
   <div class="bn"><div><h1>${title}</h1><small>TECHNOLOGY YOU CAN TRUST</small></div><div class="m">${invoice ? 'Invoice' : 'Quotation'} No: <b>${esc(no)}</b><br>Date: ${esc(dtm(q.date))}${invoice ? '<br>Against: ' + esc(q.id) : '<br>Valid till: ' + esc(dtm(q.validUntil))}</div></div>
@@ -1910,7 +1913,14 @@ function qPrintHtml(html) {
   setTimeout(() => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('Print not available here', 'bad'); } setTimeout(() => f.remove(), 60000); }, 400);
 }
 async function qDoc(kind, inv) { if (!QE.id) { await ACT.qsave({}, null); } if (!await qNeedSaved()) return; const fmt = $('#qfmt') ? $('#qfmt').value : QE.format, q = await qDocData(); qPrintHtml(qDocHtml(q, fmt, inv)); api('quote.log', { id: QE.id, event: inv ? 'Invoice' : kind, detail: fmt }, { rid: rid() }).catch(() => { }); }
-ACT.qpdf = () => { toast('Choose "Save as PDF" in the print window'); return qDoc('PDF'); };
+ACT.qpdf = async () => {
+  if (!QE.id) { await ACT.qsave({}, null); } if (!await qNeedSaved()) return;
+  toast('PDF bani rahyu che, 2-3 second...');
+  try {
+    const q = await qDocData(), file = await qPdfFile(q), u = URL.createObjectURL(file), a = document.createElement('a'); a.href = u; a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000);
+    api('quote.log', { id: QE.id, event: 'PDF', detail: 'A4 file' }, { rid: rid() }).catch(() => { }); toast('PDF download thayu: ' + file.name);
+  } catch (e) { toast('Choose "Save as PDF" in the print window'); return qDoc('PDF'); }
+};
 ACT.qprint = () => qDoc('Print');
 ACT.qinv = () => qDoc('PDF', true);
 /* WhatsApp: the FULL quotation (same design as PDF) goes as a PDF file. Libraries load only when needed (free CDN). */
