@@ -1875,7 +1875,7 @@ function rupeesWords(n) {
   if (cr) o += three(cr) + ' Crore '; if (la) o += two(la) + ' Lakh '; if (th) o += two(th) + ' Thousand '; if (rest) o += three(rest); return o.trim();
 }
 async function qDocData() { qRead(); const q = await api('quote.get', { id: QE.id }); const ids = q.lines.map(l => l.productId).filter(Boolean); try { await loadThumbs(ids); } catch (e) { } q.forTick = QE.forTick || {}; return q; }
-function qDocHtml(q, fmt, invoice) {
+function qDocHtml(q, fmt, invoice, full) {
   const sh = q.shop, intra = q.taxType !== 'IGST', title = invoice ? (q.gst ? 'TAX INVOICE' : 'INVOICE') : 'QUOTATION', no = invoice ? q.orderId : q.id;
   const ph = fmt !== 'simple' && q.lines.some(l => l.productId && S.thumbs[l.productId]), det = fmt === 'detailed';
   const setMode = q.lines.some(l => l.name === 'TOTAL COMPLETE SET'), blank = l => setMode && l.name !== 'TOTAL COMPLETE SET' && !(+l.unitPrice);
@@ -1883,7 +1883,7 @@ function qDocHtml(q, fmt, invoice) {
   const brk = (q.breakup || []).map(b => intra ? `<tr><td>CGST ${b.rate / 2}% on ${inr(b.taxable)}</td><td class="r">${inr(b.cgst)}</td></tr><tr><td>SGST ${b.rate / 2}% on ${inr(b.taxable)}</td><td class="r">${inr(b.sgst)}</td></tr>` : `<tr><td>IGST ${b.rate}% on ${inr(b.taxable)}</td><td class="r">${inr(b.igst)}</td></tr>`).join('');
   const terms = String(sh.terms || '').split('\n').map(x => x.trim()).filter(Boolean).map(x => `<li>${esc(x.replace(/^\d+[.)]\s*/, ''))}</li>`).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><title>${title} ${esc(no)}</title><style>
-  @page{size:A4;margin:0}.pg{min-height:250mm;padding:7mm 9mm;display:flex;flex-direction:column}.sp{flex:1}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font:11.5px/1.4 Arial,Helvetica,sans-serif;color:#1f2937;margin:0}html,body{height:auto}
+  @page{size:A4;margin:0}.pg{min-height:272mm;padding:7mm 9mm;display:flex;flex-direction:column}.sp{flex:1}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font:11.5px/1.4 Arial,Helvetica,sans-serif;color:#1f2937;margin:0}html,body{height:auto}
   .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.hd img{height:58px}.hd .r2{text-align:right;font-weight:700;font-size:11px;letter-spacing:.3px;max-width:60%}
   .bd{display:flex;gap:8px;margin:10px 0}.bd div{flex:1;background:#eef0f3;border-radius:8px;padding:8px;text-align:center;font-weight:700;font-size:11px}
   .bn{display:flex;justify-content:space-between;align-items:center;background:#2b2d31;color:#fff;border-left:7px solid #f97316;border-radius:8px;padding:14px 16px}.bn h1{margin:0;font-size:30px;letter-spacing:3px}.bn small{letter-spacing:2px;font-size:10px;color:#d1d5db}.bn .m{text-align:right;line-height:1.8;font-size:12px}
@@ -1892,7 +1892,7 @@ function qDocHtml(q, fmt, invoice) {
   .tot{width:46%;margin-left:54%;margin-top:8px}.tot td{padding:4px 8px;border:1px solid #e5e7eb}.gt td{font-size:15px;font-weight:700;background:#f97316;color:#fff;border-color:#f97316}
   .g3{display:flex;gap:10px;margin-top:12px}.g3>div{flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:11px;background:#f6f7f8}.g3 h4{margin:0 0 4px;font-size:12px}.g3 ul{margin:0;padding-left:16px}
   .box{margin-top:10px;background:#f6f7f8;border-radius:8px;padding:8px 10px;white-space:pre-line}.ty{text-align:center;margin:12px 0 2px;font-size:16px;font-weight:700;font-style:italic}.foot{margin-top:10px;display:flex;justify-content:space-between;color:#6b7280;font-size:11px}
-  tr{page-break-inside:avoid}</style></head><body><div class="pg">
+  tr{page-break-inside:avoid}${full ? '.pg{min-height:297mm;padding:10mm 10mm}body{font-size:12px}' : ''}</style></head><body><div class="pg">
   <div class="hd"><div><img src="${window.LOGO}" alt=""></div><div class="r2">SALES | SERVICE | ACCESSORIES<br>LAPTOP | DESKTOP | GAMING PC | MONITOR<br>PRINTER | CCTV | NETWORKING | AMC</div></div>
   <div class="bd"><div>✓ Original Products</div><div>₹ Best Prices</div><div>⚙ Expert Service</div><div>⌂ Home &amp; Business</div></div>
   <div class="bn"><div><h1>${title}</h1><small>TECHNOLOGY YOU CAN TRUST</small></div><div class="m">${invoice ? 'Invoice' : 'Quotation'} No: <b>${esc(no)}</b><br>Date: ${esc(dtm(q.date))}${invoice ? '<br>Against: ' + esc(q.id) : '<br>Valid till: ' + esc(dtm(q.validUntil))}</div></div>
@@ -1913,15 +1913,37 @@ async function qDoc(kind, inv) { if (!QE.id) { await ACT.qsave({}, null); } if (
 ACT.qpdf = () => { toast('Choose "Save as PDF" in the print window'); return qDoc('PDF'); };
 ACT.qprint = () => qDoc('Print');
 ACT.qinv = () => qDoc('PDF', true);
+/* WhatsApp: the FULL quotation (same design as PDF) goes as a PDF file. Libraries load only when needed (free CDN). */
+function qLoadJs(urls) { return new Promise((res, rej) => { let i = 0; const nx = () => { if (i >= urls.length) return rej(new Error('lib')); const sc = document.createElement('script'); sc.src = urls[i++]; sc.onload = res; sc.onerror = () => { sc.remove(); nx(); }; document.head.appendChild(sc); }; nx(); }); }
+async function qPdfFile(q) {
+  if (!window.html2canvas) await qLoadJs(['https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js']);
+  if (!(window.jspdf && window.jspdf.jsPDF)) await qLoadJs(['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js']);
+  const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:0'; document.body.appendChild(f);
+  try {
+    f.contentDocument.open(); f.contentDocument.write(qDocHtml(q, 'simple', false, true)); f.contentDocument.close();
+    await new Promise(r => setTimeout(r, 800));
+    const cv = await window.html2canvas(f.contentDocument.querySelector('.pg'), { scale: 2, backgroundColor: '#ffffff', windowWidth: 794 });
+    const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' }), h = cv.height * 210 / cv.width, fh = Math.min(h, 297), fw = 210 * fh / h;
+    pdf.addImage(cv.toDataURL('image/jpeg', 0.92), 'JPEG', (210 - fw) / 2, 0, fw, fh);
+    return new File([pdf.output('blob')], 'Quotation ' + q.id + '.pdf', { type: 'application/pdf' });
+  } finally { f.remove(); }
+}
 ACT.qwa = async () => {
   if (!QE.id) { await ACT.qsave({}, null); if (!QE.id) return; }   /* not saved yet: save first, then send */
   const q = await qDocData(), d = (q.mobile || '').replace(/\D/g, '').slice(-10);
+  toast('PDF bani rahyu che, 2-3 second...');
+  let file = null; try { file = await qPdfFile(q); } catch (e) { file = null; }
   const sm = q.lines.some(l => l.name === 'TOTAL COMPLETE SET'), items = q.lines.slice(0, 25).map(l => sm && l.name !== 'TOTAL COMPLETE SET' && !(+l.unitPrice) ? `• ${l.name}${l.spec ? ' (' + l.spec + ')' : ''}` : `• ${l.name}${l.spec ? ' (' + l.spec + ')' : ''} x${l.qty} = ${inr(l.qty * l.unitPrice - (l.lineDisc || 0))}`).join('\n');
-  const msg = `Hello ${q.name},\nThank you for visiting C COMPUTER – The Computer House.\n\n*Quotation ${q.id}*\n${items}\n\n*Total: ${inr(q.total)}*${q.gst ? ' (incl. GST)' : ''}\nValid until: ${dtm(q.validUntil)}\n\nPlease reply to confirm.\nC COMPUTER, Katargam, Surat · ${q.shop.phone}`;
-  api('quote.log', { id: QE.id, event: 'WhatsApp', detail: 'opened (message not auto-sent)' }, { rid: rid() }).catch(() => { });
+  const msg = file ? `Hello ${q.name},\nThank you for visiting C COMPUTER – The Computer House.\n\n*Quotation ${q.id}* – *Total: ${inr(q.total)}*\nValid until: ${dtm(q.validUntil)}\n\nQuotation PDF attached. Please reply to confirm.\nC COMPUTER, Katargam, Surat · ${q.shop.phone}`
+    : `Hello ${q.name},\nThank you for visiting C COMPUTER – The Computer House.\n\n*Quotation ${q.id}*\n${items}\n\n*Total: ${inr(q.total)}*${q.gst ? ' (incl. GST)' : ''}\nValid until: ${dtm(q.validUntil)}\n\nPlease reply to confirm.\nC COMPUTER, Katargam, Surat · ${q.shop.phone}`;
+  api('quote.log', { id: QE.id, event: 'WhatsApp', detail: file ? 'PDF shared' : 'opened (message not auto-sent)' }, { rid: rid() }).catch(() => { });
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {   /* phone: share sheet with the PDF attached, choose WhatsApp */
+    try { await navigator.share({ files: [file], text: msg, title: 'Quotation ' + q.id }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  if (file) { const u = URL.createObjectURL(file), a = document.createElement('a'); a.href = u; a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); toast('PDF download thayu. WhatsApp ma 📎 thi attach karo, pachi Send'); }
+  else toast('WhatsApp khule che - Send daba');
   const url = `https://wa.me/${d.length === 10 ? '91' + d : ''}?text=${encodeURIComponent(msg)}`;
-  toast('WhatsApp khule che - Send daba');
-  setTimeout(() => { location.href = url; }, 400);   /* location (not window.open) so iPhone does not block it */
+  setTimeout(() => { location.href = url; }, file ? 1500 : 400);   /* location (not window.open) so iPhone does not block it */
 };
 
 /* ---------- Price Compare (admin only, read-only; nothing is saved) ---------- */
