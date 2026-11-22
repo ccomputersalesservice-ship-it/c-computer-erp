@@ -1966,11 +1966,11 @@ async function qPdfFile(q) {
   const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:0'; document.body.appendChild(f);
   try {
     f.contentDocument.open(); f.contentDocument.write(qDocHtml(q, 'premium', false, true)); f.contentDocument.close();
-    await new Promise(r => setTimeout(r, 800));
-    const cv = await window.html2canvas(f.contentDocument.querySelector('.pg'), { scale: 2, backgroundColor: '#ffffff', windowWidth: 794 });
+    await new Promise(r => setTimeout(r, 250));
+    const cv = await window.html2canvas(f.contentDocument.querySelector('.pg'), { scale: 1.5, backgroundColor: '#ffffff', windowWidth: 794 });
     const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' }), h = cv.height * 210 / cv.width, fh = Math.min(h, 297), fw = 210 * fh / h;
-    pdf.addImage(cv.toDataURL('image/jpeg', 0.92), 'JPEG', (210 - fw) / 2, 0, fw, fh);
-    return new File([pdf.output('blob')], 'Quotation ' + q.id + '.pdf', { type: 'application/pdf' });
+    pdf.addImage(cv.toDataURL('image/jpeg', 0.9), 'JPEG', (210 - fw) / 2, 0, fw, fh);
+    return new File([pdf.output('blob')], ((String(q.name || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim()) ? String(q.name).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() + ' - ' : '') + 'Quotation ' + q.id + '.pdf', { type: 'application/pdf' });
   } finally { f.remove(); }
 }
 ACT.qwa = async () => {
