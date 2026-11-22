@@ -1706,7 +1706,7 @@ function drawQuote() {
       <div class="qbrow"><div class="fld"><label>Product</label><input id="ic_n" value="${esc((e.ic || {}).n || '')}"></div><div class="fld"><label>Base Cost</label><input id="ic_b" inputmode="decimal" value="${esc((e.ic || {}).b || '')}"></div><div class="fld"><label>Purchase GST</label><select id="ic_g">${[0, 5, 12, 18, 28].map(g => `<option value="${g}" ${((e.ic || {}).g != null ? +(e.ic || {}).g : 18) === g ? 'selected' : ''}>${g}%</option>`).join('')}</select></div><div class="qtile"><span>Landed</span><b id="ic_l">₹0</b></div><div class="fld"><label>Selling Price</label><input id="ic_s" inputmode="decimal" value="${esc((e.ic || {}).s || '')}"></div></div>
       <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><button class="btn" data-act="qicadd">Add to quotation</button><small id="ic_p">Profit: ₹0 | Margin: 0%</small></div>
       <hr style="margin:10px 0;border:0;border-top:1px solid #e5e7eb"><div class="qrow"><span>This quotation: Purchase cost</span><b>${inr(c.cost)}</b></div><div class="qrow"><span>Expected profit</span><b style="color:#16a34a">${inr(c.profit)}</b></div><div class="qrow"><span>Margin</span><b>${c.taxable > 0 ? r2(c.profit / c.taxable * 100) : 0}%</b></div></div>`;
-  $('#page').innerHTML = `<div class="ph"><h1>${e.id ? esc(e.id) : 'New Quotation'}</h1><span style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end"><button class="btn g" data-act="go" data-r="quotes">Back</button><button class="btn" style="background:#16a34a" data-act="qwa">WhatsApp</button>${saved ? `<button class="btn g" data-act="qpdf">PDF</button><button class="btn g" data-act="qprint">Print</button><button class="btn g" data-act="qdup">Duplicate</button>${lock ? '<button class="btn g" data-act="qinv">Invoice</button>' : ''}` : ''}${lock ? '' : `<button class="btn" data-act="qsave">${ico('plus')} Save</button>`}</span></div>
+  $('#page').innerHTML = `<div class="ph"><h1>${e.id ? esc(e.id) : 'New Quotation'}</h1><span style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end"><button class="btn g" data-act="go" data-r="quotes">Back</button><button class="btn" style="background:#16a34a" data-act="qwa">WhatsApp</button><button class="btn g" data-act="qpdf">PDF</button><button class="btn g" data-act="qprint">Print</button>${saved ? `<button class="btn g" data-act="qdup">Duplicate</button>${lock ? '<button class="btn g" data-act="qinv">Invoice</button>' : ''}` : ''}${lock ? '' : `<button class="btn" data-act="qsave">${ico('plus')} Save</button>`}</span></div>
   <div class="qdoc">
     <div class="qd-hd"><img src="${window.LOGO}" alt=""><div class="qd-r">SALES | SERVICE | ACCESSORIES<br>LAPTOP | DESKTOP | GAMING PC | MONITOR<br>PRINTER | CCTV | NETWORKING | AMC</div></div>
     <div class="qd-pills"><div>✓ Original Products</div><div>₹ Best Prices</div><div>⚙ Expert Service</div><div>⌂ Home &amp; Business</div></div>
@@ -1734,6 +1734,7 @@ function drawQuote() {
     <div class="qd-addr"><b>C COMPUTER – The Computer House</b><br>${esc(sh.addr || 'C-5, Near Business Fair, Laxmi Nagar Society, Katargam Road, Surat – 395004')}<br>Call / WhatsApp: +91 81600 88439 | Monday – Saturday: 10:00 AM – 7:30 PM</div>
     <div class="qd-foot"><span>SALES | SERVICE | SUPPORT</span><b>KATARGAM, SURAT</b><span>C COMPUTER – The Computer House</span></div>
   </div>
+  <div class="qd-bar" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0">${lock ? '' : `<button class="btn" data-act="qsave">${ico('plus')} Save</button>`}<button class="btn" style="background:#dc2626" data-act="qpdf">PDF</button><button class="btn g" data-act="qprint">Print</button><button class="btn" style="background:#16a34a" data-act="qwa">WhatsApp</button></div>
   ${bulk}${costp}${acts}${share}${hist}`;
   bindQuote();
 }
@@ -1908,7 +1909,7 @@ function qPrintHtml(html) {
   f.contentDocument.open(); f.contentDocument.write(html); f.contentDocument.close();
   setTimeout(() => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('Print not available here', 'bad'); } setTimeout(() => f.remove(), 60000); }, 400);
 }
-async function qDoc(kind, inv) { if (!await qNeedSaved()) return; const fmt = $('#qfmt') ? $('#qfmt').value : QE.format, q = await qDocData(); qPrintHtml(qDocHtml(q, fmt, inv)); api('quote.log', { id: QE.id, event: inv ? 'Invoice' : kind, detail: fmt }, { rid: rid() }).catch(() => { }); }
+async function qDoc(kind, inv) { if (!QE.id) { await ACT.qsave({}, null); } if (!await qNeedSaved()) return; const fmt = $('#qfmt') ? $('#qfmt').value : QE.format, q = await qDocData(); qPrintHtml(qDocHtml(q, fmt, inv)); api('quote.log', { id: QE.id, event: inv ? 'Invoice' : kind, detail: fmt }, { rid: rid() }).catch(() => { }); }
 ACT.qpdf = () => { toast('Choose "Save as PDF" in the print window'); return qDoc('PDF'); };
 ACT.qprint = () => qDoc('Print');
 ACT.qinv = () => qDoc('PDF', true);
