@@ -2912,9 +2912,14 @@ function piDraw() {
     <div><b>${esc(l.desc)}</b><br><span class="tag">HSN ${esc(l.hsn) || '-'} · GST ${l.gst ? esc(l.gst) + '%' : '-'}</span></div>
     <div class="row" style="margin-top:6px"><div class="fld"><label>Qty</label><input type="number" data-q value="${l.qty}"></div><div class="fld"><label>Price each (without GST)</label><input type="number" step="0.01" data-r value="${l.rate}"></div></div>
     <div class="fld"><label>Product in my stock *</label><div class="row" style="align-items:center"><span style="flex:1">${l.productId ? '✓ <b>' + esc(l.pname || l.productId) + '</b>' : '<i>not chosen</i>'}</span><button class="btn s" data-pp="${i}">${l.productId ? 'Change' : 'Choose'}</button><button class="btn g s" data-pn="${i}">+ New</button></div></div>
+    ${l.productId ? `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0 8px"><small style="flex:1">${l._ph ? '✅ Photo umeryo' : '📷 Aa product no photo:'}</small><button class="btn g s" data-phc="${i}">📷 Camera</button><button class="btn g s" data-phg="${i}">🖼 Gallery</button><a class="btn g s" target="ccgimg" rel="noopener" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(l.desc)}">🔍 Google</a><button class="btn g s" data-php="${i}">📋 Paste</button></div>` : ''}
     <div class="fld"><label>Serial numbers (one per line)${l.serialCand && l.serialCand.length ? ' <span class="tag" style="color:#b45309">⚠ read from bill - please confirm</span>' : ''}</label><textarea data-s rows="2">${esc(l._ser)}</textarea></div></div>`).join('');
   m.$$('[data-pp]').forEach(b => b.onclick = () => piPick(+b.dataset.pp));
   m.$$('[data-pn]').forEach(b => b.onclick = () => piNew(+b.dataset.pn));
+  const phSave = async (i, f) => { if (!f) return; const l = d.lines[i]; try { toast('Photo save thay chhe...'); await uploadPhoto(l.productId, f); piRead(); l._ph = 1; piDraw(); } catch (e) { toast(e.message, 'bad'); } };
+  m.$$('[data-phc]').forEach(b => b.onclick = async () => phSave(+b.dataset.phc, await pickFile(true)));
+  m.$$('[data-phg]').forEach(b => b.onclick = async () => phSave(+b.dataset.phg, await pickFile(false)));
+  m.$$('[data-php]').forEach(b => b.onclick = async () => { try { for (const it of await navigator.clipboard.read()) { const ty = it.types.find(x => /^image\//.test(x)); if (ty) return phSave(+b.dataset.php, new File([await it.getType(ty)], 'p.png', { type: ty })); } toast('Copy karelu photo nathi. Google ma photo par right-click → Copy image.', 'bad'); } catch (e) { toast('Paste mate "Allow" aapo', 'bad'); } });
   d.lines.forEach((l, i) => { if (!l.productId && !l._tried) { l._tried = 1; piSuggest(i); } });
 }
 async function piSuggest(i) {   // suggestion only - owner must confirm
@@ -2925,14 +2930,28 @@ async function piSuggest(i) {   // suggestion only - owner must confirm
 }
 function piPick(i) {
   const l = PI.drafts[PI.i].lines[i], m = modal('Choose product', `<div class="fld"><input id="pkq" placeholder="Search product" value="${esc(l.desc.split(' ').slice(0, 3).join(' '))}"></div><div id="pkr"></div>`, { cls: 'n', foot: '<button class="btn g" data-x>Close</button>' });
-  const go = debounce(async () => { const r = await api('prod.quick', { q: m.$('#pkq').value }, { loader: false }); m.$('#pkr').innerHTML = r.map((p, k) => `<div class="card" style="margin:6px 0;cursor:pointer" data-k="${k}"><b>${esc(p.Name)}</b><br><span class="tag">${esc(p.Category)} · ${esc(p.TrackingType)}</span></div>`).join('') || '<i>No product found. Use "+ New".</i>'; m.$$('[data-k]').forEach(c => c.onclick = () => { const p = r[+c.dataset.k]; piRead(); l.productId = p.ProductID; l.pname = p.Name; m.close(); piDraw(); }); }, 250);
+  const go = debounce(async () => { const r = await api('prod.quick', { q: m.$('#pkq').value }, { loader: false }); m.$('#pkr').innerHTML = r.map((p, k) => `<div class="card" style="margin:6px 0;cursor:pointer" data-k="${k}"><b>${esc(p.Name)}</b>${p.Model ? ' <b style="color:#f2541b">· ' + esc(p.Model) + '</b>' : ''}<br><span class="tag">${esc(p.Brand || '')} ${esc(p.Category)} · ${esc(p.TrackingType)}</span></div>`).join('') || '<i>No product found. Use "+ New".</i>'; m.$$('[data-k]').forEach(c => c.onclick = () => { const p = r[+c.dataset.k]; piRead(); l.productId = p.ProductID; l.pname = p.Name + (p.Model ? ' · ' + p.Model : ''); m.close(); piDraw(); }); }, 250);
   m.$('#pkq').oninput = go; go();
 }
 function piNew(i) {
   const l = PI.drafts[PI.i].lines[i], cats = S.boot.categories;
-  const m = modal('New product from bill', `<div class="fld"><label>Name *</label><input id="np_n" value="${esc(l.desc.slice(0, 120))}"></div><div class="row"><div class="fld"><label>Category</label><select id="np_c">${cats.map(c => `<option>${esc(c)}</option>`).join('')}</select></div>
+  const BR = ['HP','Dell','Lenovo','Acer','ASUS','Apple','MSI','LG','Samsung','Zebronics','Logitech','Intel','AMD','Gigabyte','Crucial','Kingston','WD','Seagate','Consistent','EVM','TP-Link','D-Link','Epson','Canon','Brother','Frontech','Ant Esports','Cosmic Byte','iBall','Portronics','Lapcare','Hikvision','CP Plus','Quantum'], dtok = l.desc.split(/\s+/), gb = BR.find(b => dtok.some(t => t.toLowerCase() === b.toLowerCase())) || '', gm = (dtok.filter(t => /\d/.test(t) && /[A-Za-z]/.test(t) && !/^\d+(GB|TB|MB|W|MM|M|MTR)$/i.test(t)).join(' ') || '');
+  let phf = null;
+  const m = modal('New product from bill', `<div class="fld"><label>Name *</label><input id="np_n" value="${esc(l.desc.slice(0, 120))}"></div>
+    <div class="row"><div class="fld"><label>Brand</label><input id="np_b" value="${esc(gb)}" list="np_bl"><datalist id="np_bl">${BR.map(b => `<option value="${b}">`).join('')}</datalist></div><div class="fld"><label>Model (alag model alag product)</label><input id="np_m" value="${esc(gm)}" placeholder="e.g. TRANSFORMER, K20"></div></div>
+    <div class="fld"><label>Photo (saathe j umero)</label><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><button class="btn g s" id="np_pc">📷 Camera</button><button class="btn g s" id="np_pg">🖼 Gallery</button><a class="btn g s" target="ccgimg" rel="noopener" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(l.desc)}">🔍 Google</a><button class="btn g s" id="np_pp">📋 Paste</button><span id="np_pv"></span></div></div><div class="row"><div class="fld"><label>Category</label><select id="np_c">${cats.map(c => `<option>${esc(c)}</option>`).join('')}</select></div>
     <div class="fld"><label>Tracking</label><select id="np_t"><option value="SERIAL">Serial number</option><option value="ITEMID">Item ID (serial optional)</option><option value="QTY">Quantity only</option></select></div></div>`, { cls: 'n', foot: '<button class="btn g" data-x>Cancel</button><button class="btn" id="npS">Create</button>' });
-  m.$('#npS').onclick = e => work(e.currentTarget, async () => { const r = await api('prod.save', { name: m.$('#np_n').value, category: m.$('#np_c').value, trackingType: m.$('#np_t').value, reorderLevel: 0, sellPrice: 0, costPrice: l.rate }); piRead(); l.productId = r.id; l.pname = m.$('#np_n').value; m.close(); piDraw(); });
+  const setPh = f => { if (!f) return; phf = f; const u = URL.createObjectURL(f); m.$('#np_pv').innerHTML = `<img src="${u}" style="height:48px;border-radius:8px;border:1px solid var(--line)"> ✅`; };
+  m.$('#np_pc').onclick = async () => setPh(await pickFile(true));
+  m.$('#np_pg').onclick = async () => setPh(await pickFile(false));
+  m.$('#np_pp').onclick = async () => { try { for (const it of await navigator.clipboard.read()) { const ty = it.types.find(x => /^image\//.test(x)); if (ty) return setPh(new File([await it.getType(ty)], 'p.png', { type: ty })); } toast('Copy karelu photo nathi.', 'bad'); } catch (e) { toast('Paste mate "Allow" aapo', 'bad'); } };
+  m.el.addEventListener('paste', ev => { const it = [...(ev.clipboardData || {}).items || []].find(x => /^image\//.test(x.type)); if (it) { ev.preventDefault(); setPh(it.getAsFile()); } });
+  m.$('#npS').onclick = e => work(e.currentTarget, async () => {
+    const r = await api('prod.save', { name: m.$('#np_n').value, brand: m.$('#np_b').value, model: m.$('#np_m').value, category: m.$('#np_c').value, trackingType: m.$('#np_t').value, reorderLevel: 0, sellPrice: 0, costPrice: l.rate });
+    piRead(); l.productId = r.id; l.pname = m.$('#np_n').value + (m.$('#np_m').value ? ' · ' + m.$('#np_m').value : '');
+    if (phf) { try { await uploadPhoto(r.id, phf); l._ph = 1; } catch (er) { toast('Product banyo, pan photo na chadyo: ' + er.message, 'bad'); } }
+    m.close(); piDraw();
+  });
 }
 
 /* ---------- bills from Gmail + saved-for-later ---------- */
