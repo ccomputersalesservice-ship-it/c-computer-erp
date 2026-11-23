@@ -1520,19 +1520,19 @@ ACT.openbuild = async d => {
 };
 
 /* ---------- Print stickers ---------- */
-const PQ = { items: [], tpl: 'PRODUCT', size: '50x25', tab: 'make' };
-const SIZES = { '50x25': [50, 25], '20x10': [20, 10] };
+const PQ = { items: [], tpl: 'PRODUCT', size: (() => { try { const v = localStorage.getItem('ccStickerSize'); return v && /^\d+x\d+$/.test(v) ? v : '50x25'; } catch (e) { return '50x25'; } })(), tab: 'make' };
+const SIZES = { '50x25': [50, 25], '50x30': [50, 30], '50x38': [50, 38], '50x40': [50, 40], '20x10': [20, 10] };
 function fitBarcode(value, availMm) {
   const bc = barcodeSvg(value); let k = Math.floor(availMm * 8 / bc.modules); const small = k < 1; if (k < 1) k = 1;   // 203 dpi = 8 dots per mm, whole dots keep bars sharp
   return { svg: bc.svg, w: bc.modules * k / 8, k, small };
 }
 function labelHtml(l, tpl, size) {
-  const [W, H] = SIZES[size], pad = size === '50x25' ? 1.3 : 0.6, avail = W - pad * 2;
+  const [W, H] = SIZES[size], big = W >= 40, f = H >= 35 ? 1.3 : 1, bh = Math.min(17, H - 16.5), pad = big ? 1.3 : 0.6, avail = W - pad * 2;
   const bc = fitBarcode(l.barcode, avail), name = esc(((l.name || '') + ' ' + (l.model || '')).trim());
   const svg = (h) => bc.svg.replace('<svg ', `<svg width="${bc.w}mm" height="${h}mm" `);
   let inner;
-  if (tpl === 'BARCODE') inner = `<div style="margin:auto">${svg(size === '50x25' ? 15 : 7)}</div>`;
-  else if (size === '50x25') inner = `<div style="font:700 7.5pt Arial;line-height:1">C COMPUTER</div><div style="font:6.3pt Arial;line-height:1.1;height:2.3em;overflow:hidden;margin-top:.4mm">${name}</div>${l.serial ? `<div style="font:5.8pt Arial;line-height:1.1">S/N: ${esc(l.serial)}</div>` : ''}<div style="margin:.6mm auto 0">${svg(8.5)}</div><div style="font:5.8pt Arial;text-align:center;line-height:1.1">${esc(l.itemId)}</div>`;
+  if (tpl === 'BARCODE') inner = `<div style="margin:auto">${svg(big ? Math.min(25, H - 8) : 7)}</div>`;
+  else if (big) inner = `<div style="font:700 ${7.5 * f}pt Arial;line-height:1">C COMPUTER</div><div style="font:${6.3 * f}pt Arial;line-height:1.1;height:2.3em;overflow:hidden;margin-top:.4mm">${name}</div>${l.serial ? `<div style="font:${5.8 * f}pt Arial;line-height:1.1">S/N: ${esc(l.serial)}</div>` : ''}<div style="margin:.6mm auto 0">${svg(bh)}</div><div style="font:${5.8 * f}pt Arial;text-align:center;line-height:1.1">${esc(l.itemId)}</div>`;
   else inner = `<div style="margin:auto">${svg(5.5)}</div><div style="font:4pt Arial;text-align:center;line-height:1.1">${esc(l.itemId)}</div>`;
   return `<div class="lbl" style="width:${W}mm;height:${H}mm;padding:${pad}mm;box-sizing:border-box;${tpl === 'BARCODE' ? 'justify-content:center' : ''}">${inner}</div>`;
 }
@@ -1548,8 +1548,8 @@ function drawPrint() {
   $('#pbody').innerHTML = `<div class="grid g2 stack"><div class="card"><h3>1. Choose what to print</h3><div id="prpk"></div>
     <div class="row" style="margin-top:8px"><div class="fix"><button class="btn g" id="prscan">${ico('scan')} ${LT('scan')} item / barcode</button></div></div>
     ${PQ.items.length ? tbl([{ h: 'Label', k: i => `<b>${esc(i.name)}</b><br><small>${esc(i.serial || i.itemId)}</small>`, nl: true }, { h: 'Copies', k: (i, n) => `<input type="number" min="1" max="99" value="${i.qty}" data-pq="${n}" style="width:70px">`, l: 'Copies' }, { h: '', k: (i, n) => `<button class="btn bad s" data-act="prdel" data-i="${n}">✕</button>`, cls: 'r' }], PQ.items) : '<div class="empty">Search a product, scan a serial, or pick items from Purchase / Serial screens.</div>'}</div>
-    <div class="card"><h3>2. Sticker options</h3><div class="row"><div class="fld"><label>Template</label><select id="ptpl"><option value="PRODUCT" ${PQ.tpl === 'PRODUCT' ? 'selected' : ''}>A. Product sticker (name, model, serial, ID, barcode)</option><option value="BARCODE" ${PQ.tpl === 'BARCODE' ? 'selected' : ''}>B. Barcode only</option></select></div><div class="fld"><label>Label size</label><select id="psz"><option value="50x25" ${PQ.size === '50x25' ? 'selected' : ''}>50 × 25 mm</option><option value="20x10" ${PQ.size === '20x10' ? 'selected' : ''}>20 × 10 mm</option></select></div></div>
-    <h3 style="margin-top:6px">3. ${LT('preview')}</h3><div id="ppv">${PQ.items.slice(0, 4).map(i => `<span class="prevlbl" style="zoom:${PQ.size === '50x25' ? 2.2 : 4}">${labelHtml(i, PQ.tpl, PQ.size)}</span>`).join('') || '<div class="empty">Nothing to preview</div>'}</div>
+    <div class="card"><h3>2. Sticker options</h3><div class="row"><div class="fld"><label>Template</label><select id="ptpl"><option value="PRODUCT" ${PQ.tpl === 'PRODUCT' ? 'selected' : ''}>A. Product sticker (name, model, serial, ID, barcode)</option><option value="BARCODE" ${PQ.tpl === 'BARCODE' ? 'selected' : ''}>B. Barcode only</option></select></div><div class="fld"><label>Label size</label><select id="psz"><option value="50x25" ${PQ.size === '50x25' ? 'selected' : ''}>50 × 25 mm</option><option value="50x30" ${PQ.size === '50x30' ? 'selected' : ''}>50 × 30 mm</option><option value="50x38" ${PQ.size === '50x38' ? 'selected' : ''}>50 × 38 mm</option><option value="50x40" ${PQ.size === '50x40' ? 'selected' : ''}>50 × 40 mm</option><option value="20x10" ${PQ.size === '20x10' ? 'selected' : ''}>20 × 10 mm</option></select></div></div>
+    <h3 style="margin-top:6px">3. ${LT('preview')}</h3><div id="ppv">${PQ.items.slice(0, 4).map(i => `<span class="prevlbl" style="zoom:${SIZES[PQ.size][0] >= 40 ? 2.2 : 4}">${labelHtml(i, PQ.tpl, PQ.size)}</span>`).join('') || '<div class="empty">Nothing to preview</div>'}</div>
     <div class="row" style="margin-top:12px"><div class="fix"><button class="btn ok" id="prgo" ${PQ.items.length ? '' : 'disabled'}>${ico('print')} ${LT('print1')} ${PQ.items.reduce((a, i) => a + i.qty, 0)} label(s)</button></div><div class="fix"><button class="btn g" id="prtest">Test sticker</button></div></div>
     <div class="note" style="margin-top:10px">Printer: EXEO EX58L. Print from the print window: choose the EX58L printer, paper size = the label size shown here, margins = None, scale = 100%. See the printer guide.</div></div></div>`;
   picker($('#prpk'), { placeholder: 'Search product (for qty items: mouse, cable...)', onPick: async (p, item) => {
@@ -1561,7 +1561,7 @@ function drawPrint() {
     m.$('#pgo').onclick = async () => { const ids = m.$$('input:checked').map(c => c.value); m.close(); if (ids.length) { (await api('print.data', { itemIds: ids }, { loader: true })).forEach(addPrintRow); drawPrint(); } };
   } });
   $('#prscan').onclick = () => openScanner(async c => { try { const r = await api('scan', { code: c }, { loader: true }); const rows = await api('print.data', r.item ? { itemIds: [r.item.itemId] } : { productIds: [r.product.ProductID] }); rows.forEach(addPrintRow); drawPrint(); } catch (e) { toast(e.message, 'bad'); } });
-  $('#ptpl').onchange = e => { PQ.tpl = e.target.value; drawPrint(); }; $('#psz').onchange = e => { PQ.size = e.target.value; drawPrint(); };
+  $('#ptpl').onchange = e => { PQ.tpl = e.target.value; drawPrint(); }; $('#psz').onchange = e => { PQ.size = e.target.value; try { localStorage.setItem('ccStickerSize', PQ.size); } catch (x) { } drawPrint(); };
   $$('[data-pq]').forEach(i => i.onchange = () => { PQ.items[+i.dataset.pq].qty = Math.max(1, Math.min(99, +i.value || 1)); drawPrint(); });
   $('#prgo').onclick = e => work(e.currentTarget, async () => {
     const sm = PQ.size === '20x10' ? fitBarcode(PQ.items[0].barcode, 19).small : false; if (sm) toast('Barcode is too long for this label size', 'bad');
