@@ -553,6 +553,22 @@ function busy(on) {
 }
 /* Short memory for repeat reads (25 s). Any write clears it, so screens never show data older than your own last change. */
 const APIC = new Map(), API_READ = /^(brec\.get|brec\.list|stock\.list|stock\.moves|prod\.list|prod\.get|cust\.list|cust\.search|ord\.list|ord\.get|pur\.list|pur\.get|serial\.list|serial\.item|quote\.list|quote\.get|quote\.dash|cash\.list|crm\.jobs|crm\.job|rep\.[a-z]+|dash|dash\.ops|aud\.list|print\.history)$/;
+/* Instant screens: list pages keep their last result on this device (max 1 day) and show it at once while fresh data loads. */
+let SWR_W = 0;   // time of my last write: copies older than that are not shown
+const SWR_OK = /^(dash|stock\.list|prod\.list|crm\.jobs|cust\.list|ord\.list|pur\.list|quote\.list|brec\.list|serial\.list|chal\.list)$/;
+const swrKey = rk => 'ccswr|' + ((S.user && S.user.loginId) || '') + '|' + rk;
+function swrGet(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function swrPut(k, s) {
+  if (s.length > 400000) return;
+  try { localStorage.setItem(k, JSON.stringify({ t: Date.now(), s })); }
+  catch (e) { try { Object.keys(localStorage).filter(x => x.indexOf('ccswr|') === 0).forEach(x => localStorage.removeItem(x)); localStorage.setItem(k, JSON.stringify({ t: Date.now(), s })); } catch (e2) { } }
+}
+function swrClear() { try { Object.keys(localStorage).filter(x => x.indexOf('ccswr|') === 0).forEach(x => localStorage.removeItem(x)); } catch (e) { } }
+function swrRefresh(route) {
+  if (S.route !== route || document.querySelector('.ov')) return;
+  const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.closest('#page')) return;
+  const y = window.scrollY; try { const r = ROUTES[route](); if (r && r.then) r.then(() => window.scrollTo(0, y), () => { }); } catch (e) { }
+}
 function api(action, payload, opt) {
   opt = opt || {}; payload = Object.assign({}, payload || {});
   const rk = API_READ.test(action) && !opt.fresh ? action + '|' + JSON.stringify(payload) : null;
@@ -560,8 +576,13 @@ function api(action, payload, opt) {
     const c = APIC.get(rk);
     if (c && c.s !== undefined && Date.now() - c.t < 90000) return Promise.resolve(JSON.parse(c.s));
     if (c && c.p) return c.p.then(x => JSON.parse(JSON.stringify(x)));
-  } else APIC.clear();
+  } else { APIC.clear(); if (/(save|create|add|new|upd|delete|del$|cancel|approve|reject|receive|status$|upload|transfer|edit|damage|inspect|writeoff|opening|change|ignore|price|mailcheck)/.test(action)) SWR_W = Date.now(); }
   const pr = api_(action, payload, opt);
+  if (rk && SWR_OK.test(action) && !opt.noswr) {   // show the last saved copy at once, refresh in the background
+    const sk = swrKey(rk), old = swrGet(sk), route = S.route;
+    pr.then(d => { const s = JSON.stringify(d); swrPut(sk, s); if (old && old.s !== s) setTimeout(() => swrRefresh(route), 0); }, () => { });
+    if (old && Date.now() - old.t < 864e5 && old.t > SWR_W) { APIC.set(rk, { p: pr, t: Date.now() }); pr.then(d => { const c = APIC.get(rk); if (c && c.p === pr) { c.s = JSON.stringify(d); c.t = Date.now(); delete c.p; } }, () => APIC.delete(rk)); return Promise.resolve(JSON.parse(old.s)); }
+  }
   if (rk) {
     APIC.set(rk, { p: pr, t: Date.now() });
     pr.then(d => { const c = APIC.get(rk); if (c && c.p === pr) { c.s = JSON.stringify(d); c.t = Date.now(); delete c.p; } }, () => APIC.delete(rk));
@@ -3389,7 +3410,7 @@ function renderLogin(msg) {
   setTimeout(() => $('#li') && $('#li').focus(), 50);
 }
 function doLogout(auto) {
-  APIC.clear();
+  APIC.clear(); swrClear();
   const t = S.token; S.stack = []; store.del('tok'); store.del('route'); store.lset('tok2', '');
   if (t && !auto) { try { google.script.run.api(t, 'logout', {}); } catch (e) { } }
   S.token = null; S.user = null; S.boot = null; PQ && (PQ.items = []);
