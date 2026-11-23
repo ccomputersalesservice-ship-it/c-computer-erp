@@ -3022,7 +3022,7 @@ async function phqLoad(cat) {
 ACT.phquick = async () => {
   const m = modal('📷 Photo vagar na product', `<div id="phqB">${skel(2)}</div>`, { cls: 'n', foot: '<button class="btn g" data-x>Close</button>' });
   PHQ = { m, list: [], i: 0, busy: false, done: 0 };
-  const onPaste = e => { if (!PHQ || !document.body.contains(m.$('#phqB'))) return document.removeEventListener('paste', onPaste); const it = [...(e.clipboardData || {}).items || []].find(x => /^image\//.test(x.type)); if (it) { e.preventDefault(); phqSave(it.getAsFile()); } else toast('Copy karelu photo nathi. Google ma photo par right-click → "Copy image" karo.', 'bad'); };
+  const onPaste = e => { if (!PHQ || !document.body.contains(m.$('#phqB'))) return document.removeEventListener('paste', onPaste); const it = [...(e.clipboardData || {}).items || []].find(x => /^image\//.test(x.type)); if (it) { e.preventDefault(); phqSave(it.getAsFile()); } else if (e.target && e.target.id === 'phqQ') return; else toast('Copy karelu photo nathi. Google ma photo par right-click → "Copy image" karo.', 'bad'); };
   document.addEventListener('paste', onPaste);
   try { PHQ.list = await phqLoad(pf && pf.category); } catch (e) { m.$('#phqB').innerHTML = `<div class="note bad">${esc(e.message)}</div>`; return; }
   phqDraw();
@@ -3031,13 +3031,27 @@ function phqDraw() {
   const { m, list, i } = PHQ, p = list[i];
   if (!p) { m.$('#phqB').innerHTML = `<div class="note info" style="font-size:16px">✅ ${list.length ? 'Badha product joi lidha!' : 'Badha product ma photo chhe!'} ${PHQ.done ? PHQ.done + ' photo save thaya.' : ''}</div>`; return; }
   const qtxt = [p.brand, p.name].filter(Boolean).join(' ').replace(/\s+/g, ' ');
-  m.$('#phqB').innerHTML = `<div class="tag" style="margin-bottom:6px">${i + 1} / ${list.length} · ${PHQ.done} save thaya</div>
+  m.$('#phqB').innerHTML = `<div style="position:relative;margin-bottom:8px"><input id="phqQ" placeholder="🔍 Product naam thi shodho (e.g. HDMI, WD 1TB)" autocomplete="off" value="${esc(PHQ.q || '')}"><div id="phqR" style="position:absolute;left:0;right:0;top:100%;z-index:5;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,.12);display:none;max-height:300px;overflow:auto"></div></div>
+    <div class="tag" style="margin-bottom:6px">${i + 1} / ${list.length} · ${PHQ.done} save thaya</div>
     <div style="font-size:19px;font-weight:800;margin:4px 0">${esc(p.name)}</div><div class="tag">${esc(p.cat)}</div>
-    <a class="btn" style="display:block;text-align:center;margin:12px 0;padding:13px;font-size:15px" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(qtxt + ' product')}">🔍 1. Google ma photo shodho</a>
+    <a class="btn" style="display:block;text-align:center;margin:12px 0;padding:13px;font-size:15px" target="ccgimg" rel="noopener" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(qtxt + ' product')}">🔍 1. Google ma photo shodho</a>
     <div id="phqDrop" tabindex="0" style="border:3px dashed #2563eb;border-radius:14px;padding:22px 10px;text-align:center;background:#eff6ff;cursor:pointer;outline:none">
       <div style="font-size:30px">📋</div><b style="font-size:15px">2. Photo copy kari ahi Ctrl+V dabavo</b><br><small>Google ma photo par click → mota photo par right-click → "Copy image"</small>
       <div id="phqSt" style="margin-top:8px;font-weight:700"></div></div>
     <div class="row" style="margin-top:12px;gap:6px"><button class="btn g" id="phqPrev">◀ Pachhu</button><button class="btn g" id="phqPaste">📋 Paste</button><button class="btn g" id="phqFile">🖼 File</button><button class="btn g" id="phqSkip">Skip ▶</button></div>`;
+  const qi = m.$('#phqQ'), qr = m.$('#phqR');
+  const pick = (x, fromAll) => { PHQ.q = ''; if (fromAll) { const k = PHQ.list.findIndex(y => y.id === x.id); if (k >= 0) PHQ.i = k; else { PHQ.list.splice(PHQ.i, 0, x); } } else PHQ.i = PHQ.list.indexOf(x); phqDraw(); };
+  qi.oninput = debounce(async () => {
+    const q = qi.value.trim().toLowerCase(); PHQ.q = qi.value; if (q.length < 2) { qr.style.display = 'none'; return; }
+    const tk = q.split(/\s+/), hit = PHQ.list.filter(x => tk.every(t => (x.name + ' ' + (x.brand || '') + ' ' + (x.model || '') + ' ' + x.cat).toLowerCase().includes(t))).slice(0, 10);
+    let html = hit.map((x, k) => `<div data-h="${k}" style="padding:9px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer"><b>${esc(x.name)}</b> <small class="tag">photo nathi</small></div>`).join('');
+    let more = [];
+    if (hit.length < 5) { try { more = (await api('prod.quick', { q: qi.value }, { loader: false })).filter(x => !hit.some(h => h.id === x.ProductID)).slice(0, 8); } catch (e) { } html += more.map((x, k) => `<div data-a="${k}" style="padding:9px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer">${esc(x.Name)} <small class="tag">photo chhe – navo umero</small></div>`).join(''); }
+    qr.innerHTML = html || '<div style="padding:10px"><i>Koi product nathi malyu</i></div>'; qr.style.display = 'block';
+    qr.querySelectorAll('[data-h]').forEach(d => d.onclick = () => pick(hit[+d.dataset.h]));
+    qr.querySelectorAll('[data-a]').forEach(d => d.onclick = () => { const x = more[+d.dataset.a]; pick({ id: x.ProductID, name: x.Name, cat: x.Category, brand: x.Brand, model: x.Model }, true); });
+  }, 250);
+  qi.onkeydown = e => { if (e.key === 'Enter') { const f = qr.querySelector('[data-h],[data-a]'); if (f) f.click(); } };
   m.$('#phqPrev').onclick = () => { if (PHQ.i > 0) { PHQ.i--; phqDraw(); } };
   m.$('#phqSkip').onclick = () => { PHQ.i++; phqDraw(); };
   m.$('#phqFile').onclick = async () => { const f = await pickFile(false); if (f) phqSave(f); };
@@ -3049,7 +3063,7 @@ function phqDraw() {
   d.ondragover = e => { e.preventDefault(); d.style.background = '#dbeafe'; };
   d.ondragleave = () => { d.style.background = '#eff6ff'; };
   d.ondrop = e => { e.preventDefault(); d.style.background = '#eff6ff'; const f = [...e.dataTransfer.files].find(x => /^image\//.test(x.type)); if (f) phqSave(f); else toast('Photo copy kari Ctrl+V karo (drag nahi chale).', 'bad'); };
-  d.focus();
+  if (!PHQ.q) d.focus(); else { qi.focus(); qi.dispatchEvent(new Event('input')); }
 }
 async function phqSave(file) {
   if (!PHQ || PHQ.busy) return; const p = PHQ.list[PHQ.i]; if (!p) return;
