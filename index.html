@@ -694,6 +694,21 @@ function picker(host, o) {
 }
 
 /* ---------- scanner: keyboard-scanner box + camera ---------- */
+/* barcode reader: the phone's own (Chrome/Android), else a free reader (ZXing) that also works on iPhone Safari */
+async function scDetector() {
+  if ('BarcodeDetector' in window) return new BarcodeDetector();
+  if (!window.ZXing) await qLoadJs(['https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js', 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js']);
+  const Z = window.ZXing, hints = new Map(); hints.set(Z.DecodeHintType.TRY_HARDER, true);
+  const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true });
+  return { detect: async src => {
+    const w0 = src.videoWidth || src.width, h0 = src.videoHeight || src.height; if (!w0 || !h0) return [];
+    for (const k of [Math.min(1, 1280 / Math.max(w0, h0)), 0.5]) {
+      cv.width = Math.round(w0 * k); cv.height = Math.round(h0 * k); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(src, 0, 0, cv.width, cv.height);
+      try { const r = new Z.MultiFormatReader(); r.setHints(hints); const res = r.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(cv)))); if (res) return [{ rawValue: res.getText() }]; } catch (e) { }
+    }
+    return [];
+  } };
+}
 function openScanner(onCode, title) {
   const m = modal(esc(title || LT('scan')), `
     <div class="scanbox">${ico('scan')}
@@ -709,8 +724,9 @@ function openScanner(onCode, title) {
   m.$('#scGo').onclick = () => fin(inp.value);
   m.$('#scCam').onclick = async () => {
     const area = m.$('#camArea');
-    if (!('BarcodeDetector' in window)) { area.innerHTML = '<div class="note">This browser cannot read barcodes from the camera. Use a Bluetooth scanner, or type the number. (Chrome on Android usually supports it.)</div>'; return; }
-    const det = new BarcodeDetector();
+    let det = null;
+    try { det = await scDetector(); } catch (e) { det = null; }
+    if (!det) { area.innerHTML = '<div class="note">Barcode reader load na thayu (internet check karo). Serial type karo.</div>'; return; }
     // 1) live camera (works only when the browser allows camera inside the page)
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
