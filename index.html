@@ -2366,7 +2366,7 @@ const posPriceOf = p => { const r = POS.price[p.ProductID]; return r ? r.sellPri
 function posFiltered() {
   const q = POS.q.trim().toLowerCase(), toks = q.split(/\s+/).filter(Boolean);
   let l = (POS.prods || []).filter(p => {
-    if (POS.cat !== 'all' && (p.Category || 'Other') !== POS.cat) return false;
+    if (!toks.length && POS.cat !== 'all' && (p.Category || 'Other') !== POS.cat) return false;   // typing searches ALL categories
     if (POS.brand && p.Brand !== POS.brand) return false;
     if (POS.stock === 'in' && posAvail(p) <= 0) return false; if (POS.stock === 'out' && posAvail(p) > 0) return false; if (POS.stock === 'fav' && !POS.fav[p.ProductID]) return false;
     if (toks.length) { const h = [p.Name, p.Brand, p.Model, p.SKU, p.Barcode, p.Description].join(' ').toLowerCase(); if (!toks.every(t => h.includes(t))) return false; }
@@ -2400,7 +2400,7 @@ function drawPos() {
      <div id="posgrid" class="pos-grid ${POS.view === 'list' ? 'pos-list' : ''}"></div></section>
     <aside class="pos-cart" id="poscart"></aside></div>
    <div class="pos-float" data-act="posshowcart"><span>🛒 ${t.count} item${t.count === 1 ? '' : 's'}</span><b>${inr(t.total)}</b><span class="pos-go">Checkout ›</span></div></div>`;
-  const q = $('#posq'); q.oninput = debounce(() => { POS.q = q.value; drawPosGrid(); }, 150);
+  const q = $('#posq'); q.oninput = debounce(() => { POS.q = q.value; $$('.pos-chips button').forEach(b => b.classList.toggle('on', POS.q.trim() ? b.dataset.c === 'all' : b.dataset.c === POS.cat)); drawPosGrid(); }, 150);
   q.onkeydown = ev => { if (ev.key === 'Enter') { const code = q.value.trim().toLowerCase(), hit = POS.prods.find(p => [p.Barcode, p.SKU].some(x => x && String(x).toLowerCase() === code)); if (hit) { posAdd(hit.ProductID); q.value = ''; POS.q = ''; drawPosGrid(); } } };
   $('#posb').onchange = e => { POS.brand = e.target.value; drawPosGrid(); }; $('#poss').onchange = e => { POS.stock = e.target.value; drawPosGrid(); }; $('#posso').onchange = e => { POS.sort = e.target.value; drawPosGrid(); };
   drawPosGrid(); drawPosCart();
@@ -2452,7 +2452,7 @@ function drawPosCart() {
   const ot = $('.posx-otabs'); if (ot) ot.outerHTML = posHeldTabs();
 }
 ACT.posmode = d => { POS.mode = d.m; drawPos(); };
-ACT.poscat = d => { POS.cat = d.c; drawPos(); };
+ACT.poscat = d => { POS.cat = d.c; POS.q = ''; drawPos(); };
 ACT.posview = () => { POS.view = POS.view === 'grid' ? 'list' : 'grid'; drawPos(); };
 ACT.posadd = d => posAdd(d.id);
 ACT.posfav = d => { POS.fav[d.id] = !POS.fav[d.id]; if (!POS.fav[d.id]) delete POS.fav[d.id]; store.lset('pos_fav', JSON.stringify(POS.fav)); drawPosGrid(); };
