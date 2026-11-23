@@ -497,6 +497,7 @@ const IC = {
   print: '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="9" rx="2"/><path d="M7 14h10v7H7z"/>',
   users: '<path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/><path d="M9 12l2 2 4-4"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  chal: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/>',
   scan: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/>',
   lock: '<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>', plus: '<path d="M12 5v14M5 12h14"/>', search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
@@ -512,7 +513,7 @@ const ico = (n, cls) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 /* ---------- language (English / Gujarati) ---------- */
 const T = {
   dash: ['Dashboard', 'ડેશબોર્ડ'], products: ['Products', 'પ્રોડક્ટ્સ'], purchase: ['Purchase', 'ખરીદી'], sales: ['Sales', 'વેચાણ'], stock: ['Stock', 'સ્ટોક'],
-  serial: ['Serial No.', 'સિરિયલ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], fixed: ['Fixed Kharcha', 'Fixed Kharcha'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], pcmp: ['Price Compare', 'Price Compare'], pos: ['POS / Quick Order', 'POS / Quick Order'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'], brec: ['Build Record', 'Build Record'],
+  serial: ['Serial No.', 'સિરિયલ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], fixed: ['Fixed Kharcha', 'Fixed Kharcha'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], pcmp: ['Price Compare', 'Price Compare'], pos: ['POS / Quick Order', 'POS / Quick Order'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'], brec: ['Build Record', 'Build Record'], chal: ['AI Bill Scanner', 'AI Bill Scanner'],
   print: ['Print Stickers', 'સ્ટીકર પ્રિન્ટ'], users: ['Users & Roles', 'યુઝર્સ'], settings: ['Settings', 'સેટિંગ્સ'], scan: ['Scan', 'સ્કેન'],
   search: ['Search Product, Serial, Customer...', 'પ્રોડક્ટ, સિરિયલ, ગ્રાહક શોધો...'], save: ['Save', 'સાચવો'], cancel: ['Cancel', 'રદ કરો'], close: ['Close', 'બંધ'], add: ['Add', 'ઉમેરો'],
   edit: ['Edit', 'ફેરફાર'], del: ['Delete', 'કાઢો'], login: ['Login', 'લૉગિન'], logout: ['Logout', 'લૉગઆઉટ'], loginid: ['Login ID', 'લૉગિન ID'], pin: ['PIN', 'પિન'],
@@ -3111,11 +3112,152 @@ async function phqSave(file) {
 </script>
 
 <script>
+/* ===== AI Bill Scanner (Challan Book) - read photo, review, owner confirms, then save. ===== */
+let CH = null;
+const CH_MODES = ['Cash', 'HDFC', 'IDBI', 'Wallet'];
+async function V_chal() {
+  CH = { imgs: [] };
+  page('AI Bill Scanner', '', `<div id="chKey"></div>
+    <div class="card"><h3 style="margin-bottom:6px">1. Challan no photo</h3><small>Akho bill dekhay, sidho ane saru ajvalu hoy evo photo pado. 1 bill na vadhu ma vadhu 4 photo.</small>
+      <div id="chImgs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin:12px 0"></div>
+      <div class="row" style="gap:8px"><button class="btn" id="chCam" style="padding:14px;font-size:15px">📷 Photo pado</button><button class="btn g" id="chUp" style="padding:14px;font-size:15px">🖼 Upload</button></div>
+      <button class="btn ok" id="chRead" style="width:100%;margin-top:12px;padding:15px;font-size:16px" disabled>🤖 2. AI thi bill vancho</button></div>
+    <div class="card" style="margin-top:14px"><h3 style="margin-bottom:8px">Chhella save thayela bill</h3><div id="chList">${skel(2)}</div></div>`);
+  $('#chCam').onclick = async () => { const f = await pickFile(true); if (f) chAdd([f]); };
+  $('#chUp').onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.multiple = true; i.onchange = () => chAdd([...i.files]); i.click(); };
+  $('#chRead').onclick = e => work(e.currentTarget, chRead);
+  chDrawImgs(); chKeyBox(); chLoadList();
+}
+async function chKeyBox() {
+  try { const r = await api('ai.key.status', {}, { loader: false }); if (r.set) { $('#chKey').innerHTML = ''; return; } } catch (e) { return; }
+  $('#chKey').innerHTML = `<div class="card" style="margin-bottom:14px;border:2px solid #f59e0b"><h3>🔑 Gemini key ek vaar mukvani chhe</h3><small>Google AI Studio ma copy kareli key ahi paste karo. Te server ma chhupi rahese, koi ne nahi dekhay.</small>
+    <div class="row" style="margin-top:8px;gap:8px"><input id="chK" type="password" autocomplete="off" placeholder="Key paste karo (Ctrl+V)"><button class="btn" id="chKS">Save</button></div></div>`;
+  $('#chKS').onclick = e => work(e.currentTarget, async () => { await api('ai.key.save', { key: $('#chK').value.trim() }); $('#chK').value = ''; toast('Key save thai ✓', 'ok'); chKeyBox(); });
+}
+async function chAdd(files) {
+  for (const f of files) { if (CH.imgs.length >= 4) { toast('Vadhu ma vadhu 4 photo', 'bad'); break; } try { CH.imgs.push(await shrinkImage(f, 1600, 0.8)); } catch (e) { toast(e.message, 'bad'); } }
+  chDrawImgs();
+}
+function chDrawImgs() {
+  const h = $('#chImgs'); if (!h) return;
+  h.innerHTML = CH.imgs.map((u, i) => `<div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--line);aspect-ratio:3/4;background:#f8fafc"><img src="${u}" style="width:100%;height:100%;object-fit:cover" data-chv="${i}">
+    <button data-chx="${i}" style="position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:28px;height:28px;background:#dc2626;color:#fff">✕</button>
+    <button data-chr="${i}" style="position:absolute;bottom:4px;left:4px;right:4px;border:0;border-radius:8px;padding:5px;background:rgba(15,23,42,.75);color:#fff;font-size:12px">🔄 Badlo</button></div>`).join('') || '<small style="grid-column:1/-1;color:#64748b">Haju koi photo nathi.</small>';
+  h.querySelectorAll('[data-chx]').forEach(b => b.onclick = () => { CH.imgs.splice(+b.dataset.chx, 1); chDrawImgs(); });
+  h.querySelectorAll('[data-chr]').forEach(b => b.onclick = async () => { const f = await pickFile(true); if (f) { CH.imgs[+b.dataset.chr] = await shrinkImage(f, 1600, 0.8); chDrawImgs(); } });
+  h.querySelectorAll('[data-chv]').forEach(b => b.onclick = () => modal('Bill photo', `<img src="${CH.imgs[+b.dataset.chv]}" style="width:100%">`, { cls: 'w' }));
+  const r = $('#chRead'); if (r) r.disabled = !CH.imgs.length;
+}
+async function chLoadList() {
+  try {
+    const r = await api('chal.list', {}, { loader: false });
+    $('#chList').innerHTML = tbl([{ h: 'Bill', k: x => `<b>${esc(x.billNo)}</b><br><small>${esc(x.date)}</small>`, l: 'Bill' }, { h: 'Customer', k: x => esc(x.name) + '<br><small>' + esc(x.mobile) + '</small>', l: 'Customer', nl: true }, { h: 'Total', k: x => inr(x.total), cls: 'r', l: 'Total' }, { h: 'Baki', k: x => x.pending ? `<b style="color:#dc2626">${inr(x.pending)}</b>` : '✓', cls: 'r', l: 'Baki' }], r, { click: 'chopen', id: x => x.id, empty: 'Haju koi bill nathi' });
+  } catch (e) { $('#chList').innerHTML = `<small>${esc(e.message)}</small>`; }
+}
+ACT.chopen = async d => { const us = await api('chal.photo', { id: d.id }, { loader: true }); modal('Bill photo', us.map(u => `<img src="${u}" style="width:100%;margin-bottom:8px">`).join(''), { cls: 'w' }); };
+
+async function chRead() {
+  $('#chRead').textContent = '🤖 AI vanche chhe... (10-30 second)';
+  let r; try { r = await api('chal.scan', { images: CH.imgs }, { loader: false, timeout: 120000 }); } finally { const b = $('#chRead'); if (b) b.textContent = '🤖 2. AI thi bill vancho'; }
+  const f = r.fields || {}, un = new Set((f.unclear || []).map(String));
+  const mode = { cash: 'Cash', upi: '', card: '', bank: '', credit: '' }[String(f.paymentMode || '').toLowerCase()] ?? '';
+  CH.d = { billNo: f.billNo || '', billDate: /^\d{4}-\d{2}-\d{2}$/.test(f.billDate || '') ? f.billDate : '', name: (f.customer || {}).name || (r.customer || {}).name || '', mobile: (f.customer || {}).mobile || '', address: (f.customer || {}).address || (r.customer || {}).address || '',
+    lines: (f.lines || []).map(l => ({ desc: [l.desc, l.brand, l.model].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim(), serial: l.serial || '', qty: +l.qty || 1, rate: +l.rate || 0, disc: +l.discount || 0, gst: +l.gstPct || 0, amount: +l.amount || ((+l.qty || 1) * (+l.rate || 0) - (+l.discount || 0)), productId: '', pname: '', itemId: '', tracking: '' })),
+    cgst: +f.cgst || 0, sgst: +f.sgst || 0, igst: +f.igst || 0, total: +f.grandTotal || 0, paid: +f.paid || 0, mode, modeRaw: f.paymentMode || '', notes: f.notes || '', un, dup: r.duplicate, cust: r.customer, text: r.text, engine: r.engine };
+  if (!CH.d.lines.length) CH.d.lines.push({ desc: '', serial: '', qty: 1, rate: 0, disc: 0, gst: 0, amount: 0, productId: '', pname: '', itemId: '', tracking: '' });
+  chReview();
+  CH.d.lines.forEach((l, i) => chSuggest(i));
+}
+const chU = k => CH.d.un.has(k) ? 'style="border:2px solid #f59e0b;background:#fffbeb"' : '';
+const chUL = k => CH.d.un.has(k) ? ' <span style="color:#b45309">⚠ check karo</span>' : '';
+function chReview() {
+  const d = CH.d;
+  const m = modal('3. Bill check karo', `
+    <div style="display:flex;gap:8px;overflow:auto;margin-bottom:10px">${CH.imgs.map((u, i) => `<img src="${u}" data-chz="${i}" style="height:120px;border-radius:8px;border:1px solid var(--line);cursor:zoom-in">`).join('')}</div>
+    ${d.dup ? `<div class="note bad">⚠ Aa bill number pehla save thayelo chhe: ${esc(d.dup)}. Farithi save nahi thay.</div>` : ''}
+    ${d.engine === 'ocr' ? `<div class="note info">AI key nathi, etle sado OCR vaparyo. Niche vanchelu lakhan chhe – vigat hathe bharo.<pre style="white-space:pre-wrap;max-height:160px;overflow:auto;font-size:12px">${esc(d.text || '')}</pre></div>` : ''}
+    ${d.un.size ? `<div class="note" style="background:#fffbeb;border-color:#f59e0b">⚠ Pila box ma lakhelu AI ne chokhkhu nathi vanchayu – photo sathe melvi ne sudharo.</div>` : ''}
+    <div class="row"><div class="fld"><label>Bill No *${chUL('billNo')}</label><input id="cbNo" value="${esc(d.billNo)}" ${chU('billNo')}></div><div class="fld"><label>Tarikh *${chUL('billDate')}</label><input type="date" id="cbDt" value="${esc(d.billDate)}" ${chU('billDate')}></div></div>
+    <div class="row"><div class="fld"><label>Customer *${chUL('customer.name')}</label><input id="cbNm" value="${esc(d.name)}" ${chU('customer.name')}></div><div class="fld"><label>Mobile *${chUL('customer.mobile')}</label><input id="cbMo" inputmode="numeric" value="${esc(d.mobile)}" ${chU('customer.mobile')}></div></div>
+    <div class="fld"><label>Address${chUL('customer.address')}</label><input id="cbAd" value="${esc(d.address)}" ${chU('customer.address')}></div>
+    <div id="cbCust" class="tag">${d.cust ? '✓ Juno customer: ' + esc(d.cust.name) : ''}</div>
+    <h3 style="margin:12px 0 4px">Items</h3><div id="cbL"></div><button class="btn g s" id="cbAdd">+ Line umero</button>
+    <div class="card" style="border:1px solid var(--line);box-shadow:none;margin-top:12px">
+      <div class="row"><div class="fld"><label>CGST ₹</label><input type="number" id="cbC" value="${d.cgst || ''}"></div><div class="fld"><label>SGST ₹</label><input type="number" id="cbS" value="${d.sgst || ''}"></div><div class="fld"><label>IGST ₹</label><input type="number" id="cbI" value="${d.igst || ''}"></div></div>
+      <div class="row"><div class="fld"><label>Grand Total ₹ *${chUL('grandTotal')}</label><input type="number" id="cbT" value="${d.total || ''}" ${chU('grandTotal')}></div><div class="fld"><label>Payment malyu ₹${chUL('paid')}</label><input type="number" id="cbP" value="${d.paid || ''}" ${chU('paid')}></div></div>
+      <div class="row"><div class="fld"><label>Kya aavya${d.modeRaw && !d.mode ? ' <span style="color:#b45309">(bill ma: ' + esc(d.modeRaw) + ')</span>' : ''}</label><select id="cbM"><option value="">--</option>${CH_MODES.map(x => `<option ${x === d.mode ? 'selected' : ''}>${x}</option>`).join('')}</select></div><div class="fld"><label>Baki (udhar)</label><input id="cbB" disabled></div></div>
+      <div id="cbChk" style="font-weight:700"></div>
+      <div class="fld"><label>Note</label><input id="cbN" value="${esc(d.notes)}"></div></div>`,
+    { cls: 'w', foot: '<button class="btn g" data-x>Cancel</button><button class="btn g" id="cbEd">✏ Edit</button><button class="btn ok" id="cbOk">✅ Confirm & Save</button>' });
+  CH.m = m; chDrawLines();
+  m.$$('[data-chz]').forEach(i => i.onclick = () => modal('Bill photo', `<img src="${CH.imgs[+i.dataset.chz]}" style="width:100%">`, { cls: 'w' }));
+  m.$('#cbAdd').onclick = () => { chReadForm(); d.lines.push({ desc: '', serial: '', qty: 1, rate: 0, disc: 0, gst: 0, amount: 0, productId: '', pname: '', itemId: '', tracking: '' }); chDrawLines(); };
+  m.$('#cbEd').onclick = () => m.$('#cbNo').focus();
+  ['#cbT', '#cbP', '#cbC', '#cbS', '#cbI'].forEach(s => m.$(s).oninput = chTot);
+  m.$('#cbMo').onchange = async () => { try { const r = await api('cust.search', { q: m.$('#cbMo').value.replace(/\D/g, '') }, { loader: false }); const c = (r || [])[0]; m.$('#cbCust').textContent = c ? '✓ Juno customer: ' + c.name : 'Navo customer banse'; if (c && !m.$('#cbNm').value) m.$('#cbNm').value = c.name; } catch (e) { } };
+  const _rid = rid();
+  m.$('#cbOk').onclick = e => work(e.currentTarget, async () => {
+    chReadForm();
+    const bad = d.lines.find(l => l.tracking && l.tracking !== 'QTY' && l.productId && !l.itemId);
+    if (bad) throw new Error('"' + (bad.pname || bad.desc) + '" mate serial pasand karo.');
+    const r = await api('chal.save', { billNo: d.billNo, billDate: d.billDate, customer: { name: d.name, mobile: d.mobile, address: d.address }, lines: d.lines, cgst: d.cgst, sgst: d.sgst, igst: d.igst, grandTotal: d.total, paid: d.paid, payMode: d.mode, notes: d.notes, images: CH.imgs }, { rid: _rid, timeout: 120000 });
+    m.close(); CH.imgs = []; chDrawImgs(); chLoadList();
+    modal('✅ Google Sheet ma save thayu', `<div class="note info" style="font-size:15px">Bill <b>${esc(d.billNo)}</b> save thayu.<br>${r.orderId ? 'Sales order: ' + esc(r.orderId) + ' (stock ochhu thayu)<br>' : ''}${d.paid ? 'Cash book ma: ' + inr(d.paid) + '<br>' : ''}${r.pending ? 'Udhar ma: <b>' + inr(r.pending) + '</b>' : 'Koi udhar nathi'}</div>`, { cls: 'n' });
+  });
+  chTot();
+}
+function chReadForm() {
+  const d = CH.d, m = CH.m;
+  d.billNo = m.$('#cbNo').value.trim(); d.billDate = m.$('#cbDt').value; d.name = m.$('#cbNm').value.trim(); d.mobile = m.$('#cbMo').value; d.address = m.$('#cbAd').value;
+  d.cgst = +m.$('#cbC').value || 0; d.sgst = +m.$('#cbS').value || 0; d.igst = +m.$('#cbI').value || 0; d.total = +m.$('#cbT').value || 0; d.paid = +m.$('#cbP').value || 0; d.mode = m.$('#cbM').value; d.notes = m.$('#cbN').value;
+  m.$$('[data-cl]').forEach(c => { const l = d.lines[+c.dataset.cl]; ['desc', 'qty', 'rate', 'disc', 'gst', 'amount'].forEach(k => { const el = c.querySelector(`[data-k="${k}"]`); if (el) l[k] = k === 'desc' ? el.value : (+el.value || 0); }); const s = c.querySelector('[data-k="item"]'); if (s) l.itemId = s.value; });
+}
+function chTot() {
+  const d = CH.d, m = CH.m; if (!m) return;
+  const items = [...m.$$('[data-cl]')].reduce((a, c) => a + (+c.querySelector('[data-k="amount"]').value || 0), 0);
+  const tax = (+m.$('#cbC').value || 0) + (+m.$('#cbS').value || 0) + (+m.$('#cbI').value || 0), tot = +m.$('#cbT').value || 0, paid = +m.$('#cbP').value || 0;
+  m.$('#cbB').value = inr(Math.max(0, tot - paid));
+  const calc = items + tax, ok = !tot || Math.abs(calc - tot) <= 1 || Math.abs(items - tot) <= 1;
+  m.$('#cbChk').innerHTML = `Items no total: ${inr(items)}${tax ? ' + GST ' + inr(tax) + ' = ' + inr(calc) : ''} ` + (tot ? (ok ? '<span style="color:#16a34a">✓ Grand Total sathe male chhe</span>' : '<span style="color:#dc2626">⚠ Grand Total sathe nathi maltu – check karo</span>') : '');
+}
+function chDrawLines() {
+  const d = CH.d, m = CH.m;
+  m.$('#cbL').innerHTML = d.lines.map((l, i) => `<div class="card" data-cl="${i}" style="border:1px solid var(--line);box-shadow:none;margin:8px 0;padding:10px">
+    <div style="display:flex;gap:6px"><input data-k="desc" value="${esc(l.desc)}" placeholder="Item" style="flex:1" ${chU('lines.' + i + '.desc')}><button class="btn bad s" data-cdel="${i}">✕</button></div>
+    <div class="row" style="margin-top:6px"><div class="fld"><label>Qty${chUL('lines.' + i + '.qty')}</label><input type="number" data-k="qty" value="${l.qty}" ${chU('lines.' + i + '.qty')}></div><div class="fld"><label>Rate${chUL('lines.' + i + '.rate')}</label><input type="number" data-k="rate" value="${l.rate}" ${chU('lines.' + i + '.rate')}></div><div class="fld"><label>Disc</label><input type="number" data-k="disc" value="${l.disc || ''}"></div><div class="fld"><label>GST%</label><input type="number" data-k="gst" value="${l.gst || ''}"></div><div class="fld"><label>Amount${chUL('lines.' + i + '.amount')}</label><input type="number" data-k="amount" value="${l.amount}" ${chU('lines.' + i + '.amount')}></div></div>
+    ${l.serial ? `<small>Bill ma serial: <b>${esc(l.serial)}</b>${chUL('lines.' + i + '.serial')}</small><br>` : ''}
+    <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap"><span style="flex:1;min-width:150px">${l.productId ? '📦 <b>' + esc(l.pname) + '</b> <small>(stock mathi ochhu thase)</small>' : '<small>Stock sathe jodelu nathi (service / bahar no maal)</small>'}</span><button class="btn g s" data-cpick="${i}">${l.productId ? 'Badlo' : '📦 Stock product'}</button>${l.productId ? `<button class="btn g s" data-cun="${i}">Hatavo</button>` : ''}</div>
+    ${l.productId && l.tracking !== 'QTY' ? `<div class="fld" style="margin-top:6px"><label>Kayo serial vechyo *</label><select data-k="item"><option value="">-- pasand karo --</option>${(l.free || []).map(x => `<option value="${esc(x.itemId)}" ${x.itemId === l.itemId ? 'selected' : ''}>${esc(x.serial || x.itemId)}</option>`).join('')}</select></div>` : ''}</div>`).join('');
+  m.$$('[data-cl] input').forEach(inp => inp.oninput = () => { const c = inp.closest('[data-cl]'); if (['qty', 'rate', 'disc'].includes(inp.dataset.k)) c.querySelector('[data-k="amount"]').value = Math.max(0, (+c.querySelector('[data-k="qty"]').value || 0) * (+c.querySelector('[data-k="rate"]').value || 0) - (+c.querySelector('[data-k="disc"]').value || 0)); chTot(); });
+  m.$$('[data-cdel]').forEach(b => b.onclick = () => { chReadForm(); d.lines.splice(+b.dataset.cdel, 1); chDrawLines(); chTot(); });
+  m.$$('[data-cun]').forEach(b => b.onclick = () => { chReadForm(); Object.assign(d.lines[+b.dataset.cun], { productId: '', pname: '', itemId: '', tracking: '' }); chDrawLines(); });
+  m.$$('[data-cpick]').forEach(b => b.onclick = () => chPick(+b.dataset.cpick));
+}
+async function chSetProd(i, p) {
+  const l = CH.d.lines[i]; Object.assign(l, { productId: p.ProductID, pname: p.Name, tracking: p.TrackingType, itemId: '', free: [] });
+  if (p.TrackingType !== 'QTY') { try { l.free = await api('serial.free', { productId: p.ProductID }, { loader: false }); const s = String(l.serial || '').toUpperCase(); const hit = l.free.find(x => s && String(x.serial).toUpperCase() === s); if (hit) l.itemId = hit.itemId; } catch (e) { l.free = []; } }
+}
+async function chSuggest(i) {   // suggestion only - shown so the owner can change or remove it
+  const l = CH.d.lines[i]; if (!l || !l.desc) return;
+  const tok = l.desc.replace(/[^A-Za-z0-9 ]/g, ' ').split(/\s+/).filter(t => t.length > 1);
+  for (const q of [tok.slice(0, 4).join(' '), tok.slice(0, 2).join(' ')]) {
+    if (!q) continue; try { const r = await api('prod.quick', { q }, { loader: false }); if (r.length === 1) { chReadForm(); await chSetProd(i, r[0]); chDrawLines(); chTot(); return; } } catch (e) { }
+  }
+}
+function chPick(i) {
+  chReadForm();
+  const l = CH.d.lines[i], m = modal('Stock product pasand karo', `<div class="fld"><input id="cpq" placeholder="Product shodho" value="${esc(l.desc.split(' ').slice(0, 3).join(' '))}"></div><div id="cpr"></div>`, { cls: 'n', foot: '<button class="btn g" data-x>Close</button>' });
+  const go2 = debounce(async () => { const r = await api('prod.quick', { q: m.$('#cpq').value }, { loader: false }); m.$('#cpr').innerHTML = r.map((p, k) => `<div class="card" style="margin:6px 0;cursor:pointer" data-k="${k}"><b>${esc(p.Name)}</b><br><span class="tag">${esc(p.Category)} · ${esc(p.TrackingType)}</span></div>`).join('') || '<i>Koi product nathi</i>'; m.$$('[data-k]').forEach(c => c.onclick = async () => { await chSetProd(i, r[+c.dataset.k]); m.close(); chDrawLines(); chTot(); }); }, 250);
+  m.$('#cpq').oninput = go2; go2();
+}
+</script>
+
+<script>
 'use strict';
 /* ================= main: login, shell, routing, init ================= */
 const ROUTES = {
   dash: () => V_dash(), products: () => V_products(), purchase: () => V_purchase(), sales: () => V_sales(), stock: () => V_stock(),
-  serial: () => V_serial(), customers: () => V_customers(), reports: () => V_reports(), audit: () => V_audit(), build: () => V_build(), brec: () => V_brec(),
+  serial: () => V_serial(), customers: () => V_customers(), reports: () => V_reports(), audit: () => V_audit(), build: () => V_build(), brec: () => V_brec(), chal: () => V_chal(),
   print: () => V_print(), users: () => V_users(), settings: () => V_settings(), scan: () => V_scan(), crm: () => V_crm(), service: () => V_service(), quotes: () => V_quotes(), quote: () => V_quote(), cash: () => V_cash(), pcmp: () => V_pcmp(), pos: () => V_pos(), fixed: () => V_fixed()
 };
 const ADMIN_ONLY = ['users', 'settings', 'pcmp', 'fixed'];
@@ -3130,7 +3272,8 @@ function navItems() {
   const a = isAdmin();
   if (isAcct()) return ['sales', 'customers'];
   if (userMenus()) return userMenus();
-  const l = ['dash', 'products', 'purchase', 'pcmp', 'pos', 'sales', 'quotes', 'stock', 'serial', 'customers', 'build', 'brec', 'audit', 'print', 'reports', 'service', 'cash', 'fixed', 'crm'];
+  const l = ['dash', 'products', 'purchase', 'pcmp', 'pos', 'sales', 'chal', 'quotes', 'stock', 'serial', 'customers', 'build', 'brec', 'audit', 'print', 'reports', 'service', 'cash', 'fixed', 'crm'];
+  if (!a) l.splice(l.indexOf('chal'), 1);
   if (a) l.push('users', 'settings');
   return l;
 }
