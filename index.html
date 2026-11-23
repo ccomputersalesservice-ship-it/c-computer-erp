@@ -1660,7 +1660,7 @@ const SV_ST = ['Pending', 'Processing', 'Ready', 'Delivered', 'Returned', 'Repla
 const SV_CLS = { Pending: 'p-warn', Processing: 'p-blue', Ready: 'p-ok', Delivered: '', Returned: 'p-bad', Replacement: 'p-bad' };
 const svPill = x => `<span class="pill ${SV_CLS[x] || ''}">${esc(x || '-')}</span>`;
 async function V_service() {
-  page('Service Records', '', `<div class="tools"><input id="svq" placeholder="Job no / name / mobile / device" value="${esc(sv.q)}"></div><div id="svtabs"></div><div id="svlist">${skel()}</div>`);
+  page('Service Records', `<button class="btn" data-act="svnew">${ico('plus')} Navo Job</button>`, `<div class="tools"><input id="svq" placeholder="Job no / name / mobile / device" value="${esc(sv.q)}"></div><div id="svtabs"></div><div id="svlist">${skel()}</div>`);
   $('#svq').oninput = debounce(() => { sv.q = $('#svq').value; sv.page = 1; loadSv(); }, 300); loadSv();
 }
 async function loadSv() {
@@ -1675,8 +1675,53 @@ ACT.svst = d => { sv.status = d.s; sv.page = 1; loadSv(); };
 ACT.svpage = d => { sv.page = +d.p; loadSv(); };
 ACT.svopen = async d => {
   const j = await api('crm.job', { id: d.id }, { loader: true }), adm = isAdmin();
-  const log = (j.log || []).slice().reverse().map(l => `<div style="border-left:3px solid #cbd5e1;padding:2px 10px;margin:6px 0"><small>${esc(l.t || '')} · ${esc(l.by || '')}</small><br>${svPill(l.s)} ${l.w ? '<br>' + esc(l.w) : ''}${l.say ? '<br><i>' + esc(l.say) + '</i>' : ''}${l.pk ? '<br>Pickup: ' + esc(l.pk) : ''}${adm && l.bill ? '<br>Bill: ' + inr(l.bill) : ''}${adm && l.pay ? '<br>Paid: ' + inr(l.pay) : ''}${l.dto ? '<br>Delivered to: ' + esc(l.dto) : ''}</div>`).join('');
-  modal(esc(j.sid) + ' · ' + esc(j.name), `<p><b>${esc((j.brand + ' ' + j.device).trim())}</b> ${svPill(j.status)}<br>Mobile: <a href="tel:${esc(j.phone)}">${esc(j.phone)}</a> · Date: ${esc(j.date)} ${esc(j.time)}<br>Problem: ${esc(j.issue)}<br>${j.acc ? 'Accessories: ' + esc(j.acc) + '<br>' : ''}${adm ? 'Bill: ' + inr(j.total) + ' · Paid: ' + inr(j.paid) + '<br>' : ''}${j.fu_next ? 'Follow-up: ' + esc(j.fu_next) + ' ' + esc(j.fu_note) + '<br>' : ''}Taken by: ${esc(j.by)}</p><h3 style="margin:10px 0">History</h3>${log || '<small>No history</small>'}`, { cls: 'n' });
+  const log = (j.log || []).slice().reverse().map(l => `<div style="border-left:3px solid #cbd5e1;padding:2px 10px;margin:6px 0"><small>${esc(l.t || '')} · ${esc(l.by || '')}</small><br>${svPill(l.s)} ${l.w ? '<br>' + esc(l.w) : ''}${l.say ? '<br><i>' + esc(l.say) + '</i>' : ''}${l.pk ? '<br>Pickup: ' + esc(l.pk) : ''}${adm && l.est ? '<br>Estimate: ' + inr(l.est) : ''}${adm && l.bill ? '<br>Bill: ' + inr(l.bill) : ''}${adm && l.pay ? '<br>Paid: ' + inr(l.pay) + (l.mode ? ' (' + esc(l.mode) + ')' : '') : ''}${l.dto ? '<br>Delivered to: ' + esc(l.dto) : ''}</div>`).join('');
+  const due = adm ? Math.max(0, (j.total || 0) - (j.paid || 0)) : 0;
+  const wa = svWa(j);
+  const m = modal(esc(j.sid) + ' · ' + esc(j.name), `<p><b>${esc((j.brand + ' ' + j.device).trim())}</b> ${svPill(j.status)}${j.urgent ? ' 🔥' : ''}<br>Mobile: <a href="tel:${esc(j.phone)}">${esc(j.phone)}</a> · Date: ${esc(j.date)} ${esc(j.time)}<br>Problem: ${esc(j.issue)}<br>${j.acc ? 'Accessories: ' + esc(j.acc) + '<br>' : ''}${adm ? 'Bill: ' + inr(j.total) + ' · Paid: ' + inr(j.paid) + (due ? ' · <b style="color:#dc2626">Baki ' + inr(due) + '</b>' : '') + '<br>' : ''}${j.fu_next ? 'Follow-up: ' + esc(j.fu_next) + ' ' + esc(j.fu_note) + '<br>' : ''}Taken by: ${esc(j.by)}</p>
+    <div class="card" style="border:1px solid var(--line);box-shadow:none;margin:10px 0"><h3 style="margin-bottom:8px">Update karo</h3>
+      <div class="row"><div class="fld"><label>Navo status</label><select id="svS"><option value="">(same - ${esc(j.status)})</option>${SV_ST.map(x => `<option ${x === svNext(j.status) ? 'selected' : ''}>${x}</option>`).join('')}</select></div><div class="fld"><label>Ready date</label><input type="date" id="svRd"></div></div>
+      <div class="fld"><label>Shu kaam karyu / shu problem chhe</label><input id="svW" placeholder="e.g. SSD nakhvi padse"></div>
+      <div class="fld"><label>Customer e shu kahyu</label><input id="svSay" placeholder="e.g. call kari ne puchhvu"></div>
+      <div class="row"><div class="fld"><label>Estimate ₹</label><input type="number" id="svEst" min="0"></div><div class="fld"><label>Final Bill ₹</label><input type="number" id="svBill" min="0"></div></div>
+      <div class="row"><div class="fld"><label>Payment malyu ₹</label><input type="number" id="svPay" min="0"></div><div class="fld"><label>Kya aavya</label><select id="svMode"><option value="">--</option>${['Cash', 'HDFC', 'IDBI', 'Wallet'].map(x => `<option>${x}</option>`).join('')}</select></div></div>
+      <div class="fld" id="svDtoF" style="display:none"><label>Kone aapyu (Delivered to)</label><input id="svDto" value="${esc(j.name)}"></div>
+    </div>
+    <h3 style="margin:10px 0">History</h3>${log || '<small>No history</small>'}`,
+    { cls: 'n', foot: `<a class="btn g" target="_blank" rel="noopener" href="${wa}">💬 WhatsApp</a><button class="btn g" data-x>Close</button><button class="btn ok" id="svSave">Save</button>` });
+  const dtoShow = () => { m.$('#svDtoF').style.display = m.$('#svS').value === 'Delivered' ? '' : 'none'; };
+  m.$('#svS').onchange = dtoShow; dtoShow();
+  const _rid = rid();
+  m.$('#svSave').onclick = e => work(e.currentTarget, async () => {
+    const b = { id: j.id, status: m.$('#svS').value, w: m.$('#svW').value, say: m.$('#svSay').value, est: +m.$('#svEst').value || 0, bill: +m.$('#svBill').value || 0, pay: +m.$('#svPay').value || 0, mode: m.$('#svMode').value, rd: m.$('#svRd').value, dto: m.$('#svS').value === 'Delivered' ? m.$('#svDto').value : '' };
+    if (b.pay && !b.mode) throw new Error('Payment kya aavyu te pasand karo (Cash / HDFC / IDBI).');
+    await api('crm.jobupd', b, { rid: _rid });
+    toast('Saved ✓', 'ok'); m.close(); if (S.route === 'service') loadSv();
+  });
+};
+const svNext = s => ({ Pending: 'Processing', Processing: 'Ready', Ready: 'Delivered' })[s] || '';
+function svWa(j) {
+  const ph = String(j.phone || '').replace(/\D/g, '').slice(-10), dev = (j.brand + ' ' + j.device).trim();
+  const msg = j.status === 'Ready' ? `Namaste ${j.name}, tamaru ${dev} (Job ${j.sid}) taiyar chhe. Aapni anukulata e lai jasho. - C COMPUTER, Katargam`
+    : j.status === 'Delivered' ? `Namaste ${j.name}, C COMPUTER ma service mate aabhar. Job ${j.sid}. Kai pan takleef hoy to jarur kahejo.`
+    : `Namaste ${j.name}, tamaru ${dev} (Job ${j.sid}) amne malyu chhe. Status: ${j.status}. - C COMPUTER, Katargam`;
+  return 'https://wa.me/91' + ph + '?text=' + encodeURIComponent(msg);
+}
+ACT.svnew = () => {
+  const devs = ['Laptop', 'Desktop', 'Monitor', 'Printer', 'UPS', 'On-Site Service', 'Other'], brands = ['HP', 'Dell', 'Lenovo', 'Acer', 'ASUS', 'Apple', 'MSI', 'LG', 'Samsung', 'Epson', 'Canon', 'Brother', 'Other'];
+  const accs = ['Charger', 'Adapter', 'Bag', 'Mouse', 'Keyboard', 'Power Cable', 'Other'];
+  const m = modal('➕ Navo Service Job', `<div class="row"><div class="fld"><label>Customer naam *</label><input id="snN"></div><div class="fld"><label>Mobile *</label><input id="snP" inputmode="numeric" maxlength="14"></div></div>
+    <div class="row"><div class="fld"><label>Device *</label><select id="snD">${devs.map(x => `<option>${x}</option>`).join('')}</select></div><div class="fld"><label>Brand</label><select id="snB"><option value=""></option>${brands.map(x => `<option>${x}</option>`).join('')}</select></div></div>
+    <div class="fld"><label>Problem *</label><textarea id="snI" rows="2" placeholder="e.g. chalu nathi thatu"></textarea></div>
+    <div class="fld"><label>Sathe aavelu</label><div style="display:flex;flex-wrap:wrap;gap:10px">${accs.map(x => `<label style="display:flex;gap:4px;align-items:center"><input type="checkbox" data-acc="${x}" style="width:auto">${x}</label>`).join('')}</div></div>
+    <div class="row"><div class="fld"><label>Password / PIN (device nu)</label><input id="snPin" autocomplete="off"></div><div class="fld" style="display:flex;gap:14px;align-items:end"><label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="snU" style="width:auto"> 🔥 Urgent</label><label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="snO" style="width:auto"> 📍 On-site</label></div></div>`,
+    { cls: 'n', foot: '<button class="btn g" data-x>Cancel</button><button class="btn ok" id="snSave">Save</button>' });
+  const _rid = rid();
+  m.$('#snSave').onclick = e => work(e.currentTarget, async () => {
+    const r = await api('crm.jobnew', { name: m.$('#snN').value, phone: m.$('#snP').value, device: m.$('#snD').value, brand: m.$('#snB').value, issue: m.$('#snI').value, acc: m.$$('[data-acc]').filter(c => c.checked).map(c => c.dataset.acc).join(', '), devpin: m.$('#snPin').value, urgent: m.$('#snU').checked, onsite: m.$('#snO').checked }, { rid: _rid });
+    m.close(); toast('Job ' + r.sid + ' banyo ✓', 'ok'); if (S.route === 'service') loadSv();
+    const mm = modal('✓ Job ' + esc(r.sid), `<p>Customer ne WhatsApp par job number moklo?</p>`, { cls: 'n', foot: `<button class="btn g" data-x>Na</button><a class="btn ok" target="_blank" rel="noopener" href="${svWa({ name: m.$('#snN').value, phone: m.$('#snP').value, brand: m.$('#snB').value, device: m.$('#snD').value, sid: r.sid, status: 'Pending' })}">💬 WhatsApp</a>` });
+  });
 };
 </script>
 <script>
@@ -3025,7 +3070,7 @@ const ROUTES = {
 };
 const ADMIN_ONLY = ['users', 'settings', 'pcmp', 'fixed'];
 /* Which menus each staff member sees (by name). Admin sees everything. */
-const STAFF_MENUS = { USTAV: ['quotes', 'crm', 'sales', 'build', 'brec', 'serial', 'products'], NAKUL: ['quotes', 'crm', 'cash', 'purchase', 'sales', 'stock'] };
+const STAFF_MENUS = { USTAV: ['quotes', 'service', 'crm', 'sales', 'build', 'brec', 'serial', 'products'], NAKUL: ['quotes', 'service', 'crm', 'cash', 'purchase', 'sales', 'stock'] };
 function userMenus() {
   if (!S.user || isAdmin() || isAcct()) return null;
   const k = String(S.user.name || '').trim().split(/\s+/)[0].toUpperCase(), k2 = String(S.user.loginId || '').trim().toUpperCase();
