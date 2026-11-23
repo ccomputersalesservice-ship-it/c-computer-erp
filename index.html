@@ -424,6 +424,7 @@ input,select,textarea{border-color:#dcdcd8}
 .brt td,.brt th{vertical-align:middle}.brth{width:46px;height:46px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--line)}
 small.brchg{color:#b45309}
 @media(max-width:560px){.brb{grid-template-columns:1fr}}
+.brbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
 .brchip{position:fixed;left:10px;right:10px;bottom:76px;z-index:9999;background:#1f2937;color:#fff;border-radius:14px;padding:12px 14px;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .brchip.ok{background:#15803d}.brchip.bad{background:#b91c1c}
 .brspin{width:16px;height:16px;border:3px solid #fff5;border-top-color:#fff;border-radius:50%;animation:brsp 1s linear infinite;display:inline-block}
@@ -2525,21 +2526,22 @@ function brNew() {
   m.$('#brs1').addEventListener('click', e => { const k = e.target.closest('[data-k]'); if (!k) return; BR.kind = k.dataset.k; BR.parts = brParts(BR.kind); s2(); });
 }
 /* save runs in the background: user can open any other page meanwhile; a chip shows progress and the result */
-function brBgSave(payload, id) {
+function brBgSave(payload, id, action, label) {
+  action = action || 'brec.create';
   let chip = $('#brchip'); if (!chip) { chip = document.createElement('div'); chip.id = 'brchip'; chip.className = 'brchip'; document.body.appendChild(chip); }
-  const name = (payload.customer.name || '').trim() || 'Build Record';
+  const name = label || (payload.customer.name || '').trim() || 'Build Record';
   chip.className = 'brchip'; chip.innerHTML = '<span class="brspin"></span> Saving: ' + esc(name) + ' ... (page bandh na karo)';
   window.onbeforeunload = () => 'Save chalu che';
-  api('brec.create', payload, { rid: id, loader: false }).then(r => {
+  api(action, payload, { rid: id, loader: false }).then(r => {
     window.onbeforeunload = null;
-    chip.className = 'brchip ok'; chip.innerHTML = 'Build Record saved successfully: ' + esc(name) + ' (' + esc(r.recId) + ') <button class="btn sm" id="brchv">Kholo</button> <button class="ibtn" id="brchx">x</button>';
+    chip.className = 'brchip ok'; chip.innerHTML = (action === 'brec.add' ? 'Part add thayo successfully: ' : 'Build Record saved successfully: ') + esc(name) + ' (' + esc(r.recId) + ') <button class="btn sm" id="brchv">Kholo</button> <button class="ibtn" id="brchx">x</button>';
     $('#brchv').onclick = () => { chip.remove(); ACT.brecopen({ id: r.recId }); }; $('#brchx').onclick = () => chip.remove();
     if (S.route === 'brec') loadBrec();
     setTimeout(() => { if (chip.classList.contains('ok')) chip.remove(); }, 20000);
   }).catch(e => {
     window.onbeforeunload = null;
     chip.className = 'brchip bad'; chip.innerHTML = 'Save na thayu: ' + esc(e.message || 'error') + ' <button class="btn sm" id="brchr">Pachu try karo</button> <button class="ibtn" id="brchx">x</button>';
-    $('#brchr').onclick = () => brBgSave(payload, id); $('#brchx').onclick = () => chip.remove();
+    $('#brchr').onclick = () => brBgSave(payload, id, action, label); $('#brchx').onclick = () => chip.remove();
   });
 }
 async function V_brec() {
@@ -2554,25 +2556,31 @@ async function V_brec() {
 }
 async function loadBrec(q) {
   const r = await api('brec.list', { q: q || '' });
-  $('#brlist').innerHTML = tbl([{ h: 'ID', k: x => `<b>${esc(x.recId)}</b>`, l: 'ID' }, { h: 'Customer', k: x => esc(x.customer) + (x.mobile ? '<br><small>' + esc(x.mobile) + '</small>' : ''), l: 'Customer' }, { h: 'Type', k: x => esc((BR_KINDS.find(k => k[0] === x.kind) || [])[1] || x.kind) + (x.title ? '<br><small>' + esc(x.title) + '</small>' : ''), l: 'Type' }, { h: 'Parts', k: x => x.parts, cls: 'r', l: 'Parts' }, { h: 'Staff / Time', k: x => '<b>' + esc(x.by) + '</b><br><small>' + esc(dtm('', x.createdAt)) + '</small>', l: 'Staff' }], r, { click: 'brecopen', id: x => x.recId, empty: 'Haju koi Build Record nathi' });
+  $('#brlist').innerHTML = tbl([{ h: 'ID', k: x => `<b>${esc(x.recId)}</b>` + (x.status === 'Cancelled' ? '<br><span class="pill">Cancelled</span>' : ''), l: 'ID' }, { h: 'Customer', k: x => esc(x.customer) + (x.mobile ? '<br><small>' + esc(x.mobile) + '</small>' : ''), l: 'Customer' }, { h: 'Type', k: x => esc((BR_KINDS.find(k => k[0] === x.kind) || [])[1] || x.kind) + (x.title ? '<br><small>' + esc(x.title) + '</small>' : ''), l: 'Type' }, { h: 'Parts', k: x => x.parts, cls: 'r', l: 'Parts' }, { h: 'Staff / Time', k: x => '<b>' + esc(x.by) + '</b><br><small>' + esc(dtm('', x.createdAt)) + '</small>', l: 'Staff' }], r, { click: 'brecopen', id: x => x.recId, empty: 'Haju koi Build Record nathi' });
 }
 ACT.brecnew = () => brNew();
-async function brViewPhoto(partId) {
-  const src = await api('brec.photo', { partId }, { loader: true });
-  modal('Photo', `<img src="${src}" style="width:100%;border-radius:8px" alt="">`, { cls: 'w' });
+const BR_PH = {};
+async function brViewPhoto(partId, thumb) {
+  const m = modal('Photo', `<img id="brfull" src="${BR_PH[partId] || thumb || ''}" style="width:100%;border-radius:8px;${BR_PH[partId] ? '' : 'filter:blur(2px)'}" alt=""><p class="note info" id="brfl" style="${BR_PH[partId] ? 'display:none' : ''}">Poora photo load thay che...</p>`, { cls: 'w' });
+  if (BR_PH[partId]) return;
+  try { const src = await api('brec.photo', { partId }); BR_PH[partId] = src; const i = m.$('#brfull'); if (i) { i.src = src; i.style.filter = ''; } const f = m.$('#brfl'); if (f) f.style.display = 'none'; }
+  catch (e) { const f = m.$('#brfl'); if (f) { f.className = 'note bad'; f.textContent = e.message; } }
 }
 ACT.brecopen = async d => {
   const b = await api('brec.get', { id: d.id }, { loader: true });
   const sp = x => x.part === 'Monitor' && /^[\d.]+$/.test(x.spec) ? x.spec + ' inch' : x.spec;
-  const row = x => `<tr><td><b>${esc(x.part)}</b>${x.brand ? '<br><small>' + esc(x.brand) + '</small>' : ''}${sp(x) ? '<br><small>' + esc(sp(x)) + '</small>' : ''}${x.changedFrom ? '<br><small class="brchg">Badlayu: ' + esc(x.by) + ' · ' + esc(dtm('', x.at)) + '</small>' : ''}<br><button class="btn g s" data-chg="${x.partId}" style="margin-top:4px">Badlo</button></td><td>${x.serial ? '<b>' + esc(x.serial) + '</b>' : '<small>Serial nathi</small>'}</td><td>${x.thumb ? `<img class="brth" src="${x.thumb}" data-ph="${x.partId}" alt="">` : '-'}</td></tr>`;
+  const row = x => `<tr><td><b>${esc(x.part)}</b>${x.brand ? '<br><small>' + esc(x.brand) + '</small>' : ''}${sp(x) ? '<br><small>' + esc(sp(x)) + '</small>' : ''}${x.changedFrom ? '<br><small class="brchg">Badlayu: ' + esc(x.by) + ' · ' + esc(dtm('', x.at)) + '</small>' : ''}${b.status === 'Cancelled' ? '' : `<br><button class="btn g s" data-chg="${x.partId}" style="margin-top:4px">Badlo</button>`}</td><td>${x.serial ? '<b>' + esc(x.serial) + '</b>' : '<small>Serial nathi</small>'}</td><td>${x.thumb ? `<img class="brth" src="${x.thumb}" data-ph="${x.partId}" alt="">` : '-'}</td></tr>`;
   const m = modal(esc(b.recId) + ' · ' + esc((BR_KINDS.find(k => k[0] === b.kind) || [])[1] || b.kind), `<div class="note info"><b>${esc(b.customer.name)}</b>${b.customer.mobile ? ' · ' + esc(b.customer.mobile) : ''}<br><small>Banavyu: <b>${esc(b.by)}</b> · ${esc(dtm('', b.createdAt))}${b.title ? ' · ' + esc(b.title) : ''}${b.note ? ' · ' + esc(b.note) : ''}</small></div>
+    ${b.status === 'Cancelled' ? '<div class="note bad"><b>Aa record Cancel thayelo che.</b> Serial pachha free che. History sachvayeli che.</div>' : `<div class="brbar"><button class="btn" id="bradd">${ico('plus')} Part add</button>${isAdmin() ? '<button class="btn g" id="brcan">Cancel Record</button>' : ''}</div>`}
     <div class="tw"><table class="tbl brt"><thead><tr><th>Part</th><th>Serial</th><th>Photo</th></tr></thead><tbody>${b.parts.map(row).join('')}</tbody></table></div>
     ${b.history.length ? `<h4 style="margin:14px 0 6px">Juna (badlayela) part</h4><div class="tw"><table class="tbl brt"><tbody>${b.history.map(x => `<tr><td>${esc(x.part)}</td><td>${esc(x.serial) || 'Photo'}</td><td><small>${esc(dtm('', x.at))}<br>${esc(x.by)}</small></td></tr>`).join('')}</tbody></table></div>` : ''}`, { cls: 'w' });
   m.el.addEventListener('click', e => {
     const ph = e.target.closest('[data-ph]'), ch = e.target.closest('[data-chg]');
-    if (ph) work(null, () => brViewPhoto(ph.dataset.ph));
+    if (ph) brViewPhoto(ph.dataset.ph, ph.getAttribute('src'));
     if (ch) brChange(b, b.parts.find(x => x.partId === ch.dataset.chg), m);
   });
+  const ba = m.$('#bradd'); if (ba) ba.onclick = () => brAdd(b, m);
+  const bc = m.$('#brcan'); if (bc) bc.onclick = () => brCancel(b, m);
 };
 function brChange(b, part, parent) {
   let du = '', th = '';
@@ -2587,6 +2595,33 @@ function brChange(b, part, parent) {
     const serial = m.$('#bcs').value.trim(); if (!serial && !du) throw new Error('Navo serial ke photo nakho.');
     await api('brec.change', { partId: part.partId, serial, brand: m.$('#bcb').value, spec: m.$('#bcp').value, note: m.$('#bcn').value, dataUrl: du || undefined, thumbUrl: du ? th : undefined }, { rid: rid(), loader: true });
     toast('Part badlayo', 'ok'); m.close(); parent.close(); ACT.brecopen({ id: b.recId });
+  });
+}
+function brAdd(b, parent) {
+  let du = '', th = '';
+  const names = [...new Set(BR_SET.map(x => x[0]).concat(['Charger', 'Other']))];
+  const m = modal('Part add: ' + esc(b.recId), `<div class="note info">Navo part add thase. Juna parts ne kai nahi thay.</div>
+    <div class="fld"><label>Part</label><input id="bap" list="bapl" autocomplete="off" placeholder="example: Mouse"><datalist id="bapl">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
+    <div class="fld"><label>Serial No.</label><div class="brsr"><input id="bas" autocapitalize="characters" autocomplete="off"><button class="btn g" id="basc" type="button">${ico('scan')}</button></div></div>
+    <div class="row"><div class="fld"><label>Brand</label><input id="bab"></div><div class="fld"><label>Spec / inch</label><input id="basp"></div></div>
+    <div class="fld"><label>Photo (jo serial na hoy)</label><div class="brpr"><span id="baimg"><span class="brnoph">-</span></span><button class="btn g" id="baph" type="button">${ico('camera')} Photo</button></div></div>`, { cls: 'n', sticky: true, foot: '<button class="btn" id="bago">Save</button>' });
+  m.$('#basc').onclick = () => openScanner(c => { m.$('#bas').value = String(c).toUpperCase(); }, 'Serial');
+  m.$('#baph').onclick = async () => { const f = await pickFile(true); if (f) work(null, async () => { du = await shrinkImage(f, 800, 0.65); th = await shrinkImage(f, 150, 0.6); m.$('#baimg').innerHTML = `<img src="${th}" alt="">`; }); };
+  m.$('#bago').onclick = () => {
+    const part = m.$('#bap').value.trim(), serial = m.$('#bas').value.trim();
+    if (!part) { toast('Part nu naam lakho.', 'bad'); return; }
+    if (!serial && !du) { toast('Serial ke photo nakho.', 'bad'); return; }
+    const payload = { id: b.recId, parts: [{ part, serial, brand: m.$('#bab').value, spec: m.$('#basp').value, dataUrl: du || undefined, thumbUrl: du ? th : undefined }] };
+    m.close(); parent.close(); brBgSave(payload, rid(), 'brec.add', b.recId + ' · ' + part);
+  };
+}
+function brCancel(b, parent) {
+  const m = modal('Cancel Record: ' + esc(b.recId), `<div class="note bad">Record delete nathi thatu. Cancelled thase, history rahese ane tena serial pachha free thai jashe.</div>
+    <div class="fld"><label>Karan (jaruri)</label><input id="bcr" placeholder="example: duplicate save thayu"></div>`, { cls: 'n', sticky: true, foot: '<button class="btn" id="bcrgo">Cancel Record</button>' });
+  m.$('#bcrgo').onclick = e => work(e.currentTarget, async () => {
+    const reason = m.$('#bcr').value.trim(); if (reason.length < 2) throw new Error('Karan lakho.');
+    await api('brec.cancel', { id: b.recId, reason }, { rid: rid(), loader: true });
+    toast('Record cancel thayo', 'ok'); m.close(); parent.close(); if (S.route === 'brec') loadBrec(); ACT.brecopen({ id: b.recId });
   });
 }
 </script>
