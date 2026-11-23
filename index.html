@@ -2571,7 +2571,7 @@ ACT.brecopen = async d => {
   const sp = x => x.part === 'Monitor' && /^[\d.]+$/.test(x.spec) ? x.spec + ' inch' : x.spec;
   const row = x => `<tr><td><b>${esc(x.part)}</b>${x.brand ? '<br><small>' + esc(x.brand) + '</small>' : ''}${sp(x) ? '<br><small>' + esc(sp(x)) + '</small>' : ''}${x.changedFrom ? '<br><small class="brchg">Badlayu: ' + esc(x.by) + ' · ' + esc(dtm('', x.at)) + '</small>' : ''}${b.status === 'Cancelled' ? '' : `<br><button class="btn g s" data-chg="${x.partId}" style="margin-top:4px">Badlo</button>`}</td><td>${x.serial ? '<b>' + esc(x.serial) + '</b>' : '<small>Serial nathi</small>'}</td><td>${x.thumb ? `<img class="brth" src="${x.thumb}" data-ph="${x.partId}" alt="">` : '-'}</td></tr>`;
   const m = modal(esc(b.recId) + ' · ' + esc((BR_KINDS.find(k => k[0] === b.kind) || [])[1] || b.kind), `<div class="note info"><b>${esc(b.customer.name)}</b>${b.customer.mobile ? ' · ' + esc(b.customer.mobile) : ''}<br><small>Banavyu: <b>${esc(b.by)}</b> · ${esc(dtm('', b.createdAt))}${b.title ? ' · ' + esc(b.title) : ''}${b.note ? ' · ' + esc(b.note) : ''}</small></div>
-    ${b.status === 'Cancelled' ? '<div class="note bad"><b>Aa record Cancel thayelo che.</b> Serial pachha free che. History sachvayeli che.</div>' : `<div class="brbar"><button class="btn" id="bradd">${ico('plus')} Part add</button>${isAdmin() ? '<button class="btn g" id="brcan">Cancel Record</button>' : ''}</div>`}
+    ${b.status === 'Cancelled' ? '<div class="note bad"><b>Aa record Cancel thayelo che.</b> Serial pachha free che. History sachvayeli che.</div>' : `<div class="brbar"><button class="btn" id="bradd">${ico('plus')} Part add</button>${isAdmin() ? '<button class="btn g" id="brcan">Cancel Record</button>' : ''}</div>`}${isAdmin() ? '<div class="brbar"><button class="btn g" id="brdel" style="color:#b91c1c">Delete Record</button></div>' : ''}
     <div class="tw"><table class="tbl brt"><thead><tr><th>Part</th><th>Serial</th><th>Photo</th></tr></thead><tbody>${b.parts.map(row).join('')}</tbody></table></div>
     ${b.history.length ? `<h4 style="margin:14px 0 6px">Juna (badlayela) part</h4><div class="tw"><table class="tbl brt"><tbody>${b.history.map(x => `<tr><td>${esc(x.part)}</td><td>${esc(x.serial) || 'Photo'}</td><td><small>${esc(dtm('', x.at))}<br>${esc(x.by)}</small></td></tr>`).join('')}</tbody></table></div>` : ''}`, { cls: 'w' });
   m.el.addEventListener('click', e => {
@@ -2581,6 +2581,7 @@ ACT.brecopen = async d => {
   });
   const ba = m.$('#bradd'); if (ba) ba.onclick = () => brAdd(b, m);
   const bc = m.$('#brcan'); if (bc) bc.onclick = () => brCancel(b, m);
+  const bd = m.$('#brdel'); if (bd) bd.onclick = () => brDelete(b, m);
 };
 function brChange(b, part, parent) {
   let du = '', th = '';
@@ -2622,6 +2623,14 @@ function brCancel(b, parent) {
     const reason = m.$('#bcr').value.trim(); if (reason.length < 2) throw new Error('Karan lakho.');
     await api('brec.cancel', { id: b.recId, reason }, { rid: rid(), loader: true });
     toast('Record cancel thayo', 'ok'); m.close(); parent.close(); if (S.route === 'brec') loadBrec(); ACT.brecopen({ id: b.recId });
+  });
+}
+function brDelete(b, parent) {
+  const m = modal('Delete Record: ' + esc(b.recId), `<div class="note bad"><b>${esc(b.recId)} (${esc(b.customer.name)})</b> list ma thi hati jashe ane tena serial free thai jashe. Sheet ma data surakshit rahese (Deleted lakhine).</div>
+    <div class="fld"><label>Karan (optional)</label><input id="bdr" placeholder="example: duplicate"></div>`, { cls: 'n', sticky: true, foot: '<button class="btn" id="bdrgo" style="background:#b91c1c">Haa, Delete karo</button>' });
+  m.$('#bdrgo').onclick = e => work(e.currentTarget, async () => {
+    await api('brec.delete', { id: b.recId, reason: m.$('#bdr').value.trim() }, { rid: rid(), loader: true });
+    toast('Record delete thayo', 'ok'); m.close(); parent.close(); if (S.route === 'brec') loadBrec();
   });
 }
 </script>
