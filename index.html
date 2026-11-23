@@ -349,6 +349,26 @@ input,select,textarea{border-color:#dcdcd8}
 .pos-pays{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}.pos-pays button{border:1px solid #d1d5db;background:#fff;border-radius:9px;padding:8px 4px;font-size:12px;cursor:pointer}.pos-pays button.on{border-color:#2563eb;background:#e8f0fe;color:#1d4ed8;font-weight:700}
 .pos-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px}.pos-btns .btn:first-child,.pos-btns .btn:nth-child(2){grid-column:1/-1}
 .pos-float{display:none}
+/* --- POS look: photo cards, orange accent (like the shop's chosen design) --- */
+.pos{--po:#f2541b;--pos-bg:#fff6f2}
+.pos-main{grid-template-columns:1fr 360px}.pos-cats{display:none}.pos-chips{display:flex}
+.pos-chips button{border-color:#f3d2c6;color:#334155;padding:7px 16px;font-weight:600}.pos-chips button.on{background:var(--pos-bg);color:var(--po);border-color:var(--po)}
+.pos-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.pos-card{padding:0;overflow:hidden;border:0;box-shadow:0 2px 10px rgba(15,23,42,.07);border-radius:16px;gap:0}
+.pos-img{height:150px;background:#f8fafc}.pos-img img{max-height:150px;width:100%;object-fit:cover}
+.pos-info{padding:10px 12px 12px;gap:4px}.pos-nm{font-size:14.5px;font-weight:800;color:#0f172a}.pos-info small{font-size:12px}
+.pos-st{margin-top:auto;padding-top:6px;gap:6px;flex-wrap:wrap}.pos-pr{color:#0f172a;font-size:18px}.pos-stock{align-self:flex-start;font-size:10.5px;padding:2px 7px}
+.posx-add{border:0;background:var(--po);color:#fff;border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer;box-shadow:0 3px 8px rgba(242,84,27,.3)}
+.posx-step{display:flex;align-items:center;gap:8px}.posx-step button{width:28px;height:28px;border-radius:50%;border:1.5px solid #cbd5e1;background:#fff;font-size:16px;cursor:pointer;line-height:1}.posx-step button:last-child{background:#0f172a;color:#fff;border-color:#0f172a}
+.posx-new{border:0;background:var(--po);color:#fff;border-radius:22px;padding:9px 18px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(242,84,27,.35)}
+.posx-otabs{display:flex;gap:6px;overflow-x:auto;flex:1 1 100%;order:-1}.posx-ot{flex:0 0 auto;background:#f1f5f9;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;display:flex;gap:8px;align-items:center}.posx-ot.on{background:var(--pos-bg);color:var(--po);border:1px solid #f9c6b3}.posx-ot b{color:#94a3b8;font-size:11px}
+.pos-cart{border:0;box-shadow:0 2px 14px rgba(15,23,42,.08);border-radius:18px;padding:14px}
+.posx-lt{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.posx-qn{color:var(--po)}.posx-ed{color:var(--po);font-size:12px;cursor:pointer;white-space:nowrap}
+.pos-lth img{border-radius:10px;object-fit:cover}.pos-tot{background:var(--pos-bg);color:#0f172a;font-size:20px}
+.pos-pays button.on{border-color:var(--po);background:var(--pos-bg);color:var(--po)}
+.pos-btns .btn.ok{background:var(--po);border-color:var(--po)}
+@media(max-width:1100px){.pos-main{grid-template-columns:1fr}.pos-float{background:var(--po)!important;box-shadow:0 6px 18px rgba(242,84,27,.4)}
+ .pos-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px}.pos-grid:not(.pos-list) .pos-card{flex-direction:column!important;align-items:stretch!important}.pos-grid:not(.pos-list) .pos-img{width:auto!important;height:120px!important;flex:0 0 auto!important}.pos-img img{max-height:120px}.pos-nm{font-size:13px}.pos-pr{font-size:15px}.posx-add{padding:6px 10px;font-size:13px}}
 @media(max-width:1100px){.pos-main{grid-template-columns:1fr}.pos-cats{display:none}.pos-chips{display:flex}.pos-cart{display:none;position:static;max-height:none}
  .pos-cartview .pos-cart{display:block}.pos-cartview .pos-center,.pos-cartview .pos-float{display:none}.pos-cartview .pos-back{display:inline-block}
  .pos-float{display:flex;position:fixed;left:12px;right:12px;bottom:76px;z-index:30;background:#2563eb;color:#fff;border-radius:14px;padding:12px 16px;justify-content:space-between;align-items:center;box-shadow:0 6px 18px rgba(37,99,235,.4);cursor:pointer}.pos-go{font-weight:700}
@@ -2371,8 +2391,8 @@ function drawPos() {
   const brands = Array.from(new Set(POS.prods.map(p => p.Brand).filter(Boolean))).sort();
   const t = posTotals();
   root.innerHTML = `<div class="pos ${POS.step === 'cart' ? 'pos-cartview' : ''}">
-   <div class="pos-top"><div class="pos-tabs">${[['walkin', 'Walk-in Sale'], ['order', 'Order'], ['quote', 'Quotation']].map(x => `<button class="${POS.mode === x[0] ? 'on' : ''}" data-act="posmode" data-m="${x[0]}">${x[1]}</button>`).join('')}</div>
-     <div style="display:flex;gap:6px"><button class="btn g s" data-act="poshold">Hold</button><button class="btn g s" data-act="posheld">Held orders</button><button class="btn s" data-act="posnew">+ New</button></div></div>
+   <div class="pos-top">${posHeldTabs()}<div class="pos-tabs">${[['walkin', 'Walk-in Sale'], ['order', 'Order'], ['quote', 'Quotation']].map(x => `<button class="${POS.mode === x[0] ? 'on' : ''}" data-act="posmode" data-m="${x[0]}">${x[1]}</button>`).join('')}</div>
+     <div style="display:flex;gap:6px"><button class="btn g s" data-act="poshold">Hold</button><button class="posx-new" data-act="posnew">＋ New Order</button></div></div>
    <div class="pos-main">
     <aside class="pos-cats"><h4>Categories</h4><div class="pos-catl"><button class="${POS.cat === 'all' ? 'on' : ''}" data-act="poscat" data-c="all"><span>▦ All Products</span><b>${POS.prods.length}</b></button>${Object.keys(cats).sort().map(c => `<button class="${POS.cat === c ? 'on' : ''}" data-act="poscat" data-c="${esc(c)}"><span>${posIcon(c)} ${esc(c)}</span><b>${cats[c]}</b></button>`).join('')}</div></aside>
     <section class="pos-center"><div class="pos-tools"><input id="posq" placeholder="Search name / model / SKU / barcode" value="${esc(POS.q)}"><select id="posb"><option value="">All Brands</option>${brands.map(b => `<option ${POS.brand === b ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select><select id="poss"><option value="">All Stock</option><option value="in" ${POS.stock === 'in' ? 'selected' : ''}>In stock</option><option value="out" ${POS.stock === 'out' ? 'selected' : ''}>Out of stock</option><option value="fav" ${POS.stock === 'fav' ? 'selected' : ''}>★ Favourites</option></select><select id="posso"><option value="pop" ${POS.sort === 'pop' ? 'selected' : ''}>Sort: Popular</option><option value="lo" ${POS.sort === 'lo' ? 'selected' : ''}>Price low→high</option><option value="hi" ${POS.sort === 'hi' ? 'selected' : ''}>Price high→low</option><option value="name" ${POS.sort === 'name' ? 'selected' : ''}>Name A–Z</option></select><button class="btn g s" data-act="posview">${POS.view === 'grid' ? '☰ List' : '▦ Grid'}</button></div>
@@ -2385,12 +2405,25 @@ function drawPos() {
   $('#posb').onchange = e => { POS.brand = e.target.value; drawPosGrid(); }; $('#poss').onchange = e => { POS.stock = e.target.value; drawPosGrid(); }; $('#posso').onchange = e => { POS.sort = e.target.value; drawPosGrid(); };
   drawPosGrid(); drawPosCart();
 }
+function posCardBtn(pid) {
+  const l = POS.cart.find(x => x.id === pid), i = POS.cart.indexOf(l);
+  return l ? `<span class="posx-step"><button data-act="posq" data-i="${i}" data-d="-1">−</button><b>${l.qty}</b><button data-act="posq" data-i="${i}" data-d="1">+</button></span>` : `<button class="posx-add" data-act="posadd" data-id="${esc(pid)}">＋ Add</button>`;
+}
+function posSyncCards() { $$('[data-pcb]').forEach(x => { x.innerHTML = posCardBtn(x.dataset.pcb); }); }
+function posHeld() { try { return JSON.parse(store.lget('pos_hold') || '[]'); } catch (e) { return []; } }
+function posHeldTabs() {
+  const h = posHeld();
+  return `<div class="posx-otabs"><span class="posx-ot on">${POS.cart.length ? '🛒 Current (' + POS.cart.length + ')' : '🛒 New order'}</span>${h.map((x, i) => `<span class="posx-ot" data-act="posopenheld" data-i="${i}">${esc(x.cust ? x.cust.name : 'Held ' + (i + 1))} · ${x.cart.length}<b data-act="posdelheld" data-i="${i}">✕</b></span>`).join('')}</div>`;
+}
+ACT.posopenheld = (d, el, ev) => { if (ev && ev.target && ev.target.dataset && ev.target.dataset.act === 'posdelheld') return; const h = posHeld(), x = h[+d.i]; if (!x) return; if (POS.cart.length) { h.push({ at: Date.now(), cart: POS.cart, cust: POS.cust, disc: POS.disc, gst: POS.gst, mode: POS.mode, pay: POS.pay }); } Object.assign(POS, { cart: x.cart, cust: x.cust, disc: x.disc, gst: x.gst, mode: x.mode, pay: x.pay }); h.splice(+d.i, 1); store.lset('pos_hold', JSON.stringify(h.slice(0, 10))); drawPos(); };
+ACT.posdelheld = d => { const h = posHeld(); h.splice(+d.i, 1); store.lset('pos_hold', JSON.stringify(h)); drawPos(); };
+ACT.posedit = d => { const l = POS.cart[+d.i]; l._ed = !l._ed; drawPosCart(); };
 let posGridSeq = 0;
 async function drawPosGrid() {
   const g = $('#posgrid'); if (!g) return; const seq = ++posGridSeq, l = posFiltered(), shown = l.slice(0, 60);
   await posPrices(shown.map(p => p.ProductID)); if (seq !== posGridSeq || !$('#posgrid')) return;
   g.innerHTML = shown.map(p => { const av = posAvail(p), pr = posPriceOf(p), spec = [p.Model, String(p.Description || '').slice(0, 60)].filter(Boolean).join(' | ');
-    return `<div class="pos-card"><button class="pos-fav ${POS.fav[p.ProductID] ? 'on' : ''}" data-act="posfav" data-id="${esc(p.ProductID)}">${POS.fav[p.ProductID] ? '♥' : '♡'}</button><div class="pos-img">${thumbBox(p.ProductID)}</div><div class="pos-info"><b class="pos-nm">${esc(p.Name)}</b><small>${esc(p.Brand || '')}${spec ? ' · ' + esc(spec) : ''}</small><div class="pos-pr">${pr ? inr(pr) : '<span style="color:#b45309;font-size:12px">Price not set</span>'}</div><div class="pos-st"><span class="pos-stock ${av > 0 ? (av <= 3 ? 'low' : 'ok') : 'no'}">${av > 0 ? 'In Stock: ' + nf(av) : 'Out of stock'}</span><button class="pos-add" data-act="posadd" data-id="${esc(p.ProductID)}">+</button></div></div></div>`; }).join('') || '<div class="empty">No product found</div>';
+    return `<div class="pos-card"><button class="pos-fav ${POS.fav[p.ProductID] ? 'on' : ''}" data-act="posfav" data-id="${esc(p.ProductID)}">${POS.fav[p.ProductID] ? '♥' : '♡'}</button><div class="pos-img">${thumbBox(p.ProductID)}</div><div class="pos-info"><b class="pos-nm">${esc(p.Name)}</b><small>${esc(p.Brand || '')}${spec ? ' · ' + esc(spec) : ''}</small><span class="pos-stock ${av > 0 ? (av <= 3 ? 'low' : 'ok') : 'no'}">${av > 0 ? 'Stock: ' + nf(av) : 'Out of stock'}</span><div class="pos-st"><div class="pos-pr">${pr ? inr(pr) : '<span style="color:#b45309;font-size:12px">Price not set</span>'}</div><span data-pcb="${esc(p.ProductID)}">${posCardBtn(p.ProductID)}</span></div></div></div>`; }).join('') || '<div class="empty">No product found</div>';
   if (l.length > shown.length) g.insertAdjacentHTML('beforeend', `<div class="empty" style="grid-column:1/-1">Showing 60 of ${l.length}. Search or choose a category to narrow down.</div>`);
   loadThumbs(shown.map(p => p.ProductID), g);
 }
@@ -2405,24 +2438,25 @@ function posAdd(pid) {
 function posFloat() { const t = posTotals(), f = $('.pos-float'); if (f) f.innerHTML = `<span>🛒 ${t.count} item${t.count === 1 ? '' : 's'}</span><b>${inr(t.total)}</b><span class="pos-go">Checkout ›</span>`; }
 function drawPosCart() {
   const c = $('#poscart'); if (!c) return; const t = posTotals(), a = isAdmin(), pays = ['Cash', 'UPI', 'Card', 'Bank Transfer', 'Credit / Udhar', 'Split'];
-  c.innerHTML = `<div class="pos-ch"><h3>🛒 Cart (${POS.cart.length} items)</h3><span><button class="btn g s pos-back" data-act="posback">‹ Shop</button> <button class="btn bad s" data-act="posclear">Clear</button></span></div>
-   <div class="pos-lines">${POS.cart.map((l, i) => `<div class="pos-line"><div class="pos-lth">${thumbBox(l.id)}</div><div class="pos-lb"><b>${esc(l.name)}</b><small>${esc([l.brand, l.model].filter(Boolean).join(' · '))}</small>
-     <div class="pos-lr"><span class="pos-q"><button data-act="posq" data-i="${i}" data-d="-1">−</button><b>${l.qty}</b><button data-act="posq" data-i="${i}" data-d="1">+</button></span><input class="pos-pi" data-pi="${i}" data-f="price" inputmode="decimal" value="${l.price}" title="Unit price" placeholder="Price"><input class="pos-pi" data-pi="${i}" data-f="disc" inputmode="decimal" value="${l.disc || 0}" title="Discount ₹" placeholder="Disc ₹"><b>${inr(l.qty * l.price - (+l.disc || 0))}</b></div></div><button class="pos-x" data-act="posdel" data-i="${i}">✕</button></div>`).join('') || '<div class="empty">Cart is empty. Tap + on a product.</div>'}</div>
+  c.innerHTML = `<div class="pos-ch"><div><small style="color:#94a3b8">Order</small><h3>${POS.mode === 'quote' ? 'Quotation' : POS.mode === 'order' ? 'Order' : 'Walk-in Sale'} · ${POS.cart.length} item${POS.cart.length === 1 ? '' : 's'}</h3></div><span><button class="btn g s pos-back" data-act="posback">‹ Shop</button> <button class="btn bad s" data-act="posclear">Clear</button></span></div>
+   <div class="pos-lines">${POS.cart.map((l, i) => `<div class="pos-line"><div class="pos-lth">${thumbBox(l.id)}</div><div class="pos-lb"><div class="posx-lt"><b><span class="posx-qn">${l.qty}x</span> ${esc(l.name)}</b><a class="posx-ed" data-act="posedit" data-i="${i}">✏ Edit</a></div><div class="posx-lt"><small>${esc([l.brand, l.model].filter(Boolean).join(' · '))}${l.disc ? ' · Disc ' + inr(l.disc) : ''}</small><b>${inr(l.qty * l.price - (+l.disc || 0))}</b></div>
+     <div class="pos-lr" style="${l._ed ? '' : 'display:none'}"><span class="pos-q"><button data-act="posq" data-i="${i}" data-d="-1">−</button><b>${l.qty}</b><button data-act="posq" data-i="${i}" data-d="1">+</button></span><input class="pos-pi" data-pi="${i}" data-f="price" inputmode="decimal" value="${l.price}" title="Unit price" placeholder="Price"><input class="pos-pi" data-pi="${i}" data-f="disc" inputmode="decimal" value="${l.disc || 0}" title="Discount ₹" placeholder="Disc ₹"><b>${inr(l.qty * l.price - (+l.disc || 0))}</b></div></div><button class="pos-x" data-act="posdel" data-i="${i}">✕</button></div>`).join('') || '<div class="empty">Cart is empty. Tap + on a product.</div>'}</div>
    <div class="pos-sum"><div class="qrow"><span>Subtotal</span><b>${inr(t.gross)}</b></div><div class="qrow"><span>Item discount</span><b>${inr(t.ld)}</b></div><div class="qrow"><span>Overall discount ₹</span><input id="posdisc" inputmode="decimal" value="${POS.disc || 0}" style="width:90px;text-align:right"></div>
-    <div class="qrow"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="posgst" ${POS.gst ? 'checked' : ''} style="width:auto"> GST 18%</label><b>${inr(t.gst)}</b></div><div class="qrow pos-tot"><span>Total ${POS.gst ? '(incl. GST)' : ''}</span><b>${inr(t.total)}</b></div></div>
+    <div class="qrow"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="posgst" ${POS.gst ? 'checked' : ''} style="width:auto"> GST 18% umero</label><span></span></div>${POS.gst ? `<div class="qrow"><span>CGST (9%)</span><b>${inr(t.gst / 2)}</b></div><div class="qrow"><span>SGST (9%)</span><b>${inr(t.gst / 2)}</b></div>` : ''}<div class="qrow pos-tot"><span>Total ${POS.gst ? '(incl. GST)' : ''}</span><b>${inr(t.total)}</b></div></div>
    <button class="pos-cust" data-act="poscust">👤 ${POS.cust ? esc(POS.cust.name) + (POS.cust.mobile ? ' · ' + esc(POS.cust.mobile) : '') : 'Select Customer'} ›</button>
    <div class="pos-pays">${pays.map(x => `<button class="${POS.pay === x ? 'on' : ''}" data-act="pospay" data-p="${esc(x)}">${esc(x)}</button>`).join('')}</div>
    <div class="pos-btns"><button class="btn ok" data-act="possave" data-k="${POS.mode === 'walkin' ? 'walkin' : 'order'}">${POS.mode === 'walkin' ? 'Save Walk-in Sale' : 'Save Order'}</button><button class="btn" data-act="possave" data-k="invoice">Generate Invoice</button><button class="btn g" data-act="possave" data-k="quote">Save as Quotation</button><button class="btn g" data-act="poshold">Hold Order</button></div>`;
   $$('[data-pi]', c).forEach(x => x.onchange = () => { POS.cart[+x.dataset.pi][x.dataset.f] = +x.value || 0; drawPosCart(); posFloat(); });
   $('#posdisc').onchange = e => { POS.disc = +e.target.value || 0; drawPosCart(); posFloat(); }; $('#posgst').onchange = e => { POS.gst = e.target.checked; drawPosCart(); posFloat(); };
-  loadThumbs(POS.cart.map(l => l.id), c);
+  loadThumbs(POS.cart.map(l => l.id), c); posSyncCards();
+  const ot = $('.posx-otabs'); if (ot) ot.outerHTML = posHeldTabs();
 }
 ACT.posmode = d => { POS.mode = d.m; drawPos(); };
 ACT.poscat = d => { POS.cat = d.c; drawPos(); };
 ACT.posview = () => { POS.view = POS.view === 'grid' ? 'list' : 'grid'; drawPos(); };
 ACT.posadd = d => posAdd(d.id);
 ACT.posfav = d => { POS.fav[d.id] = !POS.fav[d.id]; if (!POS.fav[d.id]) delete POS.fav[d.id]; store.lset('pos_fav', JSON.stringify(POS.fav)); drawPosGrid(); };
-ACT.posq = d => { const l = POS.cart[+d.i]; if (l.track !== 'QTY' && +d.d > 0) return toast('Serial tracked item: quantity is 1', 'bad'); l.qty = Math.max(1, l.qty + +d.d); drawPosCart(); posFloat(); };
+ACT.posq = d => { const l = POS.cart[+d.i]; if (l.track !== 'QTY' && +d.d > 0) return toast('Serial tracked item: quantity is 1', 'bad'); if (l.qty + +d.d < 1) POS.cart.splice(+d.i, 1); else l.qty = l.qty + +d.d; drawPosCart(); posFloat(); };
 ACT.posdel = d => { POS.cart.splice(+d.i, 1); drawPosCart(); posFloat(); };
 ACT.posclear = () => { POS.cart = []; POS.disc = 0; drawPosCart(); posFloat(); };
 ACT.posnew = () => { POS.cart = []; POS.disc = 0; POS.cust = null; POS.pay = 'Cash'; POS.gst = false; POS.step = 'shop'; drawPos(); };
