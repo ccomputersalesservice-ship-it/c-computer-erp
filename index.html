@@ -1178,8 +1178,8 @@ const splitSerials = v => String(v || '').split(/[\n,;]+/).map(s => s.trim()).fi
 const purf = { q: '', status: '', page: 1 };
 async function V_purchase() {
   if (S.params.new) return purchaseForm();
-  page(LI('purchase'), `${isAdmin() ? '<button class="btn ok" data-act="piopen">📄 Import PDF bill</button> ' : ''}<button class="btn" data-act="go" data-r="purchase" data-new="1">${ico('plus')} ${LT('newpurchase')}</button>`, `<div class="tools"><input id="uq" placeholder="${LT('vendor')} / ${LT('billno')}" value="${esc(purf.q)}"><select id="us"><option value="">${LT('all')}</option>${['Ordered', 'Partial', 'Received'].map(s => `<option ${s === purf.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div><div id="ulist">${skel()}</div>`);
-  const re = debounce(() => { purf.q = $('#uq').value; purf.status = $('#us').value; purf.page = 1; loadPur(); }, 250); $('#uq').oninput = re; $('#us').onchange = re; loadPur();
+  page(LI('purchase'), `${isAdmin() ? '<button class="btn g" id="piMailB" data-act="pimail">📧 Mail bills</button> <button class="btn ok" data-act="piopen">📄 Import PDF bill</button> ' : ''}<button class="btn" data-act="go" data-r="purchase" data-new="1">${ico('plus')} ${LT('newpurchase')}</button>`, `<div class="tools"><input id="uq" placeholder="${LT('vendor')} / ${LT('billno')}" value="${esc(purf.q)}"><select id="us"><option value="">${LT('all')}</option>${['Ordered', 'Partial', 'Received'].map(s => `<option ${s === purf.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div><div id="ulist">${skel()}</div>`);
+  const re = debounce(() => { purf.q = $('#uq').value; purf.status = $('#us').value; purf.page = 1; loadPur(); }, 250); $('#uq').oninput = re; $('#us').onchange = re; loadPur(); if (isAdmin()) piBadge();
 }
 async function loadPur() {
   const r = await api('pur.list', purf), a = isAdmin();
@@ -2765,16 +2765,16 @@ function piReview(st) {
     if (need.length) throw new Error('Choose a product for every line (' + need.length + ' left).');
     const id = await piSaveDraft(true);
     const r = await api('purimp.approve', { id, receiveNow: m.$('#piRecv').checked, lines: d.lines.map(l => ({ productId: l.productId, qty: l.qty, rate: l.rate, serials: String(l._ser || '').split(/[\s,;]+/).filter(Boolean) })) }, { rid: PI.rid || (PI.rid = rid()) });
-    toast('Saved as ' + r.purchaseId, 'ok'); m.close();
-    if (PI.i + 1 < PI.drafts.length) { PI.i++; piReview(PI); } else if (S.route === 'purchase') loadPur();
+    toast('Saved as ' + r.purchaseId, 'ok'); m.close(); piBadge();
+    if (PI.i + 1 < PI.drafts.length) { PI.i++; PI.id = null; PI.rid = null; piReview(PI); } else if (S.route === 'purchase') loadPur();
   });
 }
 function piRead() { const d = PI.drafts[PI.i], m = PI.m; d.vendor = m.$('#piV').value; d.invoiceNo = m.$('#piB').value; d.invoiceDate = m.$('#piD').value; m.$$('[data-pl]').forEach(c => { const l = d.lines[+c.dataset.pl]; l.qty = +$('[data-q]', c).value || 0; l.rate = +$('[data-r]', c).value || 0; l._ser = $('[data-s]', c) ? $('[data-s]', c).value : ''; }); }
 async function piSaveDraft(quiet) {
   piRead(); const d = PI.drafts[PI.i];
-  const body = { id: PI.id, vendor: d.vendor, gstin: d.gstin, invoiceNo: d.invoiceNo, invoiceDate: d.invoiceDate, terms: d.terms, subtotal: d.subtotal, tax: d.sgst + d.cgst + d.igst, grandTotal: d.grandTotal, copies: d.copies, fileHash: PI.hash, warnings: d.warnings, lines: d.lines.map(l => ({ desc: l.desc, hsn: l.hsn, gst: l.gst, qty: l.qty, rate: l.rate, amount: l.amount, serial: l._ser, productId: l.productId })) };
-  if (!PI.id) { body.pdf = PI.url; body.fileName = PI.name; }
-  const r = await api('purimp.save', body, { rid: PI['rid0' + PI.i] || (PI['rid0' + PI.i] = rid()) }); PI.id = r.id; if (!quiet) toast('Saved for later', 'ok'); return r.id;
+  const body = { id: PI.id, vendor: d.vendor, gstin: d.gstin, invoiceNo: d.invoiceNo, invoiceDate: d.invoiceDate, terms: d.terms, subtotal: d.subtotal, tax: d.sgst + d.cgst + d.igst, grandTotal: d.grandTotal, copies: d.copies, fileHash: PI.hash || undefined, warnings: d.warnings, lines: d.lines.map(l => ({ desc: l.desc, hsn: l.hsn, gst: l.gst, qty: l.qty, rate: l.rate, amount: l.amount, serial: l._ser, productId: l.productId })) };
+  if (!PI.id) { if (PI.i > 0 && PI.firstId) body.sameFileAs = PI.firstId; else if (PI.mailId) body.mailId = PI.mailId; else { body.pdf = PI.url; body.fileName = PI.name; } }
+  const r = await api('purimp.save', body, { rid: PI['rid0' + PI.i] || (PI['rid0' + PI.i] = rid()) }); PI.id = r.id; if (PI.i === 0) PI.firstId = r.id; if (!quiet) toast('Saved for later', 'ok'); return r.id;
 }
 function piDraw() {
   const d = PI.drafts[PI.i], m = PI.m;
@@ -2803,6 +2803,35 @@ function piNew(i) {
   const m = modal('New product from bill', `<div class="fld"><label>Name *</label><input id="np_n" value="${esc(l.desc.slice(0, 120))}"></div><div class="row"><div class="fld"><label>Category</label><select id="np_c">${cats.map(c => `<option>${esc(c)}</option>`).join('')}</select></div>
     <div class="fld"><label>Tracking</label><select id="np_t"><option value="SERIAL">Serial number</option><option value="ITEMID">Item ID (serial optional)</option><option value="QTY">Quantity only</option></select></div></div>`, { cls: 'n', foot: '<button class="btn g" data-x>Cancel</button><button class="btn" id="npS">Create</button>' });
   m.$('#npS').onclick = e => work(e.currentTarget, async () => { const r = await api('prod.save', { name: m.$('#np_n').value, category: m.$('#np_c').value, trackingType: m.$('#np_t').value, reorderLevel: 0, sellPrice: 0, costPrice: l.rate }); piRead(); l.productId = r.id; l.pname = m.$('#np_n').value; m.close(); piDraw(); });
+}
+
+/* ---------- bills from Gmail + saved-for-later ---------- */
+async function piBadge() { const b = $('#piMailB'); if (!b) return; try { const r = await api('purimp.inbox', {}, { loader: false }); const n = r.mail.length + r.pending.length; b.innerHTML = '📧 Mail bills' + (n ? ` <span style="background:#dc2626;color:#fff;border-radius:10px;padding:1px 7px;margin-left:4px">${n}</span>` : ''); } catch (e) { } }
+ACT.pimail = async () => {
+  const m = modal('Bills from mail', '<div id="piIb">' + skel(3) + '</div>', { cls: 'w', foot: '<button class="btn g" data-x>Close</button><button class="btn" id="piChk">🔄 Check mail now</button>' });
+  const draw = async () => {
+    const r = await api('purimp.inbox', {}, { loader: false });
+    m.$('#piIb').innerHTML = `<div class="note info">Mail is checked by itself every 1 hour. Only PDF bills are taken. No mail is changed or deleted.</div>
+      ${r.pending.length ? '<h3 style="margin:10px 0">Saved for later</h3>' + r.pending.map(x => `<div class="card" style="border:1px solid var(--line);box-shadow:none;margin:6px 0"><b>${esc(x.vendor)}</b> · ${esc(x.invoiceNo)}<br><span class="tag">${esc(x.date) || '-'} · ${x.total ? inr(x.total) : ''}</span><div style="text-align:right"><button class="btn s" data-pio="${esc(x.id)}">Open</button></div></div>`).join('') : ''}
+      <h3 style="margin:10px 0">New bills in mail</h3>${r.mail.length ? r.mail.map(x => `<div class="card" style="border:1px solid var(--line);box-shadow:none;margin:6px 0"><b>${esc(x.subject) || '(no subject)'}</b><br><span class="tag">${esc(x.from)} · ${esc(x.date)}</span><br><small>📄 ${esc(x.file)}</small><div style="text-align:right;margin-top:6px"><button class="btn g s" data-pig="${esc(x.id)}">Not a bill</button> <button class="btn ok s" data-pim="${esc(x.id)}">Open bill</button></div></div>`).join('') : '<i>No new bill in mail.</i>'}`;
+    m.$$('[data-pim]').forEach(b => b.onclick = e => work(e.currentTarget, async () => { await piFromServer({ mailId: b.dataset.pim }); m.close(); }));
+    m.$$('[data-pio]').forEach(b => b.onclick = e => work(e.currentTarget, async () => { await piOpenPending(b.dataset.pio); m.close(); }));
+    m.$$('[data-pig]').forEach(b => b.onclick = e => work(e.currentTarget, async () => { await api('purimp.mailignore', { id: b.dataset.pig }); draw(); piBadge(); }));
+  };
+  m.$('#piChk').onclick = e => work(e.currentTarget, async () => { const r = await api('purimp.mailcheck', {}); toast(r.added ? r.added + ' new bill(s) found' : 'No new bill', 'ok'); await draw(); piBadge(); });
+  draw().catch(e => { m.$('#piIb').innerHTML = `<div class="note bad">${esc(e.message)}</div>`; });
+};
+async function piFromServer(q) {
+  const url = await api('purimp.pdf', q, { loader: true }), blob = await (await fetch(url)).blob();
+  const pages = await piPdfPages(blob), drafts = piParsePages(pages).filter(d => d.lines.length || d.invoiceNo);
+  if (!drafts.length) throw new Error('Could not read text from this PDF (maybe a scanned photo). Use "New purchase" for this bill.');
+  piReview({ drafts, i: 0, hash: await piSha(blob), mailId: q.mailId, name: 'mail.pdf' });
+}
+async function piOpenPending(id) {
+  const x = await api('purimp.get', { id }, { loader: true });
+  const d = { vendor: x.vendor, gstin: x.gstin, invoiceNo: x.invoiceNo, invoiceDate: x.date, terms: x.terms, orderNo: '', subtotal: x.subtotal, sgst: x.tax, cgst: 0, igst: 0, grandTotal: x.grandTotal, copies: x.copies || 1, warnings: x.note ? [x.note] : [],
+    lines: x.lines.map(l => ({ desc: l.desc, hsn: l.hsn, gst: l.gst, qty: l.qty, rate: l.rate, amount: l.amount, _ser: l.serial, serialCand: [], productId: l.productId, pname: l.productId, _tried: !!l.productId })) };
+  piReview({ drafts: [d], i: 0, id, firstId: id, hash: '' });
 }
 </script>
 
