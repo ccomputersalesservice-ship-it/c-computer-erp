@@ -549,7 +549,7 @@ function busy(on) {
   if (busyN <= 0) { busyN = 0; if (el) el.remove(); }
 }
 /* Short memory for repeat reads (25 s). Any write clears it, so screens never show data older than your own last change. */
-const APIC = new Map(), API_READ = /^(stock\.list|stock\.moves|prod\.list|prod\.get|cust\.list|cust\.search|ord\.list|ord\.get|pur\.list|pur\.get|serial\.list|serial\.item|quote\.list|quote\.get|quote\.dash|cash\.list|crm\.jobs|crm\.job|rep\.[a-z]+|dash|dash\.ops|aud\.list|print\.history)$/;
+const APIC = new Map(), API_READ = /^(brec\.get|brec\.list|stock\.list|stock\.moves|prod\.list|prod\.get|cust\.list|cust\.search|ord\.list|ord\.get|pur\.list|pur\.get|serial\.list|serial\.item|quote\.list|quote\.get|quote\.dash|cash\.list|crm\.jobs|crm\.job|rep\.[a-z]+|dash|dash\.ops|aud\.list|print\.history)$/;
 function api(action, payload, opt) {
   opt = opt || {}; payload = Object.assign({}, payload || {});
   const rk = API_READ.test(action) && !opt.fresh ? action + '|' + JSON.stringify(payload) : null;
@@ -2567,7 +2567,9 @@ async function brViewPhoto(partId, thumb) {
   catch (e) { const f = m.$('#brfl'); if (f) { f.className = 'note bad'; f.textContent = e.message; } }
 }
 ACT.brecopen = async d => {
-  const b = await api('brec.get', { id: d.id }, { loader: true });
+  const ph = modal(esc(d.id), skel(), { cls: 'w' });
+  let b; try { b = await api('brec.get', { id: d.id }); } catch (e) { ph.close(); toast(e.message, 'bad'); return; }
+  ph.close();
   const sp = x => x.part === 'Monitor' && /^[\d.]+$/.test(x.spec) ? x.spec + ' inch' : x.spec;
   const row = x => `<tr><td><b>${esc(x.part)}</b>${x.brand ? '<br><small>' + esc(x.brand) + '</small>' : ''}${sp(x) ? '<br><small>' + esc(sp(x)) + '</small>' : ''}${x.changedFrom ? '<br><small class="brchg">Badlayu: ' + esc(x.by) + ' · ' + esc(dtm('', x.at)) + '</small>' : ''}${b.status === 'Cancelled' ? '' : `<br><button class="btn g s" data-chg="${x.partId}" style="margin-top:4px">Badlo</button>`}</td><td>${x.serial ? '<b>' + esc(x.serial) + '</b>' : '<small>Serial nathi</small>'}</td><td>${x.thumb ? `<img class="brth" src="${x.thumb}" data-ph="${x.partId}" alt="">` : '-'}</td></tr>`;
   const m = modal(esc(b.recId) + ' · ' + esc((BR_KINDS.find(k => k[0] === b.kind) || [])[1] || b.kind), `<div class="note info"><b>${esc(b.customer.name)}</b>${b.customer.mobile ? ' · ' + esc(b.customer.mobile) : ''}<br><small>Banavyu: <b>${esc(b.by)}</b> · ${esc(dtm('', b.createdAt))}${b.title ? ' · ' + esc(b.title) : ''}${b.note ? ' · ' + esc(b.note) : ''}</small></div>
