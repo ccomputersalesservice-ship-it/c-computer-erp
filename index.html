@@ -424,6 +424,10 @@ input,select,textarea{border-color:#dcdcd8}
 .brt td,.brt th{vertical-align:middle}.brth{width:46px;height:46px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--line)}
 small.brchg{color:#b45309}
 @media(max-width:560px){.brb{grid-template-columns:1fr}}
+.brchip{position:fixed;left:10px;right:10px;bottom:76px;z-index:9999;background:#1f2937;color:#fff;border-radius:14px;padding:12px 14px;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.brchip.ok{background:#15803d}.brchip.bad{background:#b91c1c}
+.brspin{width:16px;height:16px;border:3px solid #fff5;border-top-color:#fff;border-radius:50%;animation:brsp 1s linear infinite;display:inline-block}
+@keyframes brsp{to{transform:rotate(360deg)}}
 </style>
 
 </head>
@@ -2509,16 +2513,34 @@ function brNew() {
       if (b.dataset.b === 'cam') { const f = await pickFile(true); if (f) work(null, async () => { await brSetPhoto(p, f); const y = m.$('#brps').scrollTop; draw(); toast('Photo li lidhi', 'ok'); }); }
       if (b.dataset.b === 'rmph') { p.dataUrl = ''; p.thumb = ''; draw(); }
     });
-    m.$('#brsave').onclick = e => work(e.currentTarget, async () => {
+    m.$('#brsave').onclick = () => {
       const parts = BR.parts.filter(x => !x.skip);
       const miss = parts.filter(x => !x.serial.trim() && !x.dataUrl).map(x => x.part);
-      if (miss.length) throw new Error('Serial ke photo nakho: ' + miss.join(', '));
-      const r = await api('brec.create', { kind: BR.kind, title: m.$('#brti').value, note: m.$('#brno').value, customer: { name: m.$('#brcn').value, mobile: m.$('#brcm').value },
-        parts: parts.map(x => ({ part: x.part, brand: x.brand, spec: x.spec, serial: x.serial, dataUrl: x.dataUrl || undefined, thumbUrl: x.dataUrl ? x.thumb : undefined })) }, { rid: rid(), loader: true });
-      toast('Saved: ' + r.recId, 'ok'); m.close(); if (S.route === 'brec') loadBrec(); ACT.brecopen({ id: r.recId });
-    });
+      if (miss.length) { toast('Serial ke photo nakho: ' + miss.join(', '), 'bad'); return; }
+      const payload = { kind: BR.kind, title: m.$('#brti').value, note: m.$('#brno').value, customer: { name: m.$('#brcn').value, mobile: m.$('#brcm').value },
+        parts: parts.map(x => ({ part: x.part, brand: x.brand, spec: x.spec, serial: x.serial, dataUrl: x.dataUrl || undefined, thumbUrl: x.dataUrl ? x.thumb : undefined })) };
+      m.close(); brBgSave(payload, rid());
+    };
   };
   m.$('#brs1').addEventListener('click', e => { const k = e.target.closest('[data-k]'); if (!k) return; BR.kind = k.dataset.k; BR.parts = brParts(BR.kind); s2(); });
+}
+/* save runs in the background: user can open any other page meanwhile; a chip shows progress and the result */
+function brBgSave(payload, id) {
+  let chip = $('#brchip'); if (!chip) { chip = document.createElement('div'); chip.id = 'brchip'; chip.className = 'brchip'; document.body.appendChild(chip); }
+  const name = (payload.customer.name || '').trim() || 'Build Record';
+  chip.className = 'brchip'; chip.innerHTML = '<span class="brspin"></span> Saving: ' + esc(name) + ' ... (page bandh na karo)';
+  window.onbeforeunload = () => 'Save chalu che';
+  api('brec.create', payload, { rid: id, loader: false }).then(r => {
+    window.onbeforeunload = null;
+    chip.className = 'brchip ok'; chip.innerHTML = 'Build Record saved successfully: ' + esc(name) + ' (' + esc(r.recId) + ') <button class="btn sm" id="brchv">Kholo</button> <button class="ibtn" id="brchx">x</button>';
+    $('#brchv').onclick = () => { chip.remove(); ACT.brecopen({ id: r.recId }); }; $('#brchx').onclick = () => chip.remove();
+    if (S.route === 'brec') loadBrec();
+    setTimeout(() => { if (chip.classList.contains('ok')) chip.remove(); }, 20000);
+  }).catch(e => {
+    window.onbeforeunload = null;
+    chip.className = 'brchip bad'; chip.innerHTML = 'Save na thayu: ' + esc(e.message || 'error') + ' <button class="btn sm" id="brchr">Pachu try karo</button> <button class="ibtn" id="brchx">x</button>';
+    $('#brchr').onclick = () => brBgSave(payload, id); $('#brchx').onclick = () => chip.remove();
+  });
 }
 async function V_brec() {
   page('Build Record', `<button class="btn" data-act="brecnew">${ico('plus')} New Build Record</button>`, `<div class="tools"><input id="brq" placeholder="Customer / mobile / ID"><input id="brsn" placeholder="Serial number thi shodho"></div><div id="brfind"></div><div id="brlist">${skel()}</div>`);
