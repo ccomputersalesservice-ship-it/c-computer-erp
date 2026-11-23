@@ -406,6 +406,24 @@ input,select,textarea{border-color:#dcdcd8}
 .qpv .cu{gap:8px!important;margin:8px 0!important}.qpv .cu .cb .tag{font-size:12px!important;padding:4px 14px 4px 10px!important}.qpv .bx .rw{flex-direction:column!important;align-items:stretch!important;gap:2px!important}.qpv .bx .rw b{width:auto!important;font-size:12px!important}.qpv .cu .pcw{width:46%!important}.qpv .cu .bf{padding:6px 10px!important;flex-direction:row!important;flex-wrap:wrap!important;gap:4px 12px!important}.qpv .cu .bf div{font-size:10.5px!important}
 .qpv .qd-in{padding:8px!important}.qpv .dt h4,.qpv .tc h4{font-size:13px!important}.qpv .qd-tot{font-size:12.5px!important}.qpv .qd-gt{font-size:15px!important}.qpv .ft{padding:8px 10px 12px!important;font-size:9.5px!important}.qpv .ft .pit{padding:0 6px!important}}
 @media(max-width:720px){.qpv .cu .bf{width:100%!important;flex-direction:row!important;flex-wrap:wrap!important}.qpv .cu .bf div{flex:1 1 45%}.qpv .qd-tot{width:100%!important}.qpv .two,.qpv .cu,.qpv .tc,.qpv .bn{flex-direction:column!important}}
+
+/* Build Record */
+.brkinds{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.brk{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:16px;text-align:left;cursor:pointer;font:inherit}
+.brk b{display:block;font-size:16px;color:#0b2a6f}.brk small{color:#6b7280}.brk:hover{border-color:#0b2a6f}
+.brp{border:1px solid var(--line);border-radius:12px;margin:10px 0;background:#fff;overflow:hidden}
+.brp.off{opacity:.45}.brp.off .brb,.brp.off .brw{display:none}
+.brh{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#eef2fb;color:#0b2a6f}
+.brskip{font-size:13px;display:flex;gap:5px;align-items:center;color:#374151}
+.brb{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;padding:10px 12px}
+.brser,.brph{grid-column:1/-1}
+.brsr{display:flex;gap:6px}.brsr input{flex:1;min-width:0}
+.brpr{display:flex;align-items:center;gap:8px}.brpr img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.brnoph{color:#9ca3af;padding:0 8px}
+.brw{color:#b45309;font-size:12px;padding:0 12px 8px;min-height:0}.brw:empty{display:none}
+.brt td,.brt th{vertical-align:middle}.brth{width:46px;height:46px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--line)}
+small.brchg{color:#b45309}
+@media(max-width:560px){.brb{grid-template-columns:1fr}}
 </style>
 
 </head>
@@ -481,12 +499,13 @@ const IC = {
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>', edit: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
   down: '<path d="M12 3v13M6 11l6 6 6-6M4 21h16"/>', log: '<path d="M4 4h16v16H4zM8 9h8M8 13h8M8 17h5"/>'
 };
+IC.brec = IC.build;
 const ico = (n, cls) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="${cls || ''}">${IC[n] || ''}</svg>`;
 
 /* ---------- language (English / Gujarati) ---------- */
 const T = {
   dash: ['Dashboard', 'ડેશબોર્ડ'], products: ['Products', 'પ્રોડક્ટ્સ'], purchase: ['Purchase', 'ખરીદી'], sales: ['Sales', 'વેચાણ'], stock: ['Stock', 'સ્ટોક'],
-  serial: ['Serial No.', 'સિરિયલ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], fixed: ['Fixed Kharcha', 'Fixed Kharcha'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], pcmp: ['Price Compare', 'Price Compare'], pos: ['POS / Quick Order', 'POS / Quick Order'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'],
+  serial: ['Serial No.', 'સિરિયલ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], fixed: ['Fixed Kharcha', 'Fixed Kharcha'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], pcmp: ['Price Compare', 'Price Compare'], pos: ['POS / Quick Order', 'POS / Quick Order'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'], brec: ['Build Record', 'Build Record'],
   print: ['Print Stickers', 'સ્ટીકર પ્રિન્ટ'], users: ['Users & Roles', 'યુઝર્સ'], settings: ['Settings', 'સેટિંગ્સ'], scan: ['Scan', 'સ્કેન'],
   search: ['Search Product, Serial, Customer...', 'પ્રોડક્ટ, સિરિયલ, ગ્રાહક શોધો...'], save: ['Save', 'સાચવો'], cancel: ['Cancel', 'રદ કરો'], close: ['Close', 'બંધ'], add: ['Add', 'ઉમેરો'],
   edit: ['Edit', 'ફેરફાર'], del: ['Delete', 'કાઢો'], login: ['Login', 'લૉગિન'], logout: ['Logout', 'લૉગઆઉટ'], loginid: ['Login ID', 'લૉગિન ID'], pin: ['PIN', 'પિન'],
@@ -777,7 +796,7 @@ const skel = () => '<div class="grid g4"><div class="skel"></div><div class="ske
 /* ---------- Dashboard ---------- */
 function moduleTiles() {
   const a = isAdmin();
-  const items = [['products', 'products'], ['purchase', 'purchase'], ['sales', 'sales'], ['stock', 'stock'], ['serial', 'serial'], ['customers', 'customers'], ['build', 'build'], ['audit', 'audit'], ['print', 'print'], ['service', 'service'], ['crm', 'crm']];
+  const items = [['products', 'products'], ['purchase', 'purchase'], ['sales', 'sales'], ['stock', 'stock'], ['serial', 'serial'], ['customers', 'customers'], ['build', 'build'], ['brec', 'build'], ['audit', 'audit'], ['print', 'print'], ['service', 'service'], ['crm', 'crm']];
   if (a) { items.splice(6, 0, ['reports', 'reports']); items.push(['settings', 'settings']); }
   return `<div class="tiles">${items.map(i => `<div class="tile" data-act="go" data-r="${i[0]}">${ico(i[1])}${LI(i[0])}</div>`).join('')}</div>`;
 }
@@ -2407,15 +2426,144 @@ ACT.fxextra = (d, el) => work(el, async () => { const u = FX.staff[+d.i]; await 
 
 <script>
 'use strict';
+/* ================= Build Record: serial number or photo for every part sold ================= */
+const BR_KINDS = [
+  ['SET', 'Aakho Set', 'CPU + Monitor + Keyboard + Mouse'],
+  ['CPU', 'Fakt CPU', 'Cabinet vala PC (monitor vagar)'],
+  ['LAPTOP', 'Laptop', 'Laptop + Charger'],
+  ['OTHER', 'Biju / Part', 'Koi pan ek ke vadhu part']
+];
+const BR_BRANDS = {
+  cpu: ['Intel', 'AMD'], mb: ['Gigabyte', 'Asus', 'MSI', 'ASRock', 'Biostar', 'Zebronics', 'Intel'], ram: ['Crucial', 'Kingston', 'Adata', 'Corsair', 'Samsung', 'Hynix', 'Transcend'],
+  ssd: ['Crucial', 'Kingston', 'WD', 'Samsung', 'Adata', 'Transcend', 'Zebronics'], hdd: ['Seagate', 'WD', 'Toshiba'], cab: ['Zebronics', 'Ant Esports', 'Cooler Master', 'Circle', 'Frontech', 'Foxin'],
+  smps: ['Zebronics', 'Corsair', 'Cooler Master', 'Ant Esports', 'Circle', 'Frontech'], fan: ['Intel', 'AMD', 'Cooler Master', 'Zebronics'], cable: [], kb: ['Logitech', 'HP', 'Dell', 'Lenovo', 'Zebronics', 'Frontech'],
+  ms: ['Logitech', 'HP', 'Dell', 'Lenovo', 'Zebronics', 'Frontech'], mon: ['Dell', 'HP', 'Samsung', 'LG', 'Acer', 'Lenovo', 'BenQ', 'Zebronics', 'Philips'],
+  lap: ['HP', 'Dell', 'Lenovo', 'Asus', 'Acer', 'MSI', 'Apple'], chg: ['HP', 'Dell', 'Lenovo', 'Asus', 'Acer'], oth: []
+};
+const BR_INCH = ['15', '17', '18.5', '19', '19.5', '20', '21.5', '22', '23.8', '24', '27', '32'];
+const BR_CPU = [['Processor', 'cpu', 'i5 7th Gen'], ['Motherboard', 'mb', 'H110 / B450'], ['RAM', 'ram', '8GB DDR4'], ['SSD', 'ssd', '256GB'], ['Hard Disk', 'hdd', '1TB'], ['Cabinet', 'cab', ''], ['Power Supply (SMPS)', 'smps', '450W'], ['CPU Fan', 'fan', ''], ['Power Cable', 'cable', '']];
+const BR_SET = BR_CPU.concat([['Keyboard', 'kb', ''], ['Mouse', 'ms', ''], ['Monitor', 'mon', '22']]);
+const BR_LAP = [['Laptop', 'lap', 'i5 / 8GB / 256GB'], ['Charger', 'chg', '']];
+let BR = { kind: '', parts: [], uid: 0 };
+function brParts(kind) {
+  const src = kind === 'SET' ? BR_SET : kind === 'CPU' ? BR_CPU : kind === 'LAPTOP' ? BR_LAP : [];
+  return src.map(x => ({ id: ++BR.uid, part: x[0], bk: x[1], ph: x[2], brand: '', spec: '', serial: '', dataUrl: '', thumb: '', skip: false }));
+}
+function brRow(p) {
+  const dl = 'brd' + p.id, ds = 'brs' + p.id, isMon = p.bk === 'mon';
+  return `<div class="brp ${p.skip ? 'off' : ''}" data-id="${p.id}">
+    <div class="brh"><b>${esc(p.part)}</b><label class="brskip"><input type="checkbox" data-f="skip" ${p.skip ? 'checked' : ''}> Nathi</label></div>
+    <div class="brb">
+      <div class="fld"><label>Brand</label><input data-f="brand" list="${dl}" value="${esc(p.brand)}" autocomplete="off" placeholder="Brand"><datalist id="${dl}">${(BR_BRANDS[p.bk] || []).map(b => `<option value="${esc(b)}">`).join('')}</datalist></div>
+      <div class="fld"><label>${isMon ? 'Inch' : 'Spec / Model'}</label><input data-f="spec" ${isMon ? `list="${ds}"` : ''} value="${esc(p.spec)}" autocomplete="off" placeholder="${esc(p.ph || '')}">${isMon ? `<datalist id="${ds}">${BR_INCH.map(b => `<option value="${b}">`).join('')}</datalist>` : ''}</div>
+      <div class="fld brser"><label>Serial No.</label><div class="brsr"><input data-f="serial" value="${esc(p.serial)}" autocomplete="off" autocapitalize="characters" placeholder="Serial (box par lakhelo)"><button class="btn g" type="button" data-b="scan" title="Scan">${ico('scan')}</button></div></div>
+      <div class="fld brph"><label>Photo</label><div class="brpr">${p.thumb ? `<img src="${p.thumb}" alt="">` : '<span class="brnoph">-</span>'}<button class="btn g" type="button" data-b="cam">${ico('camera')} ${p.thumb ? 'Fari' : 'Photo'}</button>${p.thumb ? '<button class="btn bad s" type="button" data-b="rmph">✕</button>' : ''}</div></div>
+    </div>
+    <div class="brw">${p.serial || p.thumb ? '' : 'Serial ke photo jaruri che'}</div></div>`;
+}
+function brTitle() { const k = BR_KINDS.find(x => x[0] === BR.kind); return k ? k[1] : ''; }
+async function brSetPhoto(p, f) {
+  const full = await shrinkImage(f, 800, 0.65), thumb = await shrinkImage(f, 150, 0.6);
+  p.dataUrl = full; p.thumb = thumb;
+}
+function brNew() {
+  BR = { kind: '', parts: [], uid: 0 };
+  const m = modal('New Build Record', `<div id="brs1"><p style="margin:0 0 12px"><b>Shu vechyu?</b></p><div class="brkinds">${BR_KINDS.map(k => `<button class="brk" data-k="${k[0]}"><b>${k[1]}</b><small>${k[2]}</small></button>`).join('')}</div></div><div id="brs2" style="display:none"></div>`, { cls: 'w', sticky: true });
+  const s2 = () => {
+    m.$('#brs1').style.display = 'none'; const box = m.$('#brs2'); box.style.display = '';
+    const draw = () => { m.$('#brps').innerHTML = BR.parts.map(brRow).join('') || '<div class="note info">Neeche "+ Part umero" dabavo.</div>'; };
+    box.innerHTML = `<div class="note info" style="margin-bottom:10px"><b>${esc(brTitle())}</b> &nbsp; <a href="#" id="brback">badlo</a></div>
+      <div class="row"><div class="fld"><label>Customer nu naam *</label><input id="brcn" autocomplete="off"></div><div class="fld"><label>Mobile</label><input id="brcm" inputmode="numeric" maxlength="10" autocomplete="off"></div></div>
+      <div class="row"><div class="fld"><label>Brand / Title (example: Dell, i5 PC)</label><input id="brti" autocomplete="off"></div><div class="fld"><label>Note</label><input id="brno" autocomplete="off"></div></div>
+      <div id="brps"></div>
+      <div style="margin:10px 0"><button class="btn g" id="bradd" type="button">+ Part umero</button></div>
+      <div class="mf" style="padding:0;margin-top:6px"><button class="btn" id="brsave">Save</button></div>`;
+    draw();
+    m.$('#brback').onclick = e => { e.preventDefault(); box.style.display = 'none'; m.$('#brs1').style.display = ''; };
+    m.$('#bradd').onclick = () => { const n = prompt('Part nu naam? (example: Webcam, UPS, Printer)'); if (n && n.trim()) { BR.parts.push({ id: ++BR.uid, part: n.trim().slice(0, 40), bk: 'oth', ph: '', brand: '', spec: '', serial: '', dataUrl: '', thumb: '', skip: false }); draw(); } };
+    const get = el => BR.parts.find(x => x.id === Number(el.closest('.brp').dataset.id));
+    m.$('#brps').addEventListener('input', e => {
+      const f = e.target.dataset.f; if (!f || f === 'skip') return; const p = get(e.target); p[f] = e.target.value;
+      if (f === 'serial') { const w = e.target.closest('.brp').querySelector('.brw'); w.textContent = p.serial || p.thumb ? '' : 'Serial ke photo jaruri che'; }
+    });
+    m.$('#brps').addEventListener('change', e => { if (e.target.dataset.f === 'skip') { const p = get(e.target); p.skip = e.target.checked; e.target.closest('.brp').classList.toggle('off', p.skip); } });
+    m.$('#brps').addEventListener('click', async e => {
+      const b = e.target.closest('[data-b]'); if (!b) return; const p = get(b), row = b.closest('.brp');
+      if (b.dataset.b === 'scan') openScanner(c => { p.serial = String(c).toUpperCase(); const i = row.querySelector('[data-f=serial]'); i.value = p.serial; row.querySelector('.brw').textContent = ''; }, p.part + ' - Serial');
+      if (b.dataset.b === 'cam') { const f = await pickFile(true); if (f) work(null, async () => { await brSetPhoto(p, f); const y = m.$('#brps').scrollTop; draw(); toast('Photo li lidhi', 'ok'); }); }
+      if (b.dataset.b === 'rmph') { p.dataUrl = ''; p.thumb = ''; draw(); }
+    });
+    m.$('#brsave').onclick = e => work(e.currentTarget, async () => {
+      const parts = BR.parts.filter(x => !x.skip);
+      const miss = parts.filter(x => !x.serial.trim() && !x.dataUrl).map(x => x.part);
+      if (miss.length) throw new Error('Serial ke photo nakho: ' + miss.join(', '));
+      const r = await api('brec.create', { kind: BR.kind, title: m.$('#brti').value, note: m.$('#brno').value, customer: { name: m.$('#brcn').value, mobile: m.$('#brcm').value },
+        parts: parts.map(x => ({ part: x.part, brand: x.brand, spec: x.spec, serial: x.serial, dataUrl: x.dataUrl || undefined, thumbUrl: x.dataUrl ? x.thumb : undefined })) }, { rid: rid(), loader: true });
+      toast('Saved: ' + r.recId, 'ok'); m.close(); if (S.route === 'brec') loadBrec(); ACT.brecopen({ id: r.recId });
+    });
+  };
+  m.$('#brs1').addEventListener('click', e => { const k = e.target.closest('[data-k]'); if (!k) return; BR.kind = k.dataset.k; BR.parts = brParts(BR.kind); s2(); });
+}
+async function V_brec() {
+  page('Build Record', `<button class="btn" data-act="brecnew">${ico('plus')} New Build Record</button>`, `<div class="tools"><input id="brq" placeholder="Customer / mobile / ID"><input id="brsn" placeholder="Serial number thi shodho"></div><div id="brfind"></div><div id="brlist">${skel()}</div>`);
+  let q = '';
+  const re = debounce(() => { q = $('#brq').value; loadBrec(q); }, 250); $('#brq').oninput = re;
+  const sf = debounce(async () => {
+    const v = $('#brsn').value.trim(); if (v.length < 3) { $('#brfind').innerHTML = ''; return; }
+    try { const r = await api('brec.find', { q: v }); $('#brfind').innerHTML = r.length ? tbl([{ h: 'Serial', k: x => `<b>${esc(x.serial)}</b>`, l: 'Serial' }, { h: 'Part', k: x => esc(x.part) + (x.brand ? ' · ' + esc(x.brand) : ''), l: 'Part' }, { h: 'Customer', k: x => esc(x.customer) + (x.mobile ? '<br><small>' + esc(x.mobile) + '</small>' : ''), l: 'Customer' }, { h: 'Staff / Time', k: x => '<b>' + esc(x.by) + '</b><br><small>' + esc(dtm('', x.date)) + '</small>', l: 'Staff' }, { h: 'Status', k: x => x.status === 'Active' ? '<span class="pill ok">Active</span>' : '<span class="pill">Replaced</span>', l: 'Status' }], r, { click: 'brecopen', id: x => x.recId }) : '<div class="note info">Aa serial malyo nahi.</div>'; } catch (e) { $('#brfind').innerHTML = '<div class="note bad">' + esc(e.message) + '</div>'; }
+  }, 350); $('#brsn').oninput = sf;
+  loadBrec('');
+}
+async function loadBrec(q) {
+  const r = await api('brec.list', { q: q || '' });
+  $('#brlist').innerHTML = tbl([{ h: 'ID', k: x => `<b>${esc(x.recId)}</b>`, l: 'ID' }, { h: 'Customer', k: x => esc(x.customer) + (x.mobile ? '<br><small>' + esc(x.mobile) + '</small>' : ''), l: 'Customer' }, { h: 'Type', k: x => esc((BR_KINDS.find(k => k[0] === x.kind) || [])[1] || x.kind) + (x.title ? '<br><small>' + esc(x.title) + '</small>' : ''), l: 'Type' }, { h: 'Parts', k: x => x.parts, cls: 'r', l: 'Parts' }, { h: 'Staff / Time', k: x => '<b>' + esc(x.by) + '</b><br><small>' + esc(dtm('', x.createdAt)) + '</small>', l: 'Staff' }], r, { click: 'brecopen', id: x => x.recId, empty: 'Haju koi Build Record nathi' });
+}
+ACT.brecnew = () => brNew();
+async function brViewPhoto(partId) {
+  const src = await api('brec.photo', { partId }, { loader: true });
+  modal('Photo', `<img src="${src}" style="width:100%;border-radius:8px" alt="">`, { cls: 'w' });
+}
+ACT.brecopen = async d => {
+  const b = await api('brec.get', { id: d.id }, { loader: true });
+  const sp = x => x.part === 'Monitor' && /^[\d.]+$/.test(x.spec) ? x.spec + ' inch' : x.spec;
+  const row = x => `<tr><td><b>${esc(x.part)}</b>${x.brand ? '<br><small>' + esc(x.brand) + '</small>' : ''}${sp(x) ? '<br><small>' + esc(sp(x)) + '</small>' : ''}${x.changedFrom ? '<br><small class="brchg">Badlayu: ' + esc(x.by) + ' · ' + esc(dtm('', x.at)) + '</small>' : ''}<br><button class="btn g s" data-chg="${x.partId}" style="margin-top:4px">Badlo</button></td><td>${x.serial ? '<b>' + esc(x.serial) + '</b>' : '<small>Serial nathi</small>'}</td><td>${x.thumb ? `<img class="brth" src="${x.thumb}" data-ph="${x.partId}" alt="">` : '-'}</td></tr>`;
+  const m = modal(esc(b.recId) + ' · ' + esc((BR_KINDS.find(k => k[0] === b.kind) || [])[1] || b.kind), `<div class="note info"><b>${esc(b.customer.name)}</b>${b.customer.mobile ? ' · ' + esc(b.customer.mobile) : ''}<br><small>Banavyu: <b>${esc(b.by)}</b> · ${esc(dtm('', b.createdAt))}${b.title ? ' · ' + esc(b.title) : ''}${b.note ? ' · ' + esc(b.note) : ''}</small></div>
+    <div class="tw"><table class="tbl brt"><thead><tr><th>Part</th><th>Serial</th><th>Photo</th></tr></thead><tbody>${b.parts.map(row).join('')}</tbody></table></div>
+    ${b.history.length ? `<h4 style="margin:14px 0 6px">Juna (badlayela) part</h4><div class="tw"><table class="tbl brt"><tbody>${b.history.map(x => `<tr><td>${esc(x.part)}</td><td>${esc(x.serial) || 'Photo'}</td><td><small>${esc(dtm('', x.at))}<br>${esc(x.by)}</small></td></tr>`).join('')}</tbody></table></div>` : ''}`, { cls: 'w' });
+  m.el.addEventListener('click', e => {
+    const ph = e.target.closest('[data-ph]'), ch = e.target.closest('[data-chg]');
+    if (ph) work(null, () => brViewPhoto(ph.dataset.ph));
+    if (ch) brChange(b, b.parts.find(x => x.partId === ch.dataset.chg), m);
+  });
+};
+function brChange(b, part, parent) {
+  let du = '', th = '';
+  const m = modal('Badlo: ' + esc(part.part), `<div class="note info">Juno serial: <b>${esc(part.serial) || 'photo'}</b> (history ma rahse)</div>
+    <div class="fld"><label>Navo Serial No.</label><div class="brsr"><input id="bcs" autocapitalize="characters" autocomplete="off"><button class="btn g" id="bcsc" type="button">${ico('scan')}</button></div></div>
+    <div class="row"><div class="fld"><label>Brand</label><input id="bcb" value="${esc(part.brand)}"></div><div class="fld"><label>Spec</label><input id="bcp" value="${esc(part.spec)}"></div></div>
+    <div class="fld"><label>Photo</label><div class="brpr"><span id="bcimg"><span class="brnoph">-</span></span><button class="btn g" id="bcph" type="button">${ico('camera')} Photo</button></div></div>
+    <div class="fld"><label>Karan (note)</label><input id="bcn" placeholder="example: kharab thayu"></div>`, { cls: 'n', sticky: true, foot: '<button class="btn" id="bcgo">Save</button>' });
+  m.$('#bcsc').onclick = () => openScanner(c => { m.$('#bcs').value = String(c).toUpperCase(); }, 'Serial');
+  m.$('#bcph').onclick = async () => { const f = await pickFile(true); if (f) work(null, async () => { du = await shrinkImage(f, 800, 0.65); th = await shrinkImage(f, 150, 0.6); m.$('#bcimg').innerHTML = `<img src="${th}" alt="">`; }); };
+  m.$('#bcgo').onclick = e => work(e.currentTarget, async () => {
+    const serial = m.$('#bcs').value.trim(); if (!serial && !du) throw new Error('Navo serial ke photo nakho.');
+    await api('brec.change', { partId: part.partId, serial, brand: m.$('#bcb').value, spec: m.$('#bcp').value, note: m.$('#bcn').value, dataUrl: du || undefined, thumbUrl: du ? th : undefined }, { rid: rid(), loader: true });
+    toast('Part badlayo', 'ok'); m.close(); parent.close(); ACT.brecopen({ id: b.recId });
+  });
+}
+</script>
+
+<script>
+'use strict';
 /* ================= main: login, shell, routing, init ================= */
 const ROUTES = {
   dash: () => V_dash(), products: () => V_products(), purchase: () => V_purchase(), sales: () => V_sales(), stock: () => V_stock(),
-  serial: () => V_serial(), customers: () => V_customers(), reports: () => V_reports(), audit: () => V_audit(), build: () => V_build(),
+  serial: () => V_serial(), customers: () => V_customers(), reports: () => V_reports(), audit: () => V_audit(), build: () => V_build(), brec: () => V_brec(),
   print: () => V_print(), users: () => V_users(), settings: () => V_settings(), scan: () => V_scan(), crm: () => V_crm(), service: () => V_service(), quotes: () => V_quotes(), quote: () => V_quote(), cash: () => V_cash(), pcmp: () => V_pcmp(), pos: () => V_pos(), fixed: () => V_fixed()
 };
 const ADMIN_ONLY = ['users', 'settings', 'pcmp', 'fixed'];
 /* Which menus each staff member sees (by name). Admin sees everything. */
-const STAFF_MENUS = { USTAV: ['quotes', 'crm', 'sales', 'build', 'serial', 'products'], NAKUL: ['quotes', 'crm', 'cash', 'purchase', 'sales', 'stock'] };
+const STAFF_MENUS = { USTAV: ['quotes', 'crm', 'sales', 'build', 'brec', 'serial', 'products'], NAKUL: ['quotes', 'crm', 'cash', 'purchase', 'sales', 'stock'] };
 function userMenus() {
   if (!S.user || isAdmin() || isAcct()) return null;
   const k = String(S.user.name || '').trim().split(/\s+/)[0].toUpperCase(), k2 = String(S.user.loginId || '').trim().toUpperCase();
@@ -2425,7 +2573,7 @@ function navItems() {
   const a = isAdmin();
   if (isAcct()) return ['sales', 'customers'];
   if (userMenus()) return userMenus();
-  const l = ['dash', 'products', 'purchase', 'pcmp', 'pos', 'sales', 'quotes', 'stock', 'serial', 'customers', 'build', 'audit', 'print', 'reports', 'service', 'cash', 'fixed', 'crm'];
+  const l = ['dash', 'products', 'purchase', 'pcmp', 'pos', 'sales', 'quotes', 'stock', 'serial', 'customers', 'build', 'brec', 'audit', 'print', 'reports', 'service', 'cash', 'fixed', 'crm'];
   if (a) l.push('users', 'settings');
   return l;
 }
