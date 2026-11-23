@@ -2930,10 +2930,46 @@ const AI_STOPW = new Set('ketla ketlu ketli kitna kitne kitni how many much che 
 const aiClean = t => String(t).replace(/[?.,!।]/g, ' ').split(/\s+/).filter(w => w && !AI_STOPW.has(w.toLowerCase())).join(' ');
 const aiCatFor = t => { const cats = (S.boot && S.boot.categories) || []; for (const k in AI_CAT) if (AI_CAT[k].test(t)) { const c = cats.find(x => x.toLowerCase().includes(k)); if (c) return c; } return cats.find(c => c.length > 2 && new RegExp('\\b' + c.replace(/[^\w]/g, '') + '\\b', 'i').test(t)) || ''; };
 
+
+/* ---------- open pages / do actions by voice or text ---------- */
+const AI_OPEN = /\b(open|kholo|kholvu|khol|kholi|khulo|chalu|batav|batavo|bataav|dekhad|dekhadi|jao|jav|le\s*jao|go to|show)\b|ખોલ|ખુલ|બતાવ|દેખાડ|ચાલુ|खोल|दिखा|दिखाओ|चालू|ले\s*चलो/i;
+const AI_NAV = [
+  ['service', /service|sarvis|sarvice|repair|ripair|job\b|jobs|સર્વિસ|સર્વીસ|રિપેર|सर्विस|रिपेयर/i, 'Service Records'],
+  ['pos', /\bpos\b|quick order|counter|billing|બિલિંગ|પોસ|बिलिंग/i, 'POS / Quick Order'],
+  ['quotes', /quotation|quote|kotation|kotesan|estimate|ક્વોટ|કોટેશન|कोटेशन|क्वोट/i, 'Quotations'],
+  ['brec', /build record|build rekord|બિલ્ડ રેકોર્ડ/i, 'Build Record'],
+  ['build', /build pc|pc build|બિલ્ડ/i, 'Build PC'],
+  ['purchase', /purchase|kharidi|ખરીદી|खरीद/i, 'Purchase'],
+  ['sales', /\bsales\b|order list|vechan list|વેચાણ|बिक्री/i, 'Sales'],
+  ['stock', /\bstock\b|maal|સ્ટોક|स्टॉक/i, 'Stock'],
+  ['serial', /serial|સિરિયલ|सीरियल/i, 'Serial No.'],
+  ['customers', /customer|grahak|ગ્રાહક|ग्राहक/i, 'Customer'],
+  ['cash', /cash ?book|rokad|રોકડ|कैश/i, 'Cash Book'],
+  ['reports', /report|રિપોર્ટ|रिपोर्ट/i, 'Reports'],
+  ['print', /sticker|print|સ્ટીકર|स्टिकर/i, 'Print Stickers'],
+  ['products', /product|item|પ્રોડક્ટ|प्रोडक्ट/i, 'Products'],
+  ['dash', /dashboard|home|ડેશબોર્ડ|होम|डैशबोर्ड/i, 'Dashboard']
+];
+const AI_DO = [
+  [/(navo|new|navu|add|નવો|નવું|नया).{0,12}(job|service|સર્વિસ|सर्विस|જોબ|जॉब|जोब)/i, 'service', 'svnew', 'Navo service job'],
+  [/photo|ફોટો|फोटो/i, 'products', 'phquick', 'Photo vagar na product'],
+  [/mail.{0,10}bill|bill.{0,10}mail|gmail|મેલ/i, 'purchase', 'pimail', 'Mail bills'],
+  [/pdf.{0,10}bill|bill.{0,10}import/i, 'purchase', 'piopen', 'PDF bill import']
+];
+function aiNav(t) {
+  const allowed = navItems(), qa = /ketl|kitn|\bkul\b|total|ochho|\blow\b|aaj|aje|kale|mahin|how many|કેટલ|કુલ|આજ|કાલ|कितन|आज|कुल/i.test(t), short = !qa && t.trim().split(/\s+/).length <= 3, open = AI_OPEN.test(t);
+  for (const [re, route, act, lbl] of AI_DO) if (re.test(t) && (open || short || /navo|new|નવો|नया/i.test(t)) && allowed.includes(route)) return { route, act, lbl };
+  if (!open && !short) return null;
+  for (const [route, re, lbl] of AI_NAV) if (re.test(t)) return allowed.includes(route) ? { route, lbl } : { no: lbl };
+  return null;
+}
 async function aiAnswer(qq) {
   const t = String(qq || '').trim(), a = isAdmin(), W = k => AI_W[k].test(t);
   if (!t) return 'Kai puchho. Jem ke: "aaj nu vechan?"';
   if (W('help')) return aiHelp();
+  const nv = aiNav(t);
+  if (nv && nv.no) return '🔒 ' + esc(nv.no) + ' tamara mate chalu nathi.';
+  if (nv) { setTimeout(() => { const x = document.querySelector('[data-x]'); if (x) x.click(); go(nv.route); if (nv.act) setTimeout(() => ACT[nv.act] && ACT[nv.act]({}), 700); }, 600); return '✅ ' + esc(nv.lbl) + ' kholu chhu...'; }
   const needAdmin = () => '🔒 Aa vigat fakat Owner (Admin) joi shake.';
   const cat0 = aiCatFor(t), money = W('sales') || W('profit') || W('purchase') || W('vendor') || /udhar|ઉધાર|उधार/i.test(t);
   // money owed to you / by you  (from your CRM accounts: Dues + Bills)
@@ -2987,13 +3023,13 @@ async function aiAnswer(qq) {
   }
   return 'Mane samjanyu nahi 🙏 ' + aiHelp();
 }
-const aiHelp = () => 'Aavu puchho:<br>• Aaj nu vechan? · Aaj no nafo? · Gaikale nu vechan?<br>• Aa mahine nu vechan / nafo? · Gaya mahine?<br>• Ketla laptop chhe? · Dell 5420 ketla chhe? · Kul stock?<br>• Ochho stock? · Udhar ketlu baki? · Vendor ne ketla aapvana?';
-const AI_CHIPS = [['Aaj nu vechan', 'aaj nu vechan'], ['Aaj no nafo', 'aaj no nafo'], ['Aa mahino', 'aa mahine nu vechan ane nafo'], ['Laptop ketla?', 'ketla laptop che'], ['Kul stock', 'kul stock'], ['Ochho stock', 'ochho stock'], ['Udhar baki', 'udhar ketlu baki'], ['Vendor baki', 'vendor ne ketla aapvana baki']];
+const aiHelp = () => 'Aavu kaho:<br>• <b>Service kholo</b> · POS kholo · Quotation kholo · <b>Navo job</b> · Photo vagar na · Mail bills<br>• Aaj nu vechan? · Aaj no nafo? · Gaikale nu vechan?<br>• Aa mahine nu vechan / nafo? · Gaya mahine?<br>• Ketla laptop chhe? · Dell 5420 ketla chhe? · Kul stock?<br>• Ochho stock? · Udhar ketlu baki? · Vendor ne ketla aapvana?';
+const AI_CHIPS = [['🛠 Service kholo', 'service kholo'], ['➕ Navo job', 'navo job'], ['🧾 POS kholo', 'pos kholo'], ['Aaj nu vechan', 'aaj nu vechan'], ['Aaj no nafo', 'aaj no nafo'], ['Aa mahino', 'aa mahine nu vechan ane nafo'], ['Laptop ketla?', 'ketla laptop che'], ['Kul stock', 'kul stock'], ['Ochho stock', 'ochho stock'], ['Udhar baki', 'udhar ketlu baki'], ['Vendor baki', 'vendor ne ketla aapvana baki']];
 ACT.aiopen = () => {
   const sr = window.SpeechRecognition || window.webkitSpeechRecognition;
   const m = modal('🤖 C COMPUTER Assistant', `<div id="aiLog" style="max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:8px"><div class="note info">Namaste! Gujarati, Hindi ke English ma puchho – lakhi ne ke 🎤 boli ne.</div></div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0">${AI_CHIPS.filter(c => isAdmin() || !/vechan|nafo|mahino|baki/.test(c[1])).map(c => `<button class="btn g s" data-aiq="${esc(c[1])}">${esc(c[0])}</button>`).join('')}</div>
-    <div class="row" style="align-items:center;gap:6px"><input id="aiQ" placeholder="Aaj nu vechan ketlu?" style="flex:1" autocomplete="off">${sr ? `<select id="aiL" style="width:auto"><option value="gu-IN">ગુજ</option><option value="hi-IN">हिं</option><option value="en-IN">Eng</option></select><button class="btn g" id="aiMic" title="Bolo">🎤</button>` : ''}<button class="btn" id="aiGo">➤</button></div>`, { cls: 'n', foot: '<button class="btn g" data-x>Close</button>' });
+    <input id="aiQ" placeholder="Lakho: service kholo / aaj nu vechan" autocomplete="off" style="margin-bottom:6px"><div style="display:flex;align-items:center;gap:6px">${sr ? `<select id="aiL" style="width:auto;flex:0 0 auto"><option value="gu-IN">ગુજ</option><option value="hi-IN">हिं</option><option value="en-IN">Eng</option></select><button class="btn g" id="aiMic" title="Bolo" style="flex:1">🎤 Bolo</button>` : ''}<button class="btn" id="aiGo" style="flex:0 0 auto">➤ Moklo</button></div>`, { cls: 'n', foot: '<button class="btn g" data-x>Close</button>' });
   const log = m.$('#aiLog'), push = (h, me) => { const d = document.createElement('div'); d.style.cssText = `align-self:${me ? 'flex-end' : 'flex-start'};background:${me ? '#0b1f4b' : '#f1f5f9'};color:${me ? '#fff' : '#0f172a'};padding:8px 12px;border-radius:12px;max-width:90%;line-height:1.5`; d.innerHTML = h; log.appendChild(d); log.scrollTop = log.scrollHeight; return d; };
   const ask = async q => { if (!q.trim()) return; push(esc(q), true); const w = push('…'); try { w.innerHTML = await aiAnswer(q); } catch (e) { w.innerHTML = '⚠ ' + esc(e.message); } log.scrollTop = log.scrollHeight; };
   try { const l = localStorage.getItem('ccAiLang'); if (l && m.$('#aiL')) m.$('#aiL').value = l; } catch (e) { }
@@ -3005,7 +3041,7 @@ ACT.aiopen = () => {
     try { localStorage.setItem('ccAiLang', rec.lang); } catch (e) { }
     b.textContent = '🔴'; rec.onresult = e => { const v = e.results[0][0].transcript; ask(v); };
     rec.onerror = e => toast(e.error === 'not-allowed' ? 'Mic ni permission aapo (Allow)' : 'Avaj na sambhlayo, farithi bolo', 'bad');
-    rec.onend = () => { b.textContent = '🎤'; }; rec.start();
+    rec.onend = () => { b.textContent = '🎤 Bolo'; }; rec.start();
   };
   setTimeout(() => m.$('#aiQ').focus(), 50);
 };
