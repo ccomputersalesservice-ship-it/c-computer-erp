@@ -2453,6 +2453,7 @@ function drawPosCart() {
   const c = $('#poscart'); if (!c) return; const t = posTotals(), a = isAdmin(), pays = ['Cash', 'UPI', 'Card', 'Bank Transfer', 'Credit / Udhar', 'Split'];
   c.innerHTML = `<div class="pos-ch"><div><small style="color:#94a3b8">Order</small><h3>${POS.mode === 'quote' ? 'Quotation' : POS.mode === 'order' ? 'Order' : 'Walk-in Sale'} · ${POS.cart.length} item${POS.cart.length === 1 ? '' : 's'}</h3></div><span><button class="btn g s pos-back" data-act="posback">‹ Shop</button> <button class="btn bad s" data-act="posclear">Clear</button></span></div>
    <div class="pos-lines">${POS.cart.map((l, i) => `<div class="pos-line"><div class="pos-lth">${thumbBox(l.id)}</div><div class="pos-lb"><div class="posx-lt"><b><span class="posx-qn">${l.qty}x</span> ${esc(l.name)}</b><a class="posx-ed" data-act="posedit" data-i="${i}">✏ Edit</a></div><div class="posx-lt"><small>${esc([l.brand, l.model].filter(Boolean).join(' · '))}${l.disc ? ' · Disc ' + inr(l.disc) : ''}</small><b>${inr(l.qty * l.price - (+l.disc || 0))}</b></div>
+     <div class="posx-ser"><input data-sertype="${i}" placeholder="✍ Serial number lakho" value="${esc(l.typed || l.serial || '')}" autocomplete="off"></div>
      ${l.track !== 'QTY' ? `<div class="posx-ser"><select data-ser="${i}"><option value="">${l.track === 'SERIAL' ? '⚠ Serial pasand karo' : 'Serial (optional)'}</option>${(POS.free[l.id] || []).filter(x => x.itemId === l.item || !POS.cart.some(o => o.item === x.itemId)).map(x => `<option value="${esc(x.itemId)}" ${x.itemId === l.item ? 'selected' : ''}>${esc(x.serial || x.itemId)}</option>`).join('')}</select><button class="btn g s" data-act="posserscan" data-i="${i}">📷</button></div>` : ''}
      <div class="pos-lr" style="${l._ed ? '' : 'display:none'}"><span class="pos-q"><button data-act="posq" data-i="${i}" data-d="-1">−</button><b>${l.qty}</b><button data-act="posq" data-i="${i}" data-d="1">+</button></span><input class="pos-pi" data-pi="${i}" data-f="price" inputmode="decimal" value="${l.price}" title="Unit price" placeholder="Price"><input class="pos-pi" data-pi="${i}" data-f="disc" inputmode="decimal" value="${l.disc || 0}" title="Discount ₹" placeholder="Disc ₹"><b>${inr(l.qty * l.price - (+l.disc || 0))}</b></div></div><button class="pos-x" data-act="posdel" data-i="${i}">✕</button></div>`).join('') || '<div class="empty">Cart is empty. Tap + on a product.</div>'}</div>
    <div class="pos-sum"><div class="qrow"><span>Subtotal</span><b>${inr(t.gross)}</b></div><div class="qrow"><span>Item discount</span><b>${inr(t.ld)}</b></div><div class="qrow"><span>Overall discount ₹</span><input id="posdisc" inputmode="decimal" value="${POS.disc || 0}" style="width:90px;text-align:right"></div>
@@ -2462,6 +2463,12 @@ function drawPosCart() {
    <div class="pos-btns"><button class="btn ok" data-act="possave" data-k="${POS.mode === 'walkin' ? 'walkin' : 'order'}">${POS.mode === 'walkin' ? 'Save Walk-in Sale' : 'Save Order'}</button><button class="btn" data-act="possave" data-k="invoice">Generate Invoice</button><button class="btn g" data-act="possave" data-k="quote">Save as Quotation</button><button class="btn g" data-act="poshold">Hold Order</button></div>`;
   $$('[data-pi]', c).forEach(x => x.onchange = () => { POS.cart[+x.dataset.pi][x.dataset.f] = +x.value || 0; drawPosCart(); posFloat(); });
   $$('[data-ser]', c).forEach(x => x.onchange = () => { const l = POS.cart[+x.dataset.ser], f = (POS.free[l.id] || []).find(y => y.itemId === x.value); l.item = x.value; l.serial = f ? f.serial : ''; drawPosCart(); });
+  $$('[data-sertype]', c).forEach(x => x.onchange = () => {
+    const l = POS.cart[+x.dataset.sertype], v = x.value.trim(), V = v.toUpperCase(), f = (POS.free[l.id] || []).find(y => [y.serial, y.barcode, y.itemId].some(z => z && String(z).toUpperCase() === V));
+    if (f && POS.cart.some(o => o !== l && o.item === f.itemId)) { toast('Aa serial pehla umeryo chhe', 'bad'); x.value = ''; return; }
+    if (f) { l.item = f.itemId; l.serial = f.serial; l.typed = ''; } else { l.typed = v; if (l.track !== 'QTY' && v) { l.item = ''; toast('Aa serial stock list ma nathi – order ma note tarike lakhase.', ''); } }
+    drawPosCart();
+  });
   posLoadFree();
   $('#posdisc').onchange = e => { POS.disc = +e.target.value || 0; drawPosCart(); posFloat(); }; $('#posgst').onchange = e => { POS.gst = e.target.checked; drawPosCart(); posFloat(); };
   loadThumbs(POS.cart.map(l => l.id), c); posSyncCards();
@@ -2499,9 +2506,9 @@ ACT.possave = (d, el) => work(el, async () => {
   }
   if (!/^\d{10}$/.test(String(c.mobile || '').replace(/\D/g, '').slice(-10))) { ACT.poscust(); return toast('Mobile number (10 digits) is needed for an order', 'bad'); }
   const miss = POS.cart.filter(l => l.track === 'SERIAL' && !l.item);
-  if (miss.length && (k === 'walkin' || k === 'invoice')) throw new Error('"' + miss[0].name + '" no serial pasand karo (lal ⚠ vala box ma).');
+  if (miss.length && (k === 'walkin' || k === 'invoice')) throw new Error('"' + miss[0].name + '": ' + (miss[0].typed ? 'lakhelo serial stock ma nathi. Pehla Purchase ma aa serial thi maal chadavo, athva "Order" tab thi save karo.' : 'serial pasand karo athva lakho.'));
   const allSer = POS.cart.every(l => l.track === 'QTY' || l.item);
-  const body = { status: allSer ? 'Reserved' : 'Pending', customerId: c.id || undefined, customer: { name: c.name, mobile: c.mobile, address: c.address || '' }, note: ('POS ' + (k === 'walkin' ? 'walk-in' : k) + ' · Pay: ' + POS.pay + (t.od ? ' · Disc ' + t.od : '')).slice(0, 200), lines: POS.cart.map(l => ({ productId: l.id, qty: l.qty, unitPrice: l.price, itemId: l.item || undefined })) };
+  const body = { status: allSer ? 'Reserved' : 'Pending', customerId: c.id || undefined, customer: { name: c.name, mobile: c.mobile, address: c.address || '' }, note: ((POS.cart.some(l => l.typed) ? 'SN: ' + POS.cart.filter(l => l.typed).map(l => l.name.split(' ').slice(0, 3).join(' ') + ' ' + l.typed).join(', ') + ' · ' : '') + 'POS ' + (k === 'walkin' ? 'walk-in' : k) + ' · Pay: ' + POS.pay + (t.od ? ' · Disc ' + t.od : '')).slice(0, 200), lines: POS.cart.map(l => ({ productId: l.id, qty: l.qty, unitPrice: l.price, itemId: l.item || undefined })) };
   const r = await api('ord.create', body, { rid: rid(), loader: true }); toast('Order ' + r.orderId + ' saved'); ACT.posnew();
   if (k === 'walkin' || k === 'invoice') { go('sales'); setTimeout(() => ACT.openorder({ id: r.orderId }), 600); }
 });
