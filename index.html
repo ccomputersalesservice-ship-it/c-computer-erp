@@ -526,6 +526,7 @@ const IC = {
   print: '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="9" rx="2"/><path d="M7 14h10v7H7z"/>',
   users: '<path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/><path d="M9 12l2 2 4-4"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  replace: '<path d="M4 7h13l-3-3M20 17H7l3 3"/>',
   chal: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/>',
   scan: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/>',
   lock: '<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>', plus: '<path d="M12 5v14M5 12h14"/>', search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
@@ -542,7 +543,7 @@ const ico = (n, cls) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 /* ---------- language (English / Gujarati) ---------- */
 const T = {
   dash: ['Dashboard', 'ડેશબોર્ડ'], products: ['Products', 'પ્રોડક્ટ્સ'], purchase: ['Purchase', 'ખરીદી'], sales: ['Sales', 'વેચાણ'], stock: ['Stock', 'સ્ટોક'],
-  serial: ['Serial No.', 'સિરિયલ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], fixed: ['Fixed Kharcha', 'Fixed Kharcha'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], pcmp: ['Price Compare', 'Price Compare'], pos: ['POS / Quick Order', 'POS / Quick Order'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'], brec: ['Build Record', 'Build Record'], chal: ['AI Bill Scanner', 'AI Bill Scanner'],
+  serial: ['Serial No.', 'સિરિયલ'], replace: ['Replacement', 'રિપ્લેસમેન્ટ'], customers: ['Customer', 'ગ્રાહક'], reports: ['Reports', 'રિપોર્ટ'], cash: ['Cash Book', 'Cash Book'], fixed: ['Fixed Kharcha', 'Fixed Kharcha'], crm: ['Service / CRM', 'Service / CRM'], quotes: ['Quotations', 'Quotations'], pcmp: ['Price Compare', 'Price Compare'], pos: ['POS / Quick Order', 'POS / Quick Order'], service: ['Service Records', 'Service Records'], audit: ['Stock Audit', 'સ્ટોક ઓડિટ'], build: ['Build PC', 'બિલ્ડ PC'], brec: ['Build Record', 'Build Record'], chal: ['AI Bill Scanner', 'AI Bill Scanner'],
   print: ['Print Stickers', 'સ્ટીકર પ્રિન્ટ'], users: ['Users & Roles', 'યુઝર્સ'], settings: ['Settings', 'સેટિંગ્સ'], scan: ['Scan', 'સ્કેન'],
   search: ['Search Product, Serial, Customer...', 'પ્રોડક્ટ, સિરિયલ, ગ્રાહક શોધો...'], save: ['Save', 'સાચવો'], cancel: ['Cancel', 'રદ કરો'], close: ['Close', 'બંધ'], add: ['Add', 'ઉમેરો'],
   edit: ['Edit', 'ફેરફાર'], del: ['Delete', 'કાઢો'], login: ['Login', 'લૉગિન'], logout: ['Logout', 'લૉગઆઉટ'], loginid: ['Login ID', 'લૉગિન ID'], pin: ['PIN', 'પિન'],
@@ -3505,16 +3506,96 @@ function printInvoice(o) {
 </script>
 
 <script>
+/* Replacement register (warranty replacement of customer SSD / products) */
+let RP = { imgs: [] };
+const REP_ST = ['Received', 'Sent to Company', 'Replacement Received', 'Given to Customer', 'Rejected'];
+const REP_GU = { 'Received': '🏪 Haju shop ma chhe', 'Sent to Company': '🏭 Service center / company ne aapyu', 'Replacement Received': '📦 Navu aavi gayu (shop ma)', 'Given to Customer': '✅ Customer ne aapi didhu', 'Rejected': '❌ Reject' };
+const REP_SH = { 'Received': '🏪 Shop ma', 'Sent to Company': '🏭 Service center ma', 'Replacement Received': '📦 Navu aavyu', 'Given to Customer': '✅ Aapi didhu', 'Rejected': '❌ Reject' };
+const REP_CLR = { 'Received': '#f59e0b', 'Sent to Company': '#3b82f6', 'Replacement Received': '#8b5cf6', 'Given to Customer': '#16a34a', 'Rejected': '#dc2626' };
+async function V_replace() {
+  RP = { imgs: [] };
+  const d = new Date(), today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const sizes = ['120 GB', '128 GB', '240 GB', '256 GB', '480 GB', '512 GB', '1 TB', '2 TB'];
+  page('Replacement', '', `<div class="card"><h3 style="margin-bottom:10px">➕ Navi Replacement entry</h3>
+    <div class="row"><div class="fld"><label>Customer mobile</label><input id="rpM" inputmode="numeric" maxlength="10" placeholder="10 ank"></div><div class="fld"><label>Customer naam *</label><input id="rpN"></div></div>
+    <div class="row"><div class="fld"><label>Tarikh *</label><input id="rpD" type="date" value="${today}"></div><div class="fld"><label>Product</label><input id="rpP" value="SSD" list="rpPL"><datalist id="rpPL"><option>SSD</option><option>HDD</option><option>RAM</option><option>Pendrive</option><option>Memory Card</option><option>Keyboard</option><option>Mouse</option><option>Monitor</option></datalist></div></div>
+    <div class="fld"><label>Ketla GB</label><div id="rpSz" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">${sizes.map(s => `<button type="button" class="btn s g" data-sz="${s}">${s}</button>`).join('')}</div><input id="rpS" placeholder="Jem ke 256 GB"></div>
+    <div class="row"><div class="fld"><label>Brand / Model</label><input id="rpB" placeholder="Jem ke EVM, Crucial"></div><div class="fld"><label>Bill no.</label><input id="rpBN"></div></div>
+    <div class="fld"><label>Kai company / service center</label><input id="rpC" list="rpCL" placeholder="Jem ke EVM Service Center, Rashi, Supertron"><datalist id="rpCL"></datalist></div>
+    <div class="row"><div class="fld"><label>Juno serial no.</label><input id="rpOS"></div><div class="fld"><label>Note</label><input id="rpNt" placeholder="Shu problem chhe"></div></div>
+    <div class="fld"><label>Bill / product no photo (vadhu ma vadhu 4)</label><div id="rpImgs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin:6px 0"></div>
+      <div class="row" style="gap:8px"><button class="btn" id="rpCam" style="padding:12px">📷 Photo pado</button><button class="btn g" id="rpUp" style="padding:12px">🖼 Upload</button></div></div>
+    <button class="btn ok" id="rpSave" style="width:100%;margin-top:12px;padding:14px;font-size:16px">💾 Save Replacement</button></div>
+    <div class="card" style="margin-top:14px"><div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><h3 style="flex:1">Replacement list</h3><input id="rpQ" placeholder="🔍 Naam / mobile / serial" style="max-width:240px"></div><div id="rpList">${skel(2)}</div></div>`);
+  $$('[data-sz]').forEach(b => b.onclick = () => { $('#rpS').value = b.dataset.sz; $$('[data-sz]').forEach(x => x.classList.toggle('g', x !== b)); });
+  $('#rpM').oninput = debounce(async () => {
+    const mo = $('#rpM').value.replace(/\D/g, '').slice(0, 10); $('#rpM').value = mo; if (mo.length < 10) return;
+    try { const r = await api('cust.search', { q: mo }, { loader: false }); const c = (r || []).find(x => String(x.mobile || x.Mobile || '').replace(/\D/g, '').slice(-10) === mo); if (c && !$('#rpN').value.trim()) { $('#rpN').value = c.name || c.Name; toast('Customer: ' + (c.name || c.Name), 'ok'); } } catch (e) { }
+  }, 300);
+  $('#rpCam').onclick = async () => { const f = await pickFile(true); if (f) rpAdd([f]); };
+  $('#rpUp').onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.multiple = true; i.onchange = () => rpAdd([...i.files]); i.click(); };
+  $('#rpSave').onclick = e => work(e.currentTarget, rpSave);
+  $('#rpQ').oninput = debounce(() => rpLoad(), 300);
+  rpDraw(); rpLoad();
+}
+async function rpAdd(files) {
+  for (const f of files) { if (RP.imgs.length >= 4) { toast('Vadhu ma vadhu 4 photo', 'bad'); break; } try { RP.imgs.push(await shrinkImage(f, 1600, 0.8)); } catch (e) { toast(e.message, 'bad'); } }
+  rpDraw();
+}
+function rpDraw() {
+  const h = $('#rpImgs'); if (!h) return;
+  h.innerHTML = RP.imgs.map((u, i) => `<div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--line);aspect-ratio:3/4"><img src="${u}" style="width:100%;height:100%;object-fit:cover"><button data-rpx="${i}" style="position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:26px;height:26px;background:#dc2626;color:#fff">✕</button></div>`).join('') || '<small style="color:#64748b">Haju photo nathi</small>';
+  h.querySelectorAll('[data-rpx]').forEach(b => b.onclick = () => { RP.imgs.splice(+b.dataset.rpx, 1); rpDraw(); });
+}
+async function rpSave() {
+  const v = s => $(s).value.trim();
+  if (v('#rpN').length < 2) { $('#rpN').focus(); return toast('Customer naam lakho', 'bad'); }
+  if (v('#rpM') && v('#rpM').length !== 10) return toast('Mobile 10 ank no lakho', 'bad');
+  const r = await api('rpl.save', { name: v('#rpN'), mobile: v('#rpM'), date: v('#rpD'), product: v('#rpP'), size: v('#rpS'), brand: v('#rpB'), billNo: v('#rpBN'), company: v('#rpC'), oldSerial: v('#rpOS'), note: v('#rpNt'), images: RP.imgs }, { rid: rid() });
+  toast('Save thayu ✓ ' + r.id, 'ok'); V_replace();
+}
+async function rpLoad() {
+  const h = $('#rpList'); if (!h) return;
+  try {
+    const r = await api('rpl.list', { q: ($('#rpQ') || {}).value || '' }, { loader: false }); RP.list = r; const cl = $('#rpCL'); if (cl) cl.innerHTML = [...new Set(r.map(x => x.company).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join('');
+    const cnt = {}; r.forEach(x => cnt[x.status] = (cnt[x.status] || 0) + 1);
+    const chips = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"><button type="button" class="btn s ${RP.f ? 'g' : ''}" data-rpf="">Badha (${r.length})</button>${REP_ST.filter(k => cnt[k]).map(k => `<button type="button" class="btn s ${RP.f === k ? '' : 'g'}" data-rpf="${k}" style="${RP.f === k ? 'background:' + REP_CLR[k] + ';color:#fff' : ''}">${REP_SH[k]} (${cnt[k]})</button>`).join('')}</div>`;
+    const vis = r.map((x, i) => [x, i]).filter(([x]) => !RP.f || x.status === RP.f);
+    h.innerHTML = chips + (vis.length ? vis.map(([x, i]) => `<div class="qrow" style="cursor:pointer;align-items:flex-start" data-rpo="${i}"><span><b>${esc(x.name)}</b> ${x.mobile ? '· ' + esc(x.mobile) : ''}<br><small>${esc(x.date)} · ${esc(x.product)} ${esc(x.size || '')} ${esc(x.brand || '')}${x.billNo ? ' · Bill ' + esc(x.billNo) : ''}${x.company ? ' · 🏭 ' + esc(x.company) : ''}${x.photos ? ' · 📷' + x.photos : ''}</small></span><span style="background:${REP_CLR[x.status] || '#64748b'};color:#fff;border-radius:20px;padding:3px 10px;font-size:12px;white-space:nowrap">${esc(REP_SH[x.status] || x.status)}</span></div>`).join('') : '<small>Haju koi entry nathi</small>');
+    $$('[data-rpf]', h).forEach(b => b.onclick = () => { RP.f = b.dataset.rpf; rpLoad(); }); $$('[data-rpo]', h).forEach(b => b.onclick = () => rpOpen(RP.list[+b.dataset.rpo]));
+  } catch (e) { h.innerHTML = '<small>' + esc(e.message) + '</small>'; }
+}
+function rpOpen(x) {
+  const row = (k, v) => v ? `<tr><td style="color:#64748b;padding:4px 10px 4px 0">${k}</td><td><b>${esc(v)}</b></td></tr>` : '';
+  const m = modal(x.id + ' · ' + x.name, `<table style="font-size:14px">${row('Tarikh', x.date)}${row('Mobile', x.mobile)}${row('Product', x.product + ' ' + (x.size || ''))}${row('Brand', x.brand)}${row('Bill no.', x.billNo)}${row('Company', x.company)}${row('Juno serial', x.oldSerial)}${row('Navo serial', x.newSerial)}${row('Note', x.note)}${row('Entry', x.by)}</table>
+    <div id="rpPh" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:10px 0">${x.photos ? '<small>⏳ Photo aave chhe…</small>' : ''}</div>
+    <div class="fld"><label>Status badlo</label><select id="rpSt">${REP_ST.map(s => `<option value="${s}" ${s === x.status ? 'selected' : ''}>${REP_GU[s]}</option>`).join('')}</select></div>
+    <div class="fld"><label>Kai company / service center ne aapyu</label><input id="rpCo" list="rpCL2" value="${esc(x.company || '')}"><datalist id="rpCL2">${[...new Set((RP.list || []).map(y => y.company).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+    <div class="fld"><label>Navo serial no. (replacement aave tyare)</label><input id="rpNS" value="${esc(x.newSerial || '')}"></div>
+    <div class="fld"><label>Navo photo umero (jem ke service center ni slip, navu SSD)</label><div id="rpMI" style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0"></div><div class="row" style="gap:8px"><button type="button" class="btn s" id="rpMC">📷 Photo pado</button><button type="button" class="btn s g" id="rpMU">🖼 Upload</button></div></div>
+    ${(x.log || []).length ? `<div style="margin:8px 0;font-size:12.5px;color:#475569"><b>Itihas</b>${x.log.map(l => `<div>• ${esc(String(l.t || '').slice(0, 16))} – ${esc(REP_GU[l.s] || l.s)}${l.co ? ' (' + esc(l.co) + ')' : ''}${l.ns ? ' · navo SN ' + esc(l.ns) : ''} – ${esc(l.by || '')}</div>`).join('')}</div>` : ''}
+    ${x.mobile ? `<a class="btn g" target="_blank" href="https://wa.me/91${x.mobile}?text=${encodeURIComponent('Namaste ' + x.name + ', C COMPUTER thi. Tamara ' + x.product + ' ' + (x.size || '') + ' nu replacement: ' + (REP_GU[x.status] || x.status).replace(/^\S+\s/, '') + '. Aabhar!')}">💬 WhatsApp</a>` : ''}`, { foot: '<button class="btn ok" id="rpUpd">Save status</button>' });
+  const NI = []; const dNI = () => { m.$('#rpMI').innerHTML = NI.map((u, i) => `<span style="position:relative"><img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:6px"><button data-nix="${i}" style="position:absolute;top:-6px;right:-6px;border:0;border-radius:50%;width:20px;height:20px;background:#dc2626;color:#fff;font-size:11px">✕</button></span>`).join(''); m.$$('[data-nix]').forEach(b => b.onclick = () => { NI.splice(+b.dataset.nix, 1); dNI(); }); };
+  const addNI = async fs => { for (const f of fs) { if (NI.length >= 4) break; try { NI.push(await shrinkImage(f, 1600, 0.8)); } catch (e) { toast(e.message, 'bad'); } } dNI(); };
+  m.$('#rpMC').onclick = async () => { const f = await pickFile(true); if (f) addNI([f]); };
+  m.$('#rpMU').onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.multiple = true; i.onchange = () => addNI([...i.files]); i.click(); };
+  m.$('#rpUpd').onclick = e => work(e.currentTarget, async () => { if (m.$('#rpSt').value === 'Sent to Company' && !m.$('#rpCo').value.trim()) { m.$('#rpCo').focus(); throw new Error('Kai company / service center ne aapyu te lakho'); }
+    await api('rpl.status', { id: x.id, status: m.$('#rpSt').value, newSerial: m.$('#rpNS').value.trim(), company: m.$('#rpCo').value.trim(), images: NI }, { rid: rid() }); toast('Save ✓', 'ok'); m.close(); rpLoad(); });
+  if (x.photos) api('rpl.photo', { id: x.id }, { loader: false }).then(ph => { const h = m.$('#rpPh'); if (h) { h.innerHTML = ph.map((u, i) => `<img src="${u}" data-rpv="${i}" style="width:100%;border-radius:8px;cursor:pointer;border:1px solid var(--line)">`).join(''); h.querySelectorAll('[data-rpv]').forEach(im => im.onclick = () => modal('Bill photo', `<img src="${ph[+im.dataset.rpv]}" style="width:100%">`, { cls: 'w' })); } }).catch(e => { const h = m.$('#rpPh'); if (h) h.innerHTML = '<small>' + esc(e.message) + '</small>'; });
+}
+</script>
+
+<script>
 'use strict';
 /* ================= main: login, shell, routing, init ================= */
 const ROUTES = {
   dash: () => V_dash(), products: () => V_products(), purchase: () => V_purchase(), sales: () => V_sales(), stock: () => V_stock(),
-  serial: () => V_serial(), customers: () => V_customers(), reports: () => V_reports(), audit: () => V_audit(), build: () => V_build(), brec: () => V_brec(), chal: () => V_chal(),
+  serial: () => V_serial(), customers: () => V_customers(), reports: () => V_reports(), audit: () => V_audit(), build: () => V_build(), brec: () => V_brec(), chal: () => V_chal(), replace: () => V_replace(),
   print: () => V_print(), users: () => V_users(), settings: () => V_settings(), scan: () => V_scan(), crm: () => V_crm(), service: () => V_service(), quotes: () => V_quotes(), quote: () => V_quote(), cash: () => V_cash(), pcmp: () => V_pcmp(), pos: () => V_pos(), fixed: () => V_fixed()
 };
 const ADMIN_ONLY = ['users', 'settings', 'pcmp', 'fixed'];
 /* Which menus each staff member sees (by name). Admin sees everything. */
-const STAFF_MENUS = { USTAV: ['quotes', 'service', 'crm', 'sales', 'build', 'brec', 'serial', 'products'], NAKUL: ['quotes', 'service', 'crm', 'cash', 'purchase', 'sales', 'stock'] };
+const STAFF_MENUS = { USTAV: ['quotes', 'service', 'replace', 'crm', 'sales', 'build', 'brec', 'serial', 'products'], NAKUL: ['quotes', 'service', 'replace', 'crm', 'cash', 'purchase', 'sales', 'stock'] };
 function userMenus() {
   if (!S.user || isAdmin() || isAcct()) return null;
   const k = String(S.user.name || '').trim().split(/\s+/)[0].toUpperCase(), k2 = String(S.user.loginId || '').trim().toUpperCase();
@@ -3524,7 +3605,7 @@ function navItems() {
   const a = isAdmin();
   if (isAcct()) return ['sales', 'customers'];
   if (userMenus()) return userMenus();
-  const l = ['dash', 'products', 'purchase', 'pcmp', 'pos', 'sales', 'chal', 'quotes', 'stock', 'serial', 'customers', 'build', 'brec', 'audit', 'print', 'reports', 'service', 'cash', 'fixed', 'crm'];
+  const l = ['dash', 'products', 'purchase', 'pcmp', 'pos', 'sales', 'chal', 'replace', 'quotes', 'stock', 'serial', 'customers', 'build', 'brec', 'audit', 'print', 'reports', 'service', 'cash', 'fixed', 'crm'];
   if (!a) l.splice(l.indexOf('chal'), 1);
   if (a) l.push('users', 'settings');
   return l;
