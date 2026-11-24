@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AppBar, Avatar, Box, BottomNavigation, BottomNavigationAction, Button, ClickAwayListener, Drawer, IconButton, InputAdornment, List, ListItemButton,
-  ListItemIcon, ListItemText, ListSubheader, Paper, Popper, Stack, TextField, ToggleButton, ToggleButtonGroup, Toolbar, Typography, useMediaQuery, Fab, Alert, Checkbox, FormControlLabel, Link
+  ListItemIcon, ListItemText, ListSubheader, Paper, Popper, Stack, TextField, ToggleButton, ToggleButtonGroup, Toolbar, Typography, useMediaQuery, Fab, Alert, Checkbox, FormControlLabel, Link, CircularProgress
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
@@ -64,7 +64,7 @@ function Login({ msg, onIn }) {
         InputProps={{ startAdornment: <InputAdornment position="start"><LockIcon /></InputAdornment>, endAdornment: <IconButton onClick={() => setShow(!show)} aria-label="Show / hide PIN">{show ? <VisibilityOffIcon /> : <VisibilityIcon />}</IconButton> }} />
       <Stack direction="row" justifyContent="space-between" alignItems="center"><FormControlLabel control={<Checkbox checked={rem} onChange={e => setRem(e.target.checked)} size="small" />} label={<Typography variant="body2">{T.rem}</Typography>} />
         <Link component="button" type="button" variant="body2" onClick={() => openDialog('Forgot Password?', () => <Typography>{T.fgm}</Typography>, { maxWidth: 'xs' })}>{T.fg}</Link></Stack>
-      <Button fullWidth type="submit" size="large" variant="contained" disabled={wait} endIcon={<ArrowForwardIcon />} sx={{ mt: 1, py: 1.4, borderRadius: 9, fontWeight: 800 }}>{T.go}</Button>
+      <Button fullWidth type="submit" size="large" variant="contained" disabled={wait} endIcon={wait ? <CircularProgress size={18} color="inherit" /> : <ArrowForwardIcon />} sx={{ mt: 1, py: 1.4, borderRadius: 9, fontWeight: 800 }}>{wait ? 'Please wait…' : T.go}</Button>
       <ToggleButtonGroup exclusive size="small" value={ll} onChange={(e, v) => { if (!v) return; store.lset('lgl', v); if (v !== 'hi') { S.lang = v; store.lset('lang', v); } setLl(v); }} sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
         <ToggleButton value="en">EN</ToggleButton><ToggleButton value="gu">ગુજરાતી</ToggleButton><ToggleButton value="hi">हिंदी</ToggleButton></ToggleButtonGroup>
       <Typography variant="caption" display="block" align="center" color="text.secondary" sx={{ mt: 2 }}>Sales | Service | Accessories<br />Katargam, Surat</Typography>
