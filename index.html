@@ -2352,15 +2352,23 @@ try { POS.fav = JSON.parse(store.lget('pos_fav') || '{}'); } catch (e) { }
 const POS_CATS = [['Laptop', '💻'], ['Desktop', '🖥'], ['Processor', '⚙'], ['Motherboard', '🔌'], ['RAM', '🧩'], ['SSD', '💾'], ['Monitor', '🖵'], ['Printer', '🖨'], ['Keyboard', '⌨'], ['Accessor', '🎧'], ['Network', '📡'], ['CCTV', '📹']];
 const posIcon = c => { const k = POS_CATS.find(x => String(c).toLowerCase().includes(x[0].toLowerCase())); return k ? k[1] : '📦'; };
 async function posLoad() {
-  if (POS.prods || POS.loading) return; POS.loading = true; const all = [];
-  try { let page = 1, total = 1; while ((page - 1) * 50 < total && page < 30) { const r = await api('prod.list', { page, size: 50, status: 'active' }); total = r.total; all.push(...r.rows); page++; } POS.prods = all; }
-  catch (e) { POS.loading = false; throw e; }
+  if (POS.prods || POS.loading) return; POS.loading = true;
+  try { Object.assign(POS.price, JSON.parse(localStorage.getItem(POS_PK()) || '{}').p || {}); } catch (e) { }
+  try {   // page 1 tells the total, then all other pages load together (not one by one)
+    const r1 = await api('prod.list', { page: 1, size: 50, status: 'active' }), n = Math.min(Math.ceil(r1.total / 50), 40), rest = [];
+    for (let pg = 2; pg <= n; pg++) rest.push(api('prod.list', { page: pg, size: 50, status: 'active' }));
+    POS.prods = r1.rows.concat(...(await Promise.all(rest)).map(r => r.rows));
+  } catch (e) { POS.loading = false; throw e; }
   POS.loading = false;
 }
-async function posPrices(ids) {
-  const need = ids.filter(i => POS.price[i] === undefined); if (!need.length) return;
-  for (let i = 0; i < need.length; i += 40) { try { (await api('quote.prod', { ids: need.slice(i, i + 40) })).forEach(r => { POS.price[r.productId] = r; }); } catch (e) { } }
+const POS_PK = () => 'ccswr|' + ((S.user && S.user.loginId) || '') + '|posprice';
+async function posPrices(ids, fresh) {
+  const need = ids.filter(i => fresh || POS.price[i] === undefined); if (!need.length) return false;
+  const parts = []; for (let i = 0; i < need.length; i += 40) parts.push(api('quote.prod', { ids: need.slice(i, i + 40) }, { loader: false }).then(r => r.forEach(x => { POS.price[x.productId] = x; }), () => { }));
+  await Promise.all(parts);
   need.forEach(i => { if (POS.price[i] === undefined) POS.price[i] = null; });
+  try { localStorage.setItem(POS_PK(), JSON.stringify({ t: Date.now(), p: POS.price })); } catch (e) { }
+  return true;
 }
 const posAvail = p => p.stock ? p.stock.available : 0;
 const posPriceOf = p => { const r = POS.price[p.ProductID]; return r ? r.sellPrice : (p.SellPrice != null ? +p.SellPrice : 0); };
@@ -2433,7 +2441,8 @@ ACT.posserscan = d => openScanner(code => {
 let posGridSeq = 0;
 async function drawPosGrid() {
   const g = $('#posgrid'); if (!g) return; const seq = ++posGridSeq, l = posFiltered(), shown = l.slice(0, 60);
-  await posPrices(shown.map(p => p.ProductID)); if (seq !== posGridSeq || !$('#posgrid')) return;
+  if (!POS._pf) { POS._pf = 1; posPrices(shown.map(p => p.ProductID), true).then(ch => { if (ch && $('#posgrid')) drawPosGrid(); }); }
+  else posPrices(shown.map(p => p.ProductID)).then(ch => { if (ch && seq === posGridSeq && $('#posgrid')) drawPosGrid(); });
   g.innerHTML = shown.map(p => { const av = posAvail(p), pr = posPriceOf(p), spec = [p.Model, String(p.Description || '').slice(0, 60)].filter(Boolean).join(' | ');
     return `<div class="pos-card"><button class="pos-fav ${POS.fav[p.ProductID] ? 'on' : ''}" data-act="posfav" data-id="${esc(p.ProductID)}">${POS.fav[p.ProductID] ? '♥' : '♡'}</button><div class="pos-img">${thumbBox(p.ProductID)}</div><div class="pos-info"><b class="pos-nm">${esc(p.Name)}</b><small>${esc(p.Brand || '')}${spec ? ' · ' + esc(spec) : ''}</small><span class="pos-stock ${av > 0 ? (av <= 3 ? 'low' : 'ok') : 'no'}">${av > 0 ? 'Stock: ' + nf(av) : 'Out of stock'}</span><div class="pos-st"><div class="pos-pr">${pr ? inr(pr) : '<span style="color:#b45309;font-size:12px">Price not set</span>'}</div><span data-pcb="${esc(p.ProductID)}">${posCardBtn(p.ProductID)}</span></div></div></div>`; }).join('') || '<div class="empty">No product found</div>';
   if (l.length > shown.length) g.insertAdjacentHTML('beforeend', `<div class="empty" style="grid-column:1/-1">Showing 60 of ${l.length}. Search or choose a category to narrow down.</div>`);
