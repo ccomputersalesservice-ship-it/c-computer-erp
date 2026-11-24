@@ -76,7 +76,7 @@ export default function POSPage() {
   const t = posTotals();
   return <Box>
     <TopBar A={A} />
-    <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: wide ? '210px 1fr 380px' : '1fr', alignItems: 'start' }}>
+    <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: wide ? '210px minmax(0,1fr) 380px' : 'minmax(0,1fr)', alignItems: 'start' }}>
       {wide && <Cats A={A} />}
       {(wide || POS.step !== 'cart') && <Center A={A} wide={wide} />}
       {showCart && <Cart A={A} wide={wide} />}
@@ -122,7 +122,7 @@ function Center({ A, wide }) {
       <Button variant="outlined" onClick={() => { POS.view = POS.view === 'grid' ? 'list' : 'grid'; A.re(); }}>{POS.view === 'grid' ? '☰ List' : '▦ Grid'}</Button>
     </Stack>
     {!wide && <Stack direction="row" gap={1} sx={{ overflowX: 'auto', pb: 1, mb: 1 }}>{['all'].concat(Object.keys(cats).sort()).map(c => { const on = POS.q.trim() ? c === 'all' : POS.cat === c; return <Chip key={c} label={c === 'all' ? 'All' : c} color={on ? 'primary' : 'default'} onClick={() => { POS.cat = c; POS.q = ''; setQ(''); A.re(); }} />; })}</Stack>}
-    {shown.length ? <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: POS.view === 'list' ? '1fr' : { xs: 'repeat(2,1fr)', sm: 'repeat(3,1fr)', xl: 'repeat(4,1fr)' } }}>
+    {shown.length ? <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: POS.view === 'list' ? 'minmax(0,1fr)' : { xs: 'repeat(2,minmax(0,1fr))', sm: 'repeat(auto-fill,minmax(170px,1fr))' } }}>
       {shown.map(p => <PosCard key={p.ProductID} p={p} A={A} list={POS.view === 'list'} />)}
     </Box> : <Empty>No product found</Empty>}
     {l.length > shown.length && <Empty>Showing 60 of {l.length}. Search or choose a category to narrow down.</Empty>}
@@ -132,17 +132,17 @@ function PosCard({ p, A, list }) {
   const av = posAvail(p), pr = posPriceOf(p), spec = [p.Model, String(p.Description || '').slice(0, 60)].filter(Boolean).join(' | ');
   const n = POS.cart.filter(x => x.id === p.ProductID).reduce((a, x) => a + x.qty, 0), first = POS.cart.findIndex(x => x.id === p.ProductID), last = POS.cart.map(x => x.id).lastIndexOf(p.ProductID);
   const fav = !!POS.fav[p.ProductID];
-  return <Paper sx={{ p: 1.2, position: 'relative', display: 'flex', flexDirection: list ? 'row' : 'column', gap: 1, border: '1px solid #f1e4dc' }}>
+  return <Paper sx={{ p: 1.2, position: 'relative', display: 'flex', flexDirection: list ? 'row' : 'column', gap: 1, border: '1px solid #f1e4dc', height: '100%', minWidth: 0 }}>
     <IconButton size="small" onClick={() => { POS.fav[p.ProductID] = !fav; if (fav) delete POS.fav[p.ProductID]; store.lset('pos_fav', JSON.stringify(POS.fav)); A.re(); }} sx={{ position: 'absolute', top: 4, right: 4, zIndex: 1, color: fav ? OR : '#94a3b8', bgcolor: '#fff' }}>{fav ? '♥' : '♡'}</IconButton>
-    <Box sx={{ width: list ? 72 : '100%', aspectRatio: '1', flex: 'none', '& > div': { width: '100% !important', height: '100% !important' } }}><Thumb id={p.ProductID} /></Box>
-    <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography variant="body2" fontWeight={800} sx={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.Name}</Typography>
+    <Box sx={{ width: list ? 72 : '100%', height: list ? 72 : 130, flex: 'none', '& > div': { width: '100% !important', height: '100% !important' }, '& img': { objectFit: 'contain !important' } }}><Thumb id={p.ProductID} /></Box>
+    <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+      <Typography variant="body2" fontWeight={800} title={p.Name} sx={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', minHeight: list ? 0 : 40, lineHeight: 1.25 }}>{p.Name}</Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{p.Brand || ''}{spec ? ' · ' + spec : ''}</Typography>
-      <Chip size="small" sx={{ mt: .5 }} color={av > 0 ? (av <= 3 ? 'warning' : 'success') : 'error'} label={av > 0 ? 'Stock: ' + nf(av) : 'Out of stock'} />
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
-        <Typography fontWeight={900} sx={{ color: OR }}>{pr ? inr(pr) : <span style={{ color: '#b45309', fontSize: 12 }}>Price not set</span>}</Typography>
+      <Chip size="small" sx={{ mt: .5, alignSelf: 'flex-start' }} color={av > 0 ? (av <= 3 ? 'warning' : 'success') : 'error'} label={av > 0 ? 'Stock: ' + nf(av) : 'Out of stock'} />
+      <Stack direction="row" justifyContent="space-between" alignItems="center" gap={0.5} sx={{ mt: 'auto', pt: 1 }}>
+        <Typography fontWeight={900} noWrap sx={{ color: OR, minWidth: 0 }}>{pr ? inr(pr) : <span style={{ color: '#b45309', fontSize: 12 }}>Price not set</span>}</Typography>
         {n ? <Stack direction="row" alignItems="center" sx={{ bgcolor: OR, color: '#fff', borderRadius: 9 }}><IconButton size="small" sx={{ color: '#fff' }} onClick={() => posQty(last, -1, A)}>−</IconButton><b>{n}</b><IconButton size="small" sx={{ color: '#fff' }} onClick={() => posQty(first, 1, A)}>+</IconButton></Stack>
-          : <Button size="small" variant="contained" sx={{ bgcolor: OR, borderRadius: 9 }} onClick={() => A.add(p.ProductID)}>＋ Add</Button>}
+          : <Button size="small" variant="contained" sx={{ bgcolor: OR, borderRadius: 9, flex: 'none', minWidth: 0, px: 1.5, whiteSpace: 'nowrap' }} onClick={() => A.add(p.ProductID)}>＋ Add</Button>}
       </Stack>
     </Box>
   </Paper>;
