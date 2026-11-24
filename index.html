@@ -3433,21 +3433,22 @@ function invoiceHtml(o) {
 body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#0b1f4b;background:#e5e7eb}
 .pg{width:194mm;min-height:281mm;margin:10px auto;background:#fff;border:2px solid #0b1f4b;display:flex;flex-direction:column}
 .hd{display:flex;align-items:stretch;background:#0b1f4b;color:#fff}.hd .lg{background:#fff;padding:8px 14px;display:flex;align-items:center;border-bottom-right-radius:40px}
-.hd .lg img{height:62px}.hd .ct{flex:1;padding:10px 16px;text-align:right;font-size:12.5px;line-height:1.6}.hd .ct b{color:#f5b800;font-size:17px}
+.hd .lg img{height:54px}.hd .ct{flex:1;padding:10px 16px;text-align:right;font-size:12.5px;line-height:1.6}.hd .ct b{color:#f5b800;font-size:17px}
 .bar{height:6px;background:#f5b800}.ban{display:flex;align-items:center;justify-content:space-between;padding:8px 14px}
 .ban h1{margin:0;background:#0b1f4b;color:#f5b800;padding:6px 26px;letter-spacing:4px;font-size:24px;border-radius:4px}
 .ck{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:13px;margin-left:14px;cursor:pointer}.ck i{width:15px;height:15px;border:2px solid #0b1f4b;display:inline-block;text-align:center;font-style:normal;line-height:12px;font-size:12px}
 .cats{display:flex;justify-content:space-around;margin:0 14px;padding:6px 0;border-top:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1}
-.cats div{text-align:center;font-size:10.5px;font-weight:700}.cats span{display:block;width:34px;height:34px;margin:0 auto 3px;border-radius:50%;background:#f5b800;line-height:34px;font-size:18px}
+.cats div{text-align:center;font-size:10.5px;font-weight:700}.cats span{display:block;width:28px;height:28px;margin:0 auto 2px;border-radius:50%;background:#f5b800;line-height:28px;font-size:15px}
 .box2{display:flex;gap:10px;margin:10px 14px}.bx{flex:1;border:1.5px solid #0b1f4b;border-radius:4px;overflow:hidden}.bx h3{margin:0;background:#0b1f4b;color:#fff;font-size:12px;padding:5px 8px;letter-spacing:1px}
 .bx table{width:100%;font-size:12px;border-collapse:collapse}.bx td{padding:4px 8px;vertical-align:top}.bx td:first-child{width:92px;font-weight:700}
 table.it{width:calc(100% - 28px);margin:0 14px;border-collapse:collapse;font-size:12px}.it th{background:#0b1f4b;color:#fff;padding:6px 5px;border:1px solid #0b1f4b}
-.it td{border:1px solid #94a3b8;padding:4px 5px;height:31px}.it td.n{text-align:right}.it td.c{text-align:center}.it small{color:#475569}
+.it td{border:1px solid #94a3b8;padding:2px 5px;height:23px}.it td.n{text-align:right}.it td.c{text-align:center}.it small{color:#475569}
 .bt{display:flex;gap:10px;margin:10px 14px}.bl{flex:1.2;font-size:12px}.bl .pm{border:1.5px solid #0b1f4b;border-radius:4px;padding:6px 8px;margin-bottom:8px}.bl .pm b{display:block;margin-bottom:5px}
 .bl .pm .ck{margin:0 12px 4px 0;font-size:12px}.aw{border:1.5px solid #0b1f4b;border-radius:4px;padding:6px 8px;min-height:44px}
-.tt{flex:1;border:1.5px solid #0b1f4b;border-radius:4px;overflow:hidden}.tt table{width:100%;border-collapse:collapse;font-size:12.5px}.tt td{padding:5px 8px;border-bottom:1px solid #cbd5e1}.tt td:last-child{text-align:right;font-weight:700}
+.tt{flex:1;border:1.5px solid #0b1f4b;border-radius:4px;overflow:hidden}.tt table{width:100%;border-collapse:collapse;font-size:12.5px}.tt td{padding:3px 8px;border-bottom:1px solid #cbd5e1}.tt td:last-child{text-align:right;font-weight:700}
 .tt tr.g td{background:#f5b800;color:#0b1f4b;font-size:15px;font-weight:800;border:0}
-.sg{display:flex;justify-content:space-between;margin:auto 14px 0;padding:34px 0 8px;font-size:12px}.sg div{width:44%;text-align:center;border-top:1.5px solid #0b1f4b;padding-top:5px;font-weight:700}
+.tc{margin:10px 14px 0;border:1.5px solid #0b1f4b;border-radius:4px;font-size:11px}.tc h3{margin:0;background:#0b1f4b;color:#f5b800;font-size:11.5px;padding:4px 8px;letter-spacing:1px}.tc ol{margin:5px 0 6px;padding-left:22px;line-height:1.5}
+.sg{display:flex;justify-content:space-between;margin:auto 14px 0;padding:26px 0 6px;font-size:12px}.sg div{width:44%;text-align:center;border-top:1.5px solid #0b1f4b;padding-top:5px;font-weight:700}
 .ft{background:#0b1f4b;color:#fff;text-align:center;padding:8px;font-size:13px}.ft b{color:#f5b800}
 [contenteditable]:hover{outline:1px dashed #f5b800}
 .tb{position:sticky;top:0;background:#0b1f4b;padding:8px;text-align:center;z-index:5}.tb button{font-size:16px;padding:10px 22px;border:0;border-radius:6px;background:#f5b800;color:#0b1f4b;font-weight:800;margin:0 4px}
@@ -3475,6 +3476,7 @@ table.it{width:calc(100% - 28px);margin:0 14px;border-collapse:collapse;font-siz
    <tr><td>Sub Total</td><td id="sub"></td></tr><tr><td>Discount</td><td id="dis"></td></tr><tr class="gr"><td>Taxable Amount</td><td id="tax"></td></tr>
    <tr class="gr"><td>CGST @ 9%</td><td id="cg"></td></tr><tr class="gr"><td>SGST @ 9%</td><td id="sg"></td></tr><tr class="g"><td>GRAND TOTAL ₹</td><td id="gt"></td></tr></table></div>
  </div>
+ <div class="tc"><h3>TERMS &amp; CONDITIONS</h3><ol id="tcl" contenteditable></ol></div>
  <div class="sg"><div>Customer Signature</div><div>For C COMPUTER<br><br>Authorized Signature</div></div>
  <div class="ft">Thank you for choosing <b>C COMPUTER!</b> &nbsp;•&nbsp; Technology You Can Trust.</div>
 </div>
@@ -3488,6 +3490,10 @@ function calc(){var t=Math.max(0,SUB-DIS),g=GST?Math.round(t*0.09*100)/100:0,G=M
 document.addEventListener('click',function(ev){var c=ev.target.closest('.ck');if(!c)return;
  if(c.dataset.g!=null){GST=+c.dataset.g;document.querySelectorAll('[data-g]').forEach(function(x){x.querySelector('i').textContent=(+x.dataset.g===GST)?'✔':''});calc();return;}
  var i=c.querySelector('i');i.textContent=i.textContent?'':'✔';});
+var TCD=['Goods once sold will not be taken back or exchanged. (No Return)','Please check the product properly before leaving the shop.','Warranty / service as per company terms. For service, customer must bring the product to our shop or the company service centre.','No warranty for physical damage, burn, water damage, or broken / tampered seal.','Interest @18% p.a. will be charged if payment is not made on time.','Subject to Surat jurisdiction.'];
+var TL=document.getElementById('tcl'),TS=null;try{TS=JSON.parse(localStorage.getItem('ccInvTerms')||'null')}catch(e){}
+(TS||TCD).forEach(function(t){var li=document.createElement('li');li.textContent=t;TL.appendChild(li)});
+TL.addEventListener('blur',function(){try{localStorage.setItem('ccInvTerms',JSON.stringify([].map.call(TL.querySelectorAll('li'),function(l){return l.textContent.trim()}).filter(Boolean)))}catch(e){}});
 calc();
 <\/script></body></html>`;
 }
