@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Button, Card, CardContent, MenuItem, Paper, Select, Stack, TextField, Typography, LinearProgress, Chip, useMediaQuery } from '@mui/material';
-import { api, S, inr, nf, isAdmin, LI, LT, dtm, greetWord, toast } from '../lib/core.js';
+import { api, S, inr, nf, isAdmin, LI, LT, dtm, greetWord, toast, LOGO, ASSET_BASE } from '../lib/core.js';
 import { PageHead, Skel, DataTable, Pill, Stat, Kpi, Section, Grid, BarChart, Donut, Thumb, openDialog, Empty, Note } from '../lib/ui.jsx';
 import { go } from '../lib/nav.js';
 import { NAV_ICON } from '../lib/icons.jsx';
@@ -35,11 +35,11 @@ function DashBody({ d, a }) {
   if (a) stats.push(['Serialised Items', c.serialised, '#06b6d4'], ['Quantity-based Items', c.qtyBased, '#84cc16']);
   return <Stack gap={2}>
     <Grid cols={4}>
-      {a ? <><Kpi label={LI('totpurchase')} value={inr(c.totalPurchase)} color="#1f6feb" icon={<Ic k="purchase" />} /><Kpi label={LI('totsales')} value={inr(c.totalSales)} color="#16a34a" icon={<Ic k="sales" />} /></>
-        : <><Kpi label={LI('available')} value={nf(c.available)} color="#16a34a" icon={<Ic k="stock" />} /><Kpi label={LI('reserved')} value={nf(c.reserved)} color="#1f6feb" icon={<Ic k="sales" />} /></>}
-      <Kpi label={LI('totproducts')} value={nf(c.products)} color="#7c3aed" icon={<Ic k="products" />} />
-      <Kpi label={LI(a ? 'totstock' : 'lowstock')} value={nf(a ? c.stockUnits : c.low)} color={a ? '#f97316' : '#ef4444'} icon={<Ic k="stock" />} />
+      {(a ? [[LI('totpurchase'), inr(c.totalPurchase), '#ede9fe', '#7c3aed', 'purchase'], [LI('totsales'), inr(c.totalSales), '#fce7f3', '#db2777', 'sales']] : [[LI('available'), nf(c.available), '#dcfce7', '#16a34a', 'stock'], [LI('reserved'), nf(c.reserved), '#dbeafe', '#1f6feb', 'sales']])
+        .concat([[LI('totproducts'), nf(c.products), '#dcfce7', '#16a34a', 'products'], a ? [LI('totstock'), nf(c.stockUnits), '#ecfccb', '#65a30d', 'stock'] : [LI('lowstock'), nf(c.low), '#fee2e2', '#ef4444', 'stock']])
+        .map(k => <SoftKpi key={k[0]} label={k[0]} value={k[1]} bg={k[2]} col={k[3]} icon={<Ic k={k[4]} />} />)}
     </Grid>
+    <Grid cols={2}><RecentProducts /><MiniCal /></Grid>
     {a && <Card><CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
       <Typography fontSize={26}>₹</Typography>
       <Box sx={{ flex: 1, minWidth: 180 }}><Typography variant="caption">Stock Value (at cost price)</Typography>
@@ -108,10 +108,7 @@ function Ops({ d, date, setDate }) {
   const toSv = s => { sv.status = s || ''; sv.q = ''; sv.page = 1; go('service'); };
   const toCash = () => { CB.mode = ''; CB.range = 'all'; go('cash'); };
   return <Box sx={{ mb: 2 }}>
-    <Paper sx={{ p: 2.5, background: 'linear-gradient(120deg,#0f2a5e,#1f4fa8)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-      <Box><Typography variant="caption" sx={{ opacity: .8 }}>{greetWord()}</Typography><Typography variant="h5" fontWeight={900}>{nm} 👋</Typography><Typography variant="body2" sx={{ opacity: .85 }}>{dateTxt}</Typography></Box>
-      <Box sx={{ textAlign: 'right' }}><Typography fontWeight={900}>C COMPUTER</Typography><Typography variant="caption">The Computer House</Typography></Box>
-    </Paper>
+    <Hero nm={nm} dateTxt={dateTxt} />
     {d && <>
       <H>Service Summary</H>
       <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { xs: 'repeat(3,1fr)', md: 'repeat(9,1fr)' } }}>
@@ -154,4 +151,56 @@ function FullOps({ d, date, setDate, Card_, H, toSv, toCash }) {
     <Grid cols={2}><Card_ lab={`Customer Receivables (${nf(d.receivables.count)} customers)`} v={inr(d.receivables.total)} col="#f59e0b" onClick={rec} />
       <Card_ lab={`Vendor Payables (${nf(d.payables.count)} bills${d.payables.overdueCount ? ' · ' + nf(d.payables.overdueCount) + ' overdue ' + inr(d.payables.overdueAmount) : ''})`} v={inr(d.payables.total)} col="#dc2626" onClick={pay} /></Grid>
   </>;
+}
+
+/* ---------- new look: hero, soft KPI cards, recent products, calendar ---------- */
+const GR = '#15803d';
+function Hero({ nm, dateTxt }) {
+  const [ok, setOk] = useState(true);
+  const full = String((S.user && S.user.name) || '').trim();
+  return <Paper sx={{ p: { xs: 2, md: 3 }, background: 'linear-gradient(110deg,#dcfce7 0%,#ecfdf5 55%,#f0fdf4 100%)', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: { xs: 2, md: 3 }, flexWrap: 'wrap' }}>
+    <Box sx={{ width: { xs: 84, md: 130 }, height: { xs: 84, md: 130 }, borderRadius: '50%', overflow: 'hidden', border: '4px solid #fff', boxShadow: '0 4px 14px rgba(0,0,0,.15)', bgcolor: '#fff', display: 'grid', placeItems: 'center', flex: 'none' }}>
+      {ok ? <img src={ASSET_BASE + 'owner.jpg?v=1'} alt="" onError={() => setOk(false)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <img src={LOGO} alt="" style={{ width: '80%' }} />}
+    </Box>
+    <Box sx={{ flex: 1, minWidth: 200 }}>
+      <Typography sx={{ fontSize: { xs: 18, md: 24 } }}>{greetWord()},</Typography>
+      <Typography sx={{ fontSize: { xs: 24, md: 36 }, fontWeight: 900, color: GR, lineHeight: 1.1 }}>{full || nm} 👋</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: .5 }}>“Technology You Can Trust”</Typography>
+    </Box>
+    <Stack alignItems="flex-end" gap={1}>
+      <img src={LOGO} alt="C COMPUTER" style={{ height: 52, background: '#fff', borderRadius: 10, padding: 4 }} />
+      <Typography variant="body2" fontWeight={700}>{dateTxt}</Typography>
+    </Stack>
+  </Paper>;
+}
+function SoftKpi({ label, value, bg, col, icon }) {
+  return <Paper sx={{ p: 2, bgcolor: bg, border: 0, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+    <Box sx={{ width: 52, height: 52, borderRadius: 3, bgcolor: col, color: '#fff', display: 'grid', placeItems: 'center', flex: 'none', '& svg': { fontSize: 28 } }}>{icon}</Box>
+    <Box sx={{ minWidth: 0 }}><Typography variant="body2" color="text.secondary" noWrap>{label}</Typography><Typography sx={{ fontSize: { xs: 22, md: 28 }, fontWeight: 900, lineHeight: 1.2 }} noWrap>{value}</Typography></Box>
+  </Paper>;
+}
+function RecentProducts() {
+  const [r, setR] = useState(null);
+  useEffect(() => { let on = true; api('prod.list', { q: '', category: '', status: 'all', low: false, page: 1, size: 24 }).then(x => on && setR(x.rows || [])).catch(() => on && setR([])); return () => { on = false; }; }, []);
+  const rows = (r || []).slice(0, 5);
+  return <Section title="Products" right={<Button size="small" onClick={() => go('products')}>View All →</Button>}>
+    {r === null ? <Skel /> : rows.length ? <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: 'repeat(auto-fill,minmax(110px,1fr))' }}>
+      {rows.map(x => <Paper key={x.ProductID} onClick={() => openProduct(x.ProductID)} sx={{ p: 1, cursor: 'pointer', textAlign: 'center', border: '1px solid #e5e7eb', '&:hover': { boxShadow: 3 } }}>
+        <Box sx={{ display: 'grid', placeItems: 'center' }}><Thumb id={x.ProductID} size={64} /></Box>
+        <Typography variant="caption" fontWeight={700} sx={{ display: 'block', mt: .6, lineHeight: 1.2, height: 30, overflow: 'hidden' }}>{x.Name}</Typography>
+        <Typography variant="caption" sx={{ color: GR, fontWeight: 700 }}>In Stock: {nf(x.stock && x.stock.available)}</Typography>
+      </Paper>)}
+    </Box> : <Empty>No products yet</Empty>}
+  </Section>;
+}
+function MiniCal() {
+  const t = new Date(Date.now() + 330 * 60000), y = t.getUTCFullYear(), m = t.getUTCMonth(), today = t.getUTCDate();
+  const first = new Date(Date.UTC(y, m, 1)).getUTCDay(), days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const cells = Array(first).fill(0).concat(Array.from({ length: days }, (_, i) => i + 1));
+  return <Section title={new Date(Date.UTC(y, m, 1)).toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' })}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: .5, textAlign: 'center' }}>
+      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <Typography key={i} variant="caption" color="text.secondary" fontWeight={700}>{d}</Typography>)}
+      {cells.map((d, i) => <Box key={i} sx={{ py: .6, borderRadius: '50%', fontSize: 13, fontWeight: d === today ? 900 : 500, bgcolor: d === today ? GR : 'transparent', color: d === today ? '#fff' : 'inherit' }}>{d || ''}</Box>)}
+    </Box>
+  </Section>;
 }
