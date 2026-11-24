@@ -143,7 +143,7 @@ function Center({ A, wide }) {
 function Photo({ id, h }) {
   const [u, setU] = useState(S.thumbs[id] || '');
   useEffect(() => { let on = true; if (S.thumbs[id] !== undefined) { setU(S.thumbs[id]); return; } loadThumbs([id]).then(t => { if (on) setU(t[id] || ''); }, () => { }); return () => { on = false; }; }, [id]);
-  return <Box sx={{ height: h, display: 'grid', placeItems: 'center' }}>{u ? <img src={u} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }} /> : <Box sx={{ fontSize: h > 80 ? 54 : 30, opacity: .25 }}>{posIcon((POS.prods.find(x => x.ProductID === id) || {}).Category || '')}</Box>}</Box>;
+  return <Box sx={{ height: h, width: '100%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '14px' }}>{u ? <img src={u} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', mixBlendMode: 'multiply' }} /> : <Box sx={{ width: h * .8, height: h * .8, borderRadius: 99, bgcolor: CR, display: 'grid', placeItems: 'center', fontSize: h > 80 ? 44 : 26, opacity: .6 }}>{posIcon((POS.prods.find(x => x.ProductID === id) || {}).Category || '')}</Box>}</Box>;
 }
 function PosCard({ p, A, list }) {
   const av = posAvail(p), pr = posPriceOf(p), spec = [p.Brand, p.Model].filter(Boolean).join(' · ');
