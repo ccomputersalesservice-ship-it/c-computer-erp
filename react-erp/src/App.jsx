@@ -155,7 +155,7 @@ function Shell({ logout, rerender }) {
           </Stack>
         </Toolbar>
       </AppBar>
-      <Box component="main" sx={{ p: { xs: 1.5, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
+      <Box component="main" sx={{ p: { xs: 1.5, md: 3 }, maxWidth: nav.route === 'pos' ? 'none' : 1400, mx: 'auto' }}>
         <Suspense fallback={<Loading />}><PageBoundary key={nav.n}><Page params={nav.params} /></PageBoundary></Suspense>
       </Box>
     </Box>
