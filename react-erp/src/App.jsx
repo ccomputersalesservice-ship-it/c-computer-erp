@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AppBar, Avatar, Box, BottomNavigation, BottomNavigationAction, Button, ClickAwayListener, Drawer, IconButton, InputAdornment, List, ListItemButton,
-  ListItemIcon, ListItemText, ListSubheader, Paper, Popper, Stack, TextField, ToggleButton, ToggleButtonGroup, Toolbar, Typography, useMediaQuery, Fab, Alert, Checkbox, FormControlLabel, Link, CircularProgress
+  ListItemIcon, ListItemText, ListSubheader, Paper, Popper, Stack, TextField, ToggleButton, ToggleButtonGroup, Toolbar, Typography, useMediaQuery, Fab, Alert, Checkbox, FormControlLabel, Link, CircularProgress, LinearProgress
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
@@ -40,16 +40,17 @@ function Login({ msg, onIn }) {
   const bgs = window.innerWidth <= 820 ? [LBG[0]] : LBG;
   useEffect(() => { if (bgs.length < 2) return; const t = setInterval(() => { if (!document.hidden) setBg(i => (i + 1) % bgs.length); }, 5000); return () => clearInterval(t); }, []);
   const submit = async e => {
-    e.preventDefault(); if (wait) return; setWait(true); busy(true);
+    e.preventDefault(); if (wait) return; setWait(true);
     try {
       const r = await fetchLogin(id, pin);
       if (!r || !r.ok) { setPin(''); toast((r && r.error) || 'Login failed', 'bad'); return; }
       store.lset('rem_id', rem ? id.trim() : '');
-      S.token = r.data.token; S.user = r.data.user; store.set('tok', S.token); store.lset('tok2', JSON.stringify({ t: S.token, at: Date.now(), seen: Date.now() }));
+      S.token = r.data.token; S.user = r.data.user; store.lset('uname', r.data.user.name || r.data.user.loginId || ''); store.set('tok', S.token); store.lset('tok2', JSON.stringify({ t: S.token, at: Date.now(), seen: Date.now() }));
       onIn();
     } catch (er) { toast('Network problem. Check internet and try again.', 'bad'); }
-    finally { setWait(false); busy(false); }
+    finally { setWait(false); }
   };
+  if (wait) return <Splash name={id || remId} text="Login thai rahyu che… Please wait" />;
   return <Box sx={{ minHeight: '100vh', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', md: 'flex-end' }, p: { xs: 2, md: 8 }, overflow: 'hidden' }}>
     {bgs.map((b, i) => <Box key={b} sx={{ position: 'absolute', inset: 0, backgroundImage: `url(${b})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: i === bg ? 1 : 0, transition: 'opacity 1.2s' }} />)}
     <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(0,0,0,.25),rgba(0,0,0,.05))' }} />
@@ -74,10 +75,15 @@ function Login({ msg, onIn }) {
 function fetchLogin(loginId, pin) { return remote.run(null, 'login', { loginId, pin }); }
 
 /* ---------------- splash ---------------- */
-function Splash({ name }) {
-  const f = String(name || '').trim().split(/\s+/)[0];
-  return <Box sx={{ position: 'fixed', inset: 0, bgcolor: '#fff', zIndex: 5000, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
-    <Box><img src={LOGO} alt="C COMPUTER" style={{ height: 80 }} /><Typography variant="h5" fontWeight={900} sx={{ mt: 2 }}>{greetWord()}{f ? ', ' + f : ''}!</Typography><Loading /></Box>
+function Splash({ name, text }) {
+  const f = String(name || store.lget('uname') || '').trim().split(/\s+/)[0].toUpperCase();
+  return <Box sx={{ position: 'fixed', inset: 0, background: 'linear-gradient(160deg,#ffffff,#ecfdf5)', zIndex: 5000, display: 'grid', placeItems: 'center', textAlign: 'center', p: 3 }}>
+    <Box sx={{ width: 'min(320px,80vw)' }}>
+      <img src={LOGO} alt="C COMPUTER" style={{ height: 84, maxWidth: '100%' }} />
+      {f ? <Typography variant="h5" fontWeight={900} sx={{ mt: 2 }}>{greetWord()}, {f}!</Typography> : null}
+      <LinearProgress sx={{ mt: 3, height: 6, borderRadius: 9 }} />
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>{text || 'Loading your data… Please wait'}</Typography>
+    </Box>
   </Box>;
 }
 
