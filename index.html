@@ -455,6 +455,13 @@ small.brchg{color:#b45309}
 @keyframes brsp{to{transform:rotate(360deg)}}
 </style>
 
+<style>
+.posx-cb{display:flex;gap:6px;margin-top:8px}.posx-cb input{flex:1;font-size:16px!important;padding:10px 12px!important;border:1.5px solid #fdba74!important;border-radius:10px!important;letter-spacing:1px}
+.posx-cb button{width:46px;border:1px solid #d1d5db;background:#fff;border-radius:10px;font-size:18px;cursor:pointer}
+#posmobr{margin:6px 0 4px}.posx-ch{color:#64748b}.posx-okc{background:#ecfdf5;border:1px solid #86efac;border-radius:10px;padding:8px 10px;color:#065f46}
+.posx-okc button{float:right;border:0;background:none;color:#991b1b;cursor:pointer;font-size:14px}
+.posx-newc{display:grid;gap:6px;background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:8px}.posx-newc input{padding:8px 10px!important;border-radius:8px!important}
+</style>
 </head>
 <body>
 <script>
@@ -2478,7 +2485,8 @@ function drawPosCart() {
      <div class="pos-lr" style="${l._ed ? '' : 'display:none'}"><span class="pos-q"><button data-act="posq" data-i="${i}" data-d="-1">−</button><b>${l.qty}</b><button data-act="posq" data-i="${i}" data-d="1">+</button></span><input class="pos-pi" data-pi="${i}" data-f="price" inputmode="decimal" value="${l.price}" title="Unit price" placeholder="Price"><input class="pos-pi" data-pi="${i}" data-f="disc" inputmode="decimal" value="${l.disc || 0}" title="Discount ₹" placeholder="Disc ₹"><b>${inr(l.qty * l.price - (+l.disc || 0))}</b></div></div><button class="pos-x" data-act="posdel" data-i="${i}">✕</button></div>`).join('') || '<div class="empty">Cart is empty. Tap + on a product.</div>'}</div>
    <div class="pos-sum"><div class="qrow"><span>Subtotal</span><b>${inr(t.gross)}</b></div><div class="qrow"><span>Item discount</span><b>${inr(t.ld)}</b></div><div class="qrow"><span>Overall discount ₹</span><input id="posdisc" inputmode="decimal" value="${POS.disc || 0}" style="width:90px;text-align:right"></div>
     <div class="qrow"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="posgst" ${POS.gst ? 'checked' : ''} style="width:auto"> GST 18% umero</label><span></span></div>${POS.gst ? `<div class="qrow"><span>CGST (9%)</span><b>${inr(t.gst / 2)}</b></div><div class="qrow"><span>SGST (9%)</span><b>${inr(t.gst / 2)}</b></div>` : ''}<div class="qrow pos-tot"><span>Total ${POS.gst ? '(incl. GST)' : ''}</span><b>${inr(t.total)}</b></div></div>
-   <button class="pos-cust" data-act="poscust">👤 ${POS.cust ? esc(POS.cust.name) + (POS.cust.mobile ? ' · ' + esc(POS.cust.mobile) : '') : 'Select Customer'} ›</button>
+   <div class="posx-cb"><input id="posmob" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="📱 Customer mobile number" value="${esc(POS.cust ? String(POS.cust.mobile || '').replace(/\D/g, '').slice(-10) : '')}"><button type="button" data-act="poscust" title="Naam thi shodho">🔍</button></div>
+   <div id="posmobr">${posCustInfo()}</div>
    <div class="pos-pays">${pays.map(x => `<button class="${POS.pay === x ? 'on' : ''}" data-act="pospay" data-p="${esc(x)}">${esc(x)}</button>`).join('')}</div>
    <div class="pos-btns"><button class="btn ok" data-act="possave" data-k="${POS.mode === 'walkin' ? 'walkin' : 'order'}">${POS.mode === 'walkin' ? 'Save Walk-in Sale' : 'Save Order'}</button><button class="btn" data-act="possave" data-k="invoice">Generate Invoice</button><button class="btn g" data-act="possave" data-k="quote">Save as Quotation</button><button class="btn g" data-act="poshold">Hold Order</button></div>`;
   $$('[data-pi]', c).forEach(x => x.onchange = () => { POS.cart[+x.dataset.pi][x.dataset.f] = +x.value || 0; drawPosCart(); posFloat(); });
@@ -2489,7 +2497,7 @@ function drawPosCart() {
     if (f) { l.item = f.itemId; l.serial = f.serial; l.typed = ''; } else { l.typed = v; if (l.track !== 'QTY' && v) { l.item = ''; toast('Aa serial stock list ma nathi – order ma note tarike lakhase.', ''); } }
     drawPosCart();
   });
-  posLoadFree();
+  posLoadFree(); posMobBind();
   $('#posdisc').onchange = e => { POS.disc = +e.target.value || 0; drawPosCart(); posFloat(); }; $('#posgst').onchange = e => { POS.gst = e.target.checked; drawPosCart(); posFloat(); };
   loadThumbs(POS.cart.map(l => l.id), c); posSyncCards();
   const ot = $('.posx-otabs'); if (ot) ot.outerHTML = posHeldTabs();
@@ -2506,6 +2514,27 @@ ACT.posnew = () => { POS.free = {}; POS.cart = []; POS.disc = 0; POS.cust = null
 ACT.pospay = d => { POS.pay = d.p; drawPosCart(); };
 ACT.posshowcart = () => { POS.step = 'cart'; drawPos(); window.scrollTo(0, 0); };
 ACT.posback = () => { POS.step = 'shop'; drawPos(); };
+function posCustInfo() {
+  const c = POS.cust; if (!c) return '<small class="posx-ch">10 ank lakho – juno customer hashe to naam aapo-aap aavi jashe</small>';
+  if (c._new) return `<div class="posx-newc"><small style="color:#c2410c;font-weight:700">🆕 Navo customer</small><input id="posnn" placeholder="Customer naam *" value="${esc(c.name || '')}"><input id="posna" placeholder="Address (optional)" value="${esc(c.address || '')}"></div>`;
+  return `<div class="posx-okc">✅ <b>${esc(c.name)}</b>${c.address ? ' · <small>' + esc(c.address) + '</small>' : ''} <button type="button" id="posclr" title="Badlo">✖</button></div>`;
+}
+function posMobBind() {
+  const i = $('#posmob'); if (!i) return; let seq = 0;
+  const bindNew = () => { const n = $('#posnn'), a = $('#posna'); if (n) n.oninput = () => { POS.cust.name = n.value.trim(); }; if (a) a.oninput = () => { POS.cust.address = a.value.trim(); }; const x = $('#posclr'); if (x) x.onclick = () => { POS.cust = null; i.value = ''; $('#posmobr').innerHTML = posCustInfo(); i.focus(); }; };
+  bindNew();
+  i.oninput = async () => {
+    const mo = i.value.replace(/\D/g, '').slice(0, 10); if (i.value !== mo) i.value = mo;
+    if (mo.length < 10) { if (POS.cust && String(POS.cust.mobile || '').slice(-10) !== mo) { POS.cust = null; $('#posmobr').innerHTML = posCustInfo(); } return; }
+    const my = ++seq; $('#posmobr').innerHTML = '<small class="posx-ch">⏳ Shodhe chhe…</small>';
+    let r = []; try { r = await api('cust.search', { q: mo }); } catch (e) { }
+    if (my !== seq) return;
+    const c = (r || []).find(x => String(x.mobile || x.Mobile || '').replace(/\D/g, '').slice(-10) === mo);
+    POS.cust = c ? { name: c.name || c.Name, mobile: mo, address: c.address || c.Address || '', id: c.id || c.CustomerID } : { name: '', mobile: mo, address: '', _new: true };
+    $('#posmobr').innerHTML = posCustInfo(); bindNew();
+    if (!c) { const n = $('#posnn'); if (n) n.focus(); } else toast('Customer: ' + POS.cust.name, 'ok');
+  };
+}
 ACT.poscust = () => {
   const m = modal('Customer', `<div id="pcs"></div><div style="margin-top:10px"><b>New customer</b></div><div class="row"><div class="fld"><label>Name *</label><input id="pcn"></div><div class="fld"><label>Mobile *</label><input id="pcm" inputmode="numeric" maxlength="10"></div></div><div class="fld"><label>Address</label><input id="pca"></div>`, { foot: '<button class="btn" id="pcok">Use this customer</button>' });
   m.$('#pcs').innerHTML = '<input id="pcq" placeholder="Search existing customer by name / mobile" autocomplete="off"><div id="pcl"></div>';
@@ -2518,6 +2547,7 @@ ACT.posheld = () => { let h = []; try { h = JSON.parse(store.lget('pos_hold') ||
   $$('[data-d]', m.el).forEach(b => b.onclick = () => { h.splice(+b.dataset.d, 1); store.lset('pos_hold', JSON.stringify(h)); m.close(); }); };
 ACT.possave = (d, el) => work(el, async () => {
   if (!POS.cart.length) return toast('Cart is empty', 'bad'); const t = posTotals(), c = POS.cust, k = d.k;
+  if (c && c._new && !c.name) { const n = $('#posnn'); if (n) n.focus(); return toast('Navo customer chhe – naam lakho', 'bad'); }
   if (!c || !c.name) { ACT.poscust(); return toast('Select or add a customer first', 'bad'); }
   if (k === 'quote') {
     const ld = Math.max(0, t.od);
