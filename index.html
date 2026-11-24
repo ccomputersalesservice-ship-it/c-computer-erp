@@ -1464,7 +1464,7 @@ ACT.openorder = async d => {
   const m = modal(esc(o.orderId) + ' ' + pill(o.status), `<div class="grid g4" style="margin-bottom:10px"><div class="stat"><small>${LT('customers')}</small><b style="font-size:15px">${esc(o.customer.name)}</b></div><div class="stat"><small>${LT('mobile')}</small><b style="font-size:15px">${esc(o.customer.mobile)}</b></div><div class="stat"><small>${LT('date')}</small><b style="font-size:15px">${esc(dtm(o.date, o.at))}</b></div><div class="stat"><small>Staff</small><b style="font-size:15px">${esc(o.staff)}</b></div></div>
     ${tbl([{ h: '', k: l => thumbBox(l.productId), nl: true }, { h: LT('products'), k: l => `<b>${esc(l.name)}</b><br><small>${esc(l.model)}</small>`, nl: true }, { h: LT('serialno') + ' / ID', k: l => l.tracking === 'QTY' ? '-' : l.itemId ? esc(l.serial || l.itemId) + '<br><small>' + esc(l.itemId) + '</small>' : `<select data-assign="${l.lineId}" data-pid="${l.productId}"><option value="">-- choose --</option></select>`, l: LT('serialno') }, { h: LT('qty'), k: l => nf(l.qty), cls: 'r', l: LT('qty') }].concat(seesPrice() ? [{ h: LT('price') + ' ₹', k: l => `<input type="number" min="0" step="0.01" inputmode="decimal" style="width:110px;text-align:right" data-price="${l.lineId}" data-q="${l.qty}" value="${l.unitPrice ? l.unitPrice : ''}" placeholder="${l.suggested ? l.suggested : 'price'}">`, cls: 'r', l: LT('price') }] : []), o.lines)}
     ${seesPrice() ? `<div style="text-align:right;font-size:18px;margin-top:10px"><b>${LT('total')}: <span id="optot">${inr(o.total)}</span></b></div>` : `<div class="note info">Price will be added by Accounts.</div>`}${o.note ? `<div class="note">${esc(o.note)}</div>` : ''}`,
-    { cls: 'w', foot: (seesPrice() && o.status !== 'Cancelled' ? `<button class="btn" id="invPrint" style="background:#0b1f4b;color:#f5b800">🖨 Print Invoice (A4)</button><button class="btn ok" id="savePrice">${ico('down')} Save price</button>` : '') + (isAcct() ? '' : o.next).map(s => `<button class="btn ${s === 'Cancelled' ? 'bad' : s === 'Delivered' ? 'ok' : ''}" data-st="${s}">${LI(STAT_KEY[s])}</button>`).join('') || `<span style="color:#64748b">No further status change</span>` });
+    { cls: 'w', foot: (seesPrice() && o.status !== 'Cancelled' ? `<button class="btn" id="invWa" style="background:#16a34a;color:#fff">📲 WhatsApp PDF</button><button class="btn" id="invPrint" style="background:#0b1f4b;color:#f5b800">🖨 Print Invoice (A4)</button><button class="btn ok" id="savePrice">${ico('down')} Save price</button>` : '') + (isAcct() ? '' : o.next).map(s => `<button class="btn ${s === 'Cancelled' ? 'bad' : s === 'Delivered' ? 'ok' : ''}" data-st="${s}">${LI(STAT_KEY[s])}</button>`).join('') || `<span style="color:#64748b">No further status change</span>` });
   loadThumbs(o.lines.map(l => l.productId), m.el);
   if (isAdmin() && o.status === 'Cancelled') {
     const ft = m.el.querySelector('.mf, .foot, footer') || m.el.querySelector('.modal'); const db = document.createElement('button'); db.className = 'btn bad'; db.textContent = '🗑 Delete order'; (ft || m.el).appendChild(db);
@@ -1475,6 +1475,7 @@ ACT.openorder = async d => {
   const reTot = () => { let t = 0; m.$$('[data-price]').forEach(i => { t += (+i.value || 0) * (+i.dataset.q || 0); }); const x = m.$('#optot'); if (x) x.textContent = inr(t); };
   m.$$('[data-price]').forEach(i => { i.oninput = reTot; });
   const ip = m.$('#invPrint'); if (ip) ip.onclick = () => printInvoice(o);
+  const iw = m.$('#invWa'); if (iw) iw.onclick = e => work(e.currentTarget, () => docPdfWa(invoiceHtml(o), ((o.customer || {}).name ? o.customer.name + ' - ' : '') + 'Invoice ' + o.orderId, (o.customer || {}).mobile, `Namaste ${(o.customer || {}).name || ''}, C COMPUTER thi tamaru bill (${o.orderId}) mokli chhe. Total ₹${Math.round(+o.total || 0)}. Aabhar! – C COMPUTER, 8160088439`));
   const sp = m.$('#savePrice');
   if (sp) sp.onclick = e => work(e.currentTarget, async () => {
     const lines = m.$$('[data-price]').map(i => ({ lineId: i.dataset.price, unitPrice: i.value === '' ? 0 : +i.value }));
@@ -3498,6 +3499,34 @@ TL.addEventListener('blur',function(){try{localStorage.setItem('ccInvTerms',JSON
 calc();
 <\/script></body></html>`;
 }
+/* Make an A4 PDF from a printable page and send it on WhatsApp (phone: share sheet with PDF; laptop: download + open chat) */
+async function docPdfWa(html, fname, mobile, msg) {
+  toast('⏳ PDF banave chhe…', '');
+  if (!window.html2canvas) await qLoadJs(['https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js']);
+  if (!(window.jspdf && window.jspdf.jsPDF)) await qLoadJs(['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js']);
+  const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:0'; document.body.appendChild(f);
+  let file;
+  try {
+    f.contentDocument.open(); f.contentDocument.write(html); f.contentDocument.close();
+    await new Promise(r => setTimeout(r, 300));
+    await Promise.race([Promise.all([...f.contentDocument.images].map(im => im.complete ? 1 : new Promise(r => { im.onload = im.onerror = r; }))), new Promise(r => setTimeout(r, 4000))]);
+    const pg = f.contentDocument.querySelector('.pg'); pg.style.margin = '0';
+    const cv = await window.html2canvas(pg, { scale: 1.6, backgroundColor: '#ffffff', windowWidth: 794 });
+    const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' }), h = cv.height * 210 / cv.width, fh = Math.min(h, 297), fw = 210 * fh / h;
+    pdf.addImage(cv.toDataURL('image/jpeg', 0.9), 'JPEG', (210 - fw) / 2, 0, fw, fh);
+    file = new File([pdf.output('blob')], fname.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf', { type: 'application/pdf' });
+  } finally { f.remove(); }
+  const d = String(mobile || '').replace(/\D/g, '').slice(-10);
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], text: msg }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    const mm = modal('📲 WhatsApp par mokalo', `<p>PDF taiyar chhe. Niche button dabavo, pachhi <b>WhatsApp</b> ane customer pasand karo.</p>`, { foot: '<button class="btn ok" id="dpS" style="padding:14px 20px;font-size:16px">📲 PDF mokalo</button>' });
+    mm.$('#dpS').onclick = async () => { try { await navigator.share({ files: [file], text: msg }); mm.close(); } catch (e) { if (e && e.name !== 'AbortError') toast('Share nathi thatu', 'bad'); } };
+    return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  window.open(`https://wa.me/${d.length === 10 ? '91' + d : ''}?text=${encodeURIComponent(msg)}`, '_blank');
+  modal('📲 WhatsApp', `<p><b>${esc(file.name)}</b> download thai gai chhe.</p><ol style="line-height:1.8;padding-left:20px"><li>WhatsApp ma customer ni chat khuli gai chhe.</li><li>📎 (attach) dabavo → <b>Document</b>.</li><li>Downloads mathi aa PDF pasand kari ne mokalo.</li></ol>`);
+}
 function printInvoice(o) {
   const w = window.open('', '_blank');
   if (!w) return toast('Popup block thayu — browser ma popups allow karo', 'bad');
@@ -3566,7 +3595,7 @@ async function rpLoad() {
   } catch (e) { h.innerHTML = '<small>' + esc(e.message) + '</small>'; }
 }
 function rpTime(x) { const t = String(((x.log || [])[0] || {}).t || ''); const m = t.match(/(\d{2}):(\d{2})/); if (!m) return ''; let h = +m[1]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + m[2] + ' ' + ap; }
-function rpPrint(x) {
+function rpHtml(x) {
   const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dt = String(x.date || '').split('-').reverse().join('-');
   const R = (k, v) => `<tr><td>${k}</td><td>${e(v) || '&nbsp;'}</td></tr>`;
@@ -3600,8 +3629,12 @@ function rpPrint(x) {
 <li>Product not collected within 60 days of intimation, shop is not responsible.</li></ol></div>
 <div class="sg"><div>Customer Signature</div><div>For C COMPUTER<br><br>Authorized Signature</div></div>
 <div class="ft">Thank you for choosing <b>C COMPUTER!</b> &nbsp;•&nbsp; Technology You Can Trust.</div></div></body></html>`;
-  const w = window.open('', '_blank'); if (!w) return toast('Popup block thayu — browser ma popups allow karo', 'bad');
-  w.document.open(); w.document.write(html); w.document.close();
+  return html;
+}
+function rpPrint(x) { const w = window.open('', '_blank'); if (!w) return toast('Popup block thayu — browser ma popups allow karo', 'bad'); w.document.open(); w.document.write(rpHtml(x)); w.document.close(); }
+function rpWaPdf(x) {
+  const msg = `Namaste ${x.name}, C COMPUTER thi. Tamara ${x.product} ${x.size || ''} ni replacement receipt (${x.id}) mokli chhe. Status: ${(REP_GU[x.status] || x.status).replace(/^\S+\s/, '')}. Aabhar! – C COMPUTER, 8160088439`;
+  return docPdfWa(rpHtml(x), x.name + ' - Replacement ' + x.id, x.mobile, msg);
 }
 function rpOpen(x) {
   const row = (k, v) => v ? `<tr><td style="color:#64748b;padding:4px 10px 4px 0">${k}</td><td><b>${esc(v)}</b></td></tr>` : '';
@@ -3612,12 +3645,13 @@ function rpOpen(x) {
     <div class="fld"><label>Navo serial no. (replacement aave tyare)</label><input id="rpNS" value="${esc(x.newSerial || '')}"></div>
     <div class="fld"><label>Navo photo umero (jem ke service center ni slip, navu SSD)</label><div id="rpMI" style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0"></div><div class="row" style="gap:8px"><button type="button" class="btn s" id="rpMC">📷 Photo pado</button><button type="button" class="btn s g" id="rpMU">🖼 Upload</button></div></div>
     ${(x.log || []).length ? `<div style="margin:8px 0;font-size:12.5px;color:#475569"><b>Itihas</b>${x.log.map(l => `<div>• ${esc(String(l.t || '').slice(0, 16))} – ${esc(REP_GU[l.s] || l.s)}${l.co ? ' (' + esc(l.co) + ')' : ''}${l.ns ? ' · navo SN ' + esc(l.ns) : ''} – ${esc(l.by || '')}</div>`).join('')}</div>` : ''}
-    ${x.mobile ? `<a class="btn g" target="_blank" href="https://wa.me/91${x.mobile}?text=${encodeURIComponent('Namaste ' + x.name + ', C COMPUTER thi. Tamara ' + x.product + ' ' + (x.size || '') + ' nu replacement: ' + (REP_GU[x.status] || x.status).replace(/^\S+\s/, '') + '. Aabhar!')}">💬 WhatsApp</a>` : ''}`, { foot: '<button class="btn" id="rpPr" style="background:#0b1f4b;color:#f5b800">🖨 Print Receipt</button><button class="btn ok" id="rpUpd">Save status</button>' });
+    ${x.mobile ? `<a class="btn g" target="_blank" href="https://wa.me/91${x.mobile}?text=${encodeURIComponent('Namaste ' + x.name + ', C COMPUTER thi. Tamara ' + x.product + ' ' + (x.size || '') + ' nu replacement: ' + (REP_GU[x.status] || x.status).replace(/^\S+\s/, '') + '. Aabhar!')}">💬 WhatsApp</a>` : ''}`, { foot: '<button class="btn" id="rpWp" style="background:#16a34a;color:#fff">📲 WhatsApp PDF</button><button class="btn" id="rpPr" style="background:#0b1f4b;color:#f5b800">🖨 Print Receipt</button><button class="btn ok" id="rpUpd">Save status</button>' });
   const NI = []; const dNI = () => { m.$('#rpMI').innerHTML = NI.map((u, i) => `<span style="position:relative"><img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:6px"><button data-nix="${i}" style="position:absolute;top:-6px;right:-6px;border:0;border-radius:50%;width:20px;height:20px;background:#dc2626;color:#fff;font-size:11px">✕</button></span>`).join(''); m.$$('[data-nix]').forEach(b => b.onclick = () => { NI.splice(+b.dataset.nix, 1); dNI(); }); };
   const addNI = async fs => { for (const f of fs) { if (NI.length >= 4) break; try { NI.push(await shrinkImage(f, 1600, 0.8)); } catch (e) { toast(e.message, 'bad'); } } dNI(); };
   m.$('#rpMC').onclick = async () => { const f = await pickFile(true); if (f) addNI([f]); };
   m.$('#rpMU').onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.multiple = true; i.onchange = () => addNI([...i.files]); i.click(); };
   m.$('#rpPr').onclick = () => rpPrint(x);
+  m.$('#rpWp').onclick = e => work(e.currentTarget, () => rpWaPdf(x));
   m.$('#rpUpd').onclick = e => work(e.currentTarget, async () => { if (m.$('#rpSt').value === 'Sent to Company' && !m.$('#rpCo').value.trim()) { m.$('#rpCo').focus(); throw new Error('Kai company / service center ne aapyu te lakho'); }
     await api('rpl.status', { id: x.id, status: m.$('#rpSt').value, newSerial: m.$('#rpNS').value.trim(), company: m.$('#rpCo').value.trim(), images: NI }, { rid: rid() }); toast('Save ✓', 'ok'); m.close(); rpLoad(); });
   if (x.photos) api('rpl.photo', { id: x.id }, { loader: false }).then(ph => { const h = m.$('#rpPh'); if (h) { h.innerHTML = ph.map((u, i) => `<img src="${u}" data-rpv="${i}" style="width:100%;border-radius:8px;cursor:pointer;border:1px solid var(--line)">`).join(''); h.querySelectorAll('[data-rpv]').forEach(im => im.onclick = () => modal('Bill photo', `<img src="${ph[+im.dataset.rpv]}" style="width:100%">`, { cls: 'w' })); } }).catch(e => { const h = m.$('#rpPh'); if (h) h.innerHTML = '<small>' + esc(e.message) + '</small>'; });
