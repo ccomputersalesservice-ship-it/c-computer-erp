@@ -1,11 +1,12 @@
 /* ================= Cash Book (same data and rules as the live ERP JS_Cash.html) ================= */
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Button, MenuItem, Paper, Stack, TextField, Typography, Chip, Alert, Card, CardContent } from '@mui/material';
-import { api, inr, nf, esc, rid, toast, work, dtm, debounce } from '../lib/core.js';
+import { api, isAcct, inr, nf, esc, rid, toast, work, dtm, debounce } from '../lib/core.js';
 import { PageHead, Skel, DataTable, openDialog, confirmBox } from '../lib/ui.jsx';
 
 export const CB = { month: new Date().toISOString().slice(0, 7), q: '', type: '', mode: '', by: '', range: 'all', cat: '', from: '', to: '', view: 'hist', data: null };
-const CB_CATS_OUT = ['Office', 'Personal', 'Family', 'Vendor', 'Saving', 'Salary', 'Rent', 'Electricity', 'Rapido', 'Other'];
+const CB_CATS_ALL = ['Office', 'Personal', 'Family', 'Vendor', 'Saving', 'Salary', 'Rent', 'Electricity', 'Rapido', 'Other'];
+const catsOut = () => isAcct() ? CB_CATS_ALL.filter(c => !['Personal', 'Family', 'Saving'].includes(c)) : CB_CATS_ALL;
 const CB_CATS_IN = ['Sale', 'Customer Payment', 'Collection', 'Other'];
 const cbDay = o => new Date(Date.now() + 330 * 60000 + o * 864e5).toISOString().slice(0, 10);
 const cbT12 = t => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); if (!m) return t || ''; let h = +m[1]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + m[2] + ' ' + ap; };
@@ -17,6 +18,16 @@ function cbRange() {
   if (r === 'month') return { from: t.slice(0, 7) + '-01', to: t.slice(0, 7) + '-31' };
   if (r === 'custom') return { from: CB.from, to: CB.to };
   return {};
+}
+/* Accounts staff: Personal / Family / Saving entries are hidden everywhere (and removed from totals). */
+const HID = ['Personal', 'Family', 'Saving'];
+function hideAcct(d) {
+  const hid = d.rows.filter(r => HID.includes(r.cat)), sg = r => (r.type === 'in' ? r.amount : -r.amount);
+  d.rows = d.rows.filter(r => !HID.includes(r.cat));
+  const b = Object.assign({}, d.balances); hid.forEach(r => { if (b[r.mode] !== undefined) b[r.mode] -= sg(r); });
+  d.balances = b; d.total = Object.keys(b).reduce((t, k) => t + (+b[k] || 0), 0);
+  const sm = Object.assign({}, d.sum); hid.filter(r => String(r.date).slice(0, 7) === d.month).forEach(r => { if (r.type === 'in') sm.IN -= r.amount; else sm.OUT -= r.amount; });
+  d.sum = sm;
 }
 /* All filtering is done here in the browser, so every button reacts instantly. */
 function cbCalc(d) {
@@ -43,7 +54,7 @@ export default function Cash() {
   const [, setN] = useState(0), [month, setMonth] = useState(CB.month), [k, setK] = useState(0);
   const re = () => setN(n => n + 1);
   const seq = useRef(0), sumRef = useRef(null);
-  const load = async () => { const my = ++seq.current; try { const d = await api('cash.list', { month: CB.month }); if (my !== seq.current) return; CB.data = d; re(); } catch (e) { toast(e.message, 'bad'); } };
+  const load = async () => { const my = ++seq.current; try { const d = await api('cash.list', { month: CB.month }); if (my !== seq.current) return; if (isAcct()) hideAcct(d); CB.data = d; re(); } catch (e) { toast(e.message, 'bad'); } };
   useEffect(() => { CB.data = null; re(); load(); }, [month, k]);
   const d = CB.data;
   if (!d) return <><PageHead title="Cash Book" /><Skel /></>;
@@ -54,7 +65,7 @@ export default function Cash() {
   const g5 = { display: 'grid', gap: 1.2, gridTemplateColumns: { xs: 'repeat(2,1fr)', md: 'repeat(5,1fr)' }, mb: 1.5 };
   return <Box>
     <PageHead title="Cash Book"><TextField type="month" value={d.month} onChange={e => { CB.month = e.target.value || CB.month; setMonth(CB.month); }} sx={{ bgcolor: '#fff' }} /><Button variant="outlined" onClick={() => { CB.month = new Date().toISOString().slice(0, 7); setMonth(CB.month); }}>Current Month</Button></PageHead>
-    <Box sx={g5}>{[['Office', s.Office, '#2f6bff'], ['Personal', s.Personal, over ? '#d92d20' : '#e2603f', ` / ${inr(d.personalLimit)}`], ['Family', s.Family, '#8b5cf6'], ['Vendor', s.Vendor, '#0ea5e9'], ['Saving', s.Saving, '#22b573']].map(x => <Box1 key={x[0]} label={x[0] + ' - Selected Month'} v={inr(x[1])} col={x[2]} sub={x[3]} on={CB.cat === x[0]} onClick={() => setCat(x[0])} />)}</Box>
+    <Box sx={g5}>{[['Office', s.Office, '#2f6bff'], ['Personal', s.Personal, over ? '#d92d20' : '#e2603f', ` / ${inr(d.personalLimit)}`], ['Family', s.Family, '#8b5cf6'], ['Vendor', s.Vendor, '#0ea5e9'], ['Saving', s.Saving, '#22b573']].filter(x => !(isAcct() && HID.includes(x[0]))).map(x => <Box1 key={x[0]} label={x[0] + ' - Selected Month'} v={inr(x[1])} col={x[2]} sub={x[3]} on={CB.cat === x[0]} onClick={() => setCat(x[0])} />)}</Box>
     <Box sx={{ ...g5, gridTemplateColumns: { xs: '1fr', md: 'repeat(3,1fr)' } }}>
       <Box1 label="Bija kharcha (Salary, Rent, Light, Other...)" v={inr(s.Other)} on={CB.cat === '_other'} onClick={() => setCat('_other')} />
       <Box1 label="Kul OUT - Selected Month" v={inr(s.OUT)} vcol="#d92d20" on={!CB.cat && CB.type === 'out'} onClick={() => setCat('', 'out')} />
@@ -88,15 +99,15 @@ function History({ d, vm, ac, re, load }) {
     <DataTable rows={vm.rows} empty="No entries" cols={[{ h: 'Date', k: r => <>{r.date}<br /><small>{cbT12(r.time)}</small></>, nw: true }, { h: 'Category', k: r => r.cat }, { h: 'Party', k: r => <>{r.party}{r.note && <><br /><small>{r.note}</small></>}</> }, { h: 'Account', k: r => r.mode },
       { h: 'In', k: r => r.type === 'in' ? <b style={{ color: '#15803d' }}>{inr(r.amount)}</b> : '' }, { h: 'Out', k: r => r.type === 'out' ? <b style={{ color: '#d92d20' }}>{inr(r.amount)}</b> : '' },
       ...(hasBal ? [{ h: 'Balance', k: r => r.bal === undefined ? '' : inr(r.bal) }] : []), { h: 'By', k: r => <small>{r.by}</small> },
-      ...(d.admin ? [{ h: '', k: r => <Stack direction="row" gap={.5}><Button size="small" variant="outlined" onClick={() => cbEdit(r, ac, load)}>Edit</Button><Button size="small" variant="outlined" color="error" onClick={() => cbDel(r, load)}>Delete</Button></Stack> }] : [])]} />
+      ...((d.admin || isAcct()) ? [{ h: '', k: r => <Stack direction="row" gap={.5}><Button size="small" variant="outlined" onClick={() => cbEdit(r, ac, load)}>Edit</Button>{!isAcct() && <Button size="small" variant="outlined" color="error" onClick={() => cbDel(r, load)}>Delete</Button>}</Stack> }] : [])]} />
   </>;
 }
 function EntryForm({ ac, onSaved }) {
   const [v, setV] = useState({ type: 'in', cat: CB_CATS_IN[0], party: '', note: '', amount: '', mode: CB.mode || 'Cash', date: cbDay(0) });
-  const cats = v.type === 'in' ? CB_CATS_IN : CB_CATS_OUT;
+  const cats = v.type === 'in' ? CB_CATS_IN : catsOut();
   const S_ = (k, x) => setV(o => ({ ...o, [k]: x }));
   return <Card sx={{ mb: 1.5 }}><CardContent><Stack direction={{ xs: 'column', md: 'row' }} gap={1} flexWrap="wrap">
-    <TextField select value={v.type} onChange={e => setV(o => ({ ...o, type: e.target.value, cat: (e.target.value === 'in' ? CB_CATS_IN : CB_CATS_OUT)[0] }))}><MenuItem value="in">Money IN</MenuItem><MenuItem value="out">Money OUT</MenuItem></TextField>
+    <TextField select value={v.type} onChange={e => setV(o => ({ ...o, type: e.target.value, cat: (e.target.value === 'in' ? CB_CATS_IN : catsOut())[0] }))}><MenuItem value="in">Money IN</MenuItem><MenuItem value="out">Money OUT</MenuItem></TextField>
     <TextField select value={cats.includes(v.cat) ? v.cat : cats[0]} onChange={e => S_('cat', e.target.value)}>{cats.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}</TextField>
     <TextField placeholder="Party / customer" value={v.party} onChange={e => S_('party', e.target.value)} />
     <TextField placeholder="Karan (reason)" value={v.note} onChange={e => S_('note', e.target.value)} />
@@ -120,7 +131,7 @@ function TransferForm({ ac, onSaved }) {
 }
 function EditBody({ r, v, ac }) {
   const [, setN] = useState(0); const set = (k, x) => { v[k] = x; setN(n => n + 1); };
-  const out = v.type === 'out', cats = out ? CB_CATS_OUT : CB_CATS_IN, isT = r.cat === 'Transfer' || r.cat === 'Opening Balance';
+  const out = v.type === 'out', cats = out ? catsOut() : CB_CATS_IN, isT = r.cat === 'Transfer' || r.cat === 'Opening Balance';
   const catList = cats.includes(v.cat) ? cats : cats.concat([v.cat]);
   return <Stack gap={1.5} sx={{ pt: 1 }}>
     <TextField select label="Type" value={v.type} onChange={e => set('type', e.target.value)}><MenuItem value="in">Money IN</MenuItem><MenuItem value="out">Money OUT</MenuItem></TextField>
