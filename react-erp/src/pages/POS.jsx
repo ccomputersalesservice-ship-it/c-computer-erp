@@ -2,7 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Button, Checkbox, FormControlLabel, IconButton, MenuItem, Paper, Select, Stack, TextField, Typography, Chip, Tabs, Tab, useMediaQuery, Divider, Alert } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { api, S, inr, nf, isAdmin, rid, toast, work, store, debounce, sleep } from '../lib/core.js';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
+import { api, S, inr, nf, isAdmin, rid, toast, work, store, debounce, sleep, loadThumbs } from '../lib/core.js';
 import { Skel, Thumb, openDialog, openScanner, Empty } from '../lib/ui.jsx';
 import { go } from '../lib/nav.js';
 import { openOrder } from './Sales.jsx';
@@ -74,75 +75,94 @@ export default function POSPage() {
   const A = { re, add: pid => posAdd(pid, re), newOrder: () => { Object.assign(POS, { free: {}, cart: [], disc: 0, cust: null, pay: 'Cash', gst: false, step: 'shop' }); re(); } };
   const showCart = wide || POS.step === 'cart';
   const t = posTotals();
-  return <Box>
+  return <Box sx={{ bgcolor: CR, m: { xs: -1.5, md: -3 }, p: { xs: 1.5, md: 3 }, minHeight: '100vh' }}>
     <TopBar A={A} />
-    <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: wide ? '210px minmax(0,1fr) 380px' : 'minmax(0,1fr)', alignItems: 'start' }}>
-      {wide && <Cats A={A} />}
+    <Box sx={{ display: 'grid', gap: 2.5, gridTemplateColumns: wide ? 'minmax(0,1fr) 390px' : 'minmax(0,1fr)', alignItems: 'start' }}>
       {(wide || POS.step !== 'cart') && <Center A={A} wide={wide} />}
       {showCart && <Cart A={A} wide={wide} />}
     </Box>
-    {!wide && POS.step !== 'cart' && <Paper elevation={10} onClick={() => { POS.step = 'cart'; re(); window.scrollTo(0, 0); }} sx={{ position: 'fixed', left: 12, right: 12, bottom: 72, p: 1.5, borderRadius: 4, bgcolor: OR, color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1100, cursor: 'pointer' }}>
+    {!wide && POS.step !== 'cart' && <Paper elevation={10} onClick={() => { POS.step = 'cart'; re(); window.scrollTo(0, 0); }} sx={{ position: 'fixed', left: 12, right: 12, bottom: 72, p: 1.6, borderRadius: 99, bgcolor: OR, color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1100, cursor: 'pointer', px: 2.5 }}>
       <span>🛒 {t.count} item{t.count === 1 ? '' : 's'}</span><b>{inr(t.total)}</b><span>Checkout ›</span></Paper>}
   </Box>;
 }
+const CR = '#f6f3ea', LN = '#ead9cc', DK = '#1f2937';
+const pill = on => ({ borderRadius: 99, textTransform: 'none', fontWeight: 700, px: 2, bgcolor: on ? OR : '#fff', color: on ? '#fff' : DK, border: '1px solid ' + (on ? OR : LN), boxShadow: 'none', '&:hover': { bgcolor: on ? OR : '#fff7f2', boxShadow: 'none' } });
 function TopBar({ A }) {
-  const h = posHeld();
+  const h = posHeld(), today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
   const openHeld = i => { const hh = posHeld(), x = hh[i]; if (!x) return; if (POS.cart.length) hh.push({ at: Date.now(), cart: POS.cart, cust: POS.cust, disc: POS.disc, gst: POS.gst, mode: POS.mode, pay: POS.pay }); Object.assign(POS, { cart: x.cart, cust: x.cust, disc: x.disc, gst: x.gst, mode: x.mode, pay: x.pay }); hh.splice(i, 1); store.lset('pos_hold', JSON.stringify(hh.slice(0, 10))); A.re(); };
   const delHeld = i => { const hh = posHeld(); hh.splice(i, 1); store.lset('pos_hold', JSON.stringify(hh)); A.re(); };
-  return <Stack gap={1} sx={{ mb: 2 }}>
+  return <Stack direction="row" gap={1.5} flexWrap="wrap" alignItems="center" justifyContent="space-between" sx={{ mb: 2.5 }}>
+    <Box><Typography variant="h5" fontWeight={900} sx={{ color: DK, lineHeight: 1.1 }}>Quick Order</Typography><Typography sx={{ color: OR, fontWeight: 700 }}>{today}</Typography></Box>
     <Stack direction="row" gap={1} flexWrap="wrap" alignItems="center">
-      <Chip color="primary" label={POS.cart.length ? '🛒 Current (' + POS.cart.length + ')' : '🛒 New order'} />
-      {h.map((x, i) => <Chip key={i} variant="outlined" label={`${x.cust ? x.cust.name : 'Held ' + (i + 1)} · ${x.cart.length}`} onClick={() => openHeld(i)} onDelete={() => delHeld(i)} />)}
-    </Stack>
-    <Stack direction="row" gap={1} flexWrap="wrap" alignItems="center" justifyContent="space-between">
-      <Tabs value={POS.mode} onChange={(e, v) => { POS.mode = v; A.re(); }}>{[['walkin', 'Walk-in Sale'], ['order', 'Order'], ['quote', 'Quotation']].map(x => <Tab key={x[0]} value={x[0]} label={x[1]} />)}</Tabs>
-      <Stack direction="row" gap={1}><Button variant="outlined" onClick={() => posHold(A)}>Hold</Button><Button variant="contained" sx={{ bgcolor: OR }} onClick={A.newOrder}>＋ New Order</Button></Stack>
+      {h.map((x, i) => <Chip key={i} sx={{ bgcolor: '#fff', border: '1px solid ' + LN, fontWeight: 700, height: 40, borderRadius: 99 }} label={`${x.cust ? x.cust.name : 'Held ' + (i + 1)} · ${x.cart.length}`} onClick={() => openHeld(i)} onDelete={() => delHeld(i)} />)}
+      <Button sx={{ ...pill(false), height: 44 }} onClick={() => posHold(A)}>Hold</Button>
+      <Button sx={{ ...pill(true), height: 44 }} onClick={A.newOrder}>＋ New Order</Button>
     </Stack>
   </Stack>;
 }
-function Cats({ A }) {
-  const cats = {}; POS.prods.forEach(p => { const c = p.Category || 'Other'; cats[c] = (cats[c] || 0) + 1; });
-  const B = ({ c, label, n }) => { const on = POS.cat === c && !POS.q.trim(); return <Button fullWidth onClick={() => { POS.cat = c; POS.q = ''; A.re(); }} sx={{ justifyContent: 'space-between', mb: .5, bgcolor: on ? OR : 'transparent', color: on ? '#fff' : 'text.primary', '&:hover': { bgcolor: on ? OR : '#fff1eb' } }}><span>{label}</span><b>{n}</b></Button>; };
-  return <Paper sx={{ p: 1.5, position: 'sticky', top: 80 }}><Typography fontWeight={800} sx={{ mb: 1 }}>Categories</Typography>
-    <B c="all" label="▦ All Products" n={POS.prods.length} />{Object.keys(cats).sort().map(c => <B key={c} c={c} label={posIcon(c) + ' ' + c} n={cats[c]} />)}</Paper>;
+/* big category tiles (Available / Need re-stock), like the reference design */
+function CatTiles({ A, onPick }) {
+  const cats = {}, inS = {}; POS.prods.forEach(p => { const c = p.Category || 'Other'; cats[c] = (cats[c] || 0) + 1; if (posAvail(p) > 0) inS[c] = (inS[c] || 0) + 1; });
+  const all = [['all', 'All Products', POS.prods.length, POS.prods.filter(p => posAvail(p) > 0).length]].concat(Object.keys(cats).sort().map(c => [c, c, cats[c], inS[c] || 0]));
+  return <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1, mb: 1.5, scrollSnapType: 'x mandatory', '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: LN, borderRadius: 9 } }}>
+    {all.map(([k, label, n, av]) => { const on = POS.q.trim() ? k === 'all' : POS.cat === k, low = av === 0; return <Box key={k} onClick={() => { POS.cat = k; POS.q = ''; onPick(); A.re(); }}
+      sx={{ flex: '0 0 auto', width: { xs: 150, md: 190 }, height: { xs: 110, md: 128 }, p: 1.6, borderRadius: '22px', cursor: 'pointer', position: 'relative', overflow: 'hidden', scrollSnapAlign: 'start', bgcolor: on ? OR : '#fff', color: on ? '#fff' : DK, border: '1px solid ' + (on ? OR : LN), transition: 'all .15s', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 18px rgba(0,0,0,.06)' } }}>
+      <Box component="span" sx={{ display: 'inline-block', fontSize: 11, fontWeight: 700, px: 1.2, py: .3, borderRadius: 99, border: low ? 0 : '1px solid ' + (on ? '#fff' : DK), bgcolor: low ? '#f87171' : 'transparent', color: low ? '#fff' : 'inherit' }}>{low ? 'Need re-stock' : 'Available'}</Box>
+      <Box sx={{ position: 'absolute', right: -6, bottom: -14, fontSize: { xs: 58, md: 72 }, opacity: on ? .35 : .18, filter: 'grayscale(.3)', lineHeight: 1 }}>{k === 'all' ? '🛍' : posIcon(k)}</Box>
+      <Box sx={{ position: 'absolute', left: 14, bottom: 12 }}><Typography fontWeight={800} sx={{ fontSize: { xs: 17, md: 21 }, lineHeight: 1.1 }}>{label}</Typography><Typography variant="caption" sx={{ opacity: .85 }}>{n} items</Typography></Box>
+    </Box>; })}
+  </Box>;
 }
 function Center({ A, wide }) {
-  const cats = {}; POS.prods.forEach(p => { const c = p.Category || 'Other'; cats[c] = (cats[c] || 0) + 1; });
   const brands = Array.from(new Set(POS.prods.map(p => p.Brand).filter(Boolean))).sort();
   const [q, setQ] = useState(POS.q);
   const deb = useRef(debounce(v => { POS.q = v; A.re(); }, 150)).current;
   const l = posFiltered(), shown = l.slice(0, 60);
+  const sel = { bgcolor: '#fff', borderRadius: 99, height: 40, fontSize: 14, fontWeight: 600, '& fieldset': { borderColor: LN } };
+  const scan = () => openScanner(code => { const c = String(code).trim().toLowerCase(), hit = POS.prods.find(p => [p.Barcode, p.SKU].some(x => x && String(x).toLowerCase() === c)); if (hit) A.add(hit.ProductID); else toast('Not found: ' + code, 'bad'); }, 'Barcode scan');
   return <Box>
-    <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mb: 1 }}>
-      <TextField placeholder="Search name / model / SKU / barcode" value={q} onChange={e => { setQ(e.target.value); deb(e.target.value); }} sx={{ flex: 1, minWidth: 200, bgcolor: '#fff' }}
-        onKeyDown={ev => { if (ev.key === 'Enter') { const code = q.trim().toLowerCase(), hit = POS.prods.find(p => [p.Barcode, p.SKU].some(x => x && String(x).toLowerCase() === code)); if (hit) { A.add(hit.ProductID); setQ(''); POS.q = ''; A.re(); } } }} />
-      <Select value={POS.brand} displayEmpty onChange={e => { POS.brand = e.target.value; A.re(); }} sx={{ bgcolor: '#fff', minWidth: 120 }}><MenuItem value="">All Brands</MenuItem>{brands.map(b => <MenuItem key={b} value={b}>{b}</MenuItem>)}</Select>
-      <Select value={POS.stock} displayEmpty onChange={e => { POS.stock = e.target.value; A.re(); }} sx={{ bgcolor: '#fff', minWidth: 120 }}><MenuItem value="">All Stock</MenuItem><MenuItem value="in">In stock</MenuItem><MenuItem value="out">Out of stock</MenuItem><MenuItem value="fav">★ Favourites</MenuItem></Select>
-      <Select value={POS.sort} onChange={e => { POS.sort = e.target.value; A.re(); }} sx={{ bgcolor: '#fff', minWidth: 140 }}><MenuItem value="pop">Sort: Popular</MenuItem><MenuItem value="lo">Price low→high</MenuItem><MenuItem value="hi">Price high→low</MenuItem><MenuItem value="name">Name A–Z</MenuItem></Select>
-      <Button variant="outlined" onClick={() => { POS.view = POS.view === 'grid' ? 'list' : 'grid'; A.re(); }}>{POS.view === 'grid' ? '☰ List' : '▦ Grid'}</Button>
+    <TextField fullWidth placeholder="Search name / model / SKU / barcode" value={q} onChange={e => { setQ(e.target.value); deb(e.target.value); }}
+      onKeyDown={ev => { if (ev.key === 'Enter') { const code = q.trim().toLowerCase(), hit = POS.prods.find(p => [p.Barcode, p.SKU].some(x => x && String(x).toLowerCase() === code)); if (hit) { A.add(hit.ProductID); setQ(''); POS.q = ''; A.re(); } } }}
+      InputProps={{ startAdornment: <Box component="span" sx={{ mr: 1, fontSize: 20 }}>🔍</Box>, endAdornment: <IconButton onClick={scan} title="Scan" sx={{ color: OR }}><QrCodeScannerIcon /></IconButton> }}
+      sx={{ mb: 2, '& .MuiOutlinedInput-root': { bgcolor: '#fff', borderRadius: 99, height: 58, fontSize: 17, px: 1.5 }, '& fieldset': { borderColor: OR + '66' } }} />
+    <CatTiles A={A} onPick={() => setQ('')} />
+    <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mb: 2 }}>
+      <Select size="small" value={POS.brand} displayEmpty onChange={e => { POS.brand = e.target.value; A.re(); }} sx={{ ...sel, minWidth: 130 }}><MenuItem value="">All Brands</MenuItem>{brands.map(b => <MenuItem key={b} value={b}>{b}</MenuItem>)}</Select>
+      <Select size="small" value={POS.stock} displayEmpty onChange={e => { POS.stock = e.target.value; A.re(); }} sx={{ ...sel, minWidth: 130 }}><MenuItem value="">All Stock</MenuItem><MenuItem value="in">In stock</MenuItem><MenuItem value="out">Out of stock</MenuItem><MenuItem value="fav">♥ Favourites</MenuItem></Select>
+      <Select size="small" value={POS.sort} onChange={e => { POS.sort = e.target.value; A.re(); }} sx={{ ...sel, minWidth: 150 }}><MenuItem value="pop">Sort: Popular</MenuItem><MenuItem value="lo">Price low→high</MenuItem><MenuItem value="hi">Price high→low</MenuItem><MenuItem value="name">Name A–Z</MenuItem></Select>
+      <Button sx={{ ...pill(false), height: 40 }} onClick={() => { POS.view = POS.view === 'grid' ? 'list' : 'grid'; A.re(); }}>{POS.view === 'grid' ? '☰ List' : '▦ Grid'}</Button>
+      <Typography variant="caption" sx={{ alignSelf: 'center', ml: 'auto', color: '#6b7280' }}>{l.length} products</Typography>
     </Stack>
-    {!wide && <Stack direction="row" gap={1} sx={{ overflowX: 'auto', pb: 1, mb: 1 }}>{['all'].concat(Object.keys(cats).sort()).map(c => { const on = POS.q.trim() ? c === 'all' : POS.cat === c; return <Chip key={c} label={c === 'all' ? 'All' : c} color={on ? 'primary' : 'default'} onClick={() => { POS.cat = c; POS.q = ''; setQ(''); A.re(); }} />; })}</Stack>}
-    {shown.length ? <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: POS.view === 'list' ? 'minmax(0,1fr)' : { xs: 'repeat(2,minmax(0,1fr))', sm: 'repeat(auto-fill,minmax(170px,1fr))' } }}>
+    {shown.length ? <Box sx={{ display: 'grid', gap: 1.8, gridTemplateColumns: POS.view === 'list' ? 'minmax(0,1fr)' : { xs: 'repeat(2,minmax(0,1fr))', sm: 'repeat(auto-fill,minmax(180px,1fr))' } }}>
       {shown.map(p => <PosCard key={p.ProductID} p={p} A={A} list={POS.view === 'list'} />)}
     </Box> : <Empty>No product found</Empty>}
     {l.length > shown.length && <Empty>Showing 60 of {l.length}. Search or choose a category to narrow down.</Empty>}
   </Box>;
 }
+/* product photo without a grey box (photo floats on the white card) */
+function Photo({ id, h }) {
+  const [u, setU] = useState(S.thumbs[id] || '');
+  useEffect(() => { let on = true; if (S.thumbs[id] !== undefined) { setU(S.thumbs[id]); return; } loadThumbs([id]).then(t => { if (on) setU(t[id] || ''); }, () => { }); return () => { on = false; }; }, [id]);
+  return <Box sx={{ height: h, display: 'grid', placeItems: 'center' }}>{u ? <img src={u} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }} /> : <Box sx={{ fontSize: h > 80 ? 54 : 30, opacity: .25 }}>{posIcon((POS.prods.find(x => x.ProductID === id) || {}).Category || '')}</Box>}</Box>;
+}
 function PosCard({ p, A, list }) {
-  const av = posAvail(p), pr = posPriceOf(p), spec = [p.Model, String(p.Description || '').slice(0, 60)].filter(Boolean).join(' | ');
+  const av = posAvail(p), pr = posPriceOf(p), spec = [p.Brand, p.Model].filter(Boolean).join(' · ');
   const n = POS.cart.filter(x => x.id === p.ProductID).reduce((a, x) => a + x.qty, 0), first = POS.cart.findIndex(x => x.id === p.ProductID), last = POS.cart.map(x => x.id).lastIndexOf(p.ProductID);
   const fav = !!POS.fav[p.ProductID];
-  return <Paper sx={{ p: 1.2, position: 'relative', display: 'flex', flexDirection: list ? 'row' : 'column', gap: 1, border: '1px solid #f1e4dc', height: '100%', minWidth: 0 }}>
-    <IconButton size="small" onClick={() => { POS.fav[p.ProductID] = !fav; if (fav) delete POS.fav[p.ProductID]; store.lset('pos_fav', JSON.stringify(POS.fav)); A.re(); }} sx={{ position: 'absolute', top: 4, right: 4, zIndex: 1, color: fav ? OR : '#94a3b8', bgcolor: '#fff' }}>{fav ? '♥' : '♡'}</IconButton>
-    <Box sx={{ width: list ? 72 : '100%', height: list ? 72 : 130, flex: 'none', '& > div': { width: '100% !important', height: '100% !important' }, '& img': { objectFit: 'contain !important' } }}><Thumb id={p.ProductID} /></Box>
+  const plus = <IconButton onClick={() => n ? posQty(first, 1, A) : A.add(p.ProductID)} sx={{ width: 48, height: 48, flex: 'none', fontSize: 26, fontWeight: 300, bgcolor: n ? OR : '#fff', color: n ? '#fff' : OR, border: '1.5px solid ' + OR, '&:hover': { bgcolor: n ? OR : '#fff1eb' } }}>+</IconButton>;
+  return <Paper elevation={0} sx={{ p: 1.6, position: 'relative', display: 'flex', flexDirection: list ? 'row' : 'column', alignItems: list ? 'center' : 'stretch', gap: list ? 1.5 : .5, borderRadius: '22px', border: '1.5px solid ' + (n ? OR : LN), bgcolor: '#fff', height: '100%', minWidth: 0, transition: 'all .15s', '&:hover': { boxShadow: '0 8px 22px rgba(0,0,0,.07)' } }}>
+    <IconButton size="small" onClick={() => { POS.fav[p.ProductID] = !fav; if (fav) delete POS.fav[p.ProductID]; store.lset('pos_fav', JSON.stringify(POS.fav)); A.re(); }} sx={{ position: 'absolute', top: 8, left: 8, zIndex: 1, color: fav ? OR : '#cbd5e1', fontSize: 18 }}>{fav ? '♥' : '♡'}</IconButton>
+    {n > 0 && <Box sx={{ position: 'absolute', top: 10, right: 10, zIndex: 1, minWidth: 26, height: 26, px: .6, borderRadius: 99, bgcolor: '#fde3d6', color: OR, fontWeight: 800, fontSize: 13, display: 'grid', placeItems: 'center' }}>{n}</Box>}
+    <Box sx={{ width: list ? 70 : '100%', flex: 'none', pt: list ? 0 : 2 }}><Photo id={p.ProductID} h={list ? 60 : 120} /></Box>
     <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="body2" fontWeight={800} title={p.Name} sx={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', minHeight: list ? 0 : 40, lineHeight: 1.25 }}>{p.Name}</Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{p.Brand || ''}{spec ? ' · ' + spec : ''}</Typography>
-      <Chip size="small" sx={{ mt: .5, alignSelf: 'flex-start' }} color={av > 0 ? (av <= 3 ? 'warning' : 'success') : 'error'} label={av > 0 ? 'Stock: ' + nf(av) : 'Out of stock'} />
-      <Stack direction="row" justifyContent="space-between" alignItems="center" gap={0.5} sx={{ mt: 'auto', pt: 1 }}>
-        <Typography fontWeight={900} noWrap sx={{ color: OR, minWidth: 0 }}>{pr ? inr(pr) : <span style={{ color: '#b45309', fontSize: 12 }}>Price not set</span>}</Typography>
-        {n ? <Stack direction="row" alignItems="center" sx={{ bgcolor: OR, color: '#fff', borderRadius: 9 }}><IconButton size="small" sx={{ color: '#fff' }} onClick={() => posQty(last, -1, A)}>−</IconButton><b>{n}</b><IconButton size="small" sx={{ color: '#fff' }} onClick={() => posQty(first, 1, A)}>+</IconButton></Stack>
-          : <Button size="small" variant="contained" sx={{ bgcolor: OR, borderRadius: 9, flex: 'none', minWidth: 0, px: 1.5, whiteSpace: 'nowrap' }} onClick={() => A.add(p.ProductID)}>＋ Add</Button>}
+      <Typography fontWeight={800} title={p.Name} sx={{ fontSize: 15, color: DK, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', minHeight: list ? 0 : 38, lineHeight: 1.25, mt: list ? 0 : 1 }}>{p.Name}</Typography>
+      {spec && <Typography variant="caption" sx={{ color: '#9ca3af', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{spec}</Typography>}
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-end" gap={.5} sx={{ mt: 'auto', pt: 1 }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography noWrap sx={{ fontSize: 16, fontWeight: 700, color: pr ? '#4b5563' : '#b45309' }}>{pr ? inr(pr) : <span style={{ fontSize: 12 }}>Price not set</span>}</Typography>
+          <Typography variant="caption" sx={{ fontWeight: 700, color: av > 0 ? (av <= 3 ? '#d97706' : '#16a34a') : '#dc2626' }}>{av > 0 ? '● Stock ' + nf(av) : '● Out of stock'}</Typography>
+        </Box>
+        <Stack direction="row" gap={.6} alignItems="center">{n > 0 && <IconButton onClick={() => posQty(last, -1, A)} sx={{ width: 34, height: 34, border: '1.5px solid ' + LN, color: DK }}>−</IconButton>}{plus}</Stack>
       </Stack>
     </Box>
   </Paper>;
@@ -160,24 +180,33 @@ function posQty(i, d, A) { const l = POS.cart[i]; if (!l) return; if (l.track !=
 
 function Cart({ A, wide }) {
   const t = posTotals(), pays = ['Cash', 'UPI HDFC', 'UPI IDBI', 'Card', 'Bank Transfer', 'Credit / Udhar', 'Split'];
-  return <Paper sx={{ p: 2, position: wide ? 'sticky' : 'static', top: 80 }}>
-    <Stack direction="row" justifyContent="space-between" alignItems="center"><Box><Typography variant="caption" color="text.secondary">Order</Typography><Typography variant="h6" fontWeight={800}>{POS.mode === 'quote' ? 'Quotation' : POS.mode === 'order' ? 'Order' : 'Walk-in Sale'} · {POS.cart.length} item{POS.cart.length === 1 ? '' : 's'}</Typography></Box>
-      <Stack direction="row" gap={1}>{!wide && <Button size="small" variant="outlined" onClick={() => { POS.step = 'shop'; A.re(); }}>‹ Shop</Button>}<Button size="small" color="error" variant="contained" onClick={() => { POS.cart = []; POS.disc = 0; A.re(); }}>Clear</Button></Stack></Stack>
-    <Box sx={{ my: 1, maxHeight: wide ? '42vh' : 'none', overflow: 'auto' }}>{POS.cart.length ? POS.cart.map((l, i) => <CartLine key={i} l={l} i={i} A={A} />) : <Empty>Cart is empty. Tap + on a product.</Empty>}</Box>
-    <Divider />
-    <Stack gap={.6} sx={{ my: 1 }}>
-      <Row a="Subtotal" b={inr(t.gross)} /><Row a="Item discount" b={inr(t.ld)} />
-      <Stack direction="row" justifyContent="space-between" alignItems="center"><span>Overall discount ₹</span><TextField size="small" sx={{ width: 100 }} inputProps={{ inputMode: 'decimal', style: { textAlign: 'right' } }} value={POS.disc || 0} onChange={e => { POS.disc = +e.target.value || 0; A.re(); }} /></Stack>
-      <FormControlLabel control={<Checkbox checked={POS.gst} onChange={e => { POS.gst = e.target.checked; A.re(); }} />} label="GST 18% umero" />
-      {POS.gst && <><Row a="CGST (9%)" b={inr(t.gst / 2)} /><Row a="SGST (9%)" b={inr(t.gst / 2)} /></>}
-      <Paper sx={{ p: 1.5, bgcolor: '#fff1eb', display: 'flex', justifyContent: 'space-between' }}><Typography variant="h6">Total {POS.gst ? '(incl. GST)' : ''}</Typography><Typography variant="h6" fontWeight={900}>{inr(t.total)}</Typography></Paper>
+  const H = ({ children }) => <Typography sx={{ fontSize: 13, color: '#6b7280', fontWeight: 600, mt: 2, mb: .8 }}>{children}</Typography>;
+  return <Paper elevation={0} sx={{ p: 2.2, borderRadius: '26px', border: '1px solid ' + LN, bgcolor: '#fff', position: wide ? 'sticky' : 'static', top: 80 }}>
+    <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+      {!wide ? <IconButton onClick={() => { POS.step = 'shop'; A.re(); }} sx={{ border: '1px solid ' + LN }}>‹</IconButton> : <Box sx={{ width: 42, height: 42, borderRadius: 99, bgcolor: '#fde3d6', display: 'grid', placeItems: 'center', fontSize: 20 }}>🧾</Box>}
+      <Box sx={{ textAlign: 'right' }}><Typography fontWeight={800} sx={{ color: DK }}>{POS.mode === 'quote' ? 'Quotation' : POS.mode === 'order' ? 'Order' : 'Walk-in Sale'}</Typography><Typography variant="caption" sx={{ color: '#6b7280' }}>{t.count} item{t.count === 1 ? '' : 's'}</Typography></Box>
     </Stack>
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', bgcolor: CR, borderRadius: 99, p: .5, mt: 2 }}>
+      {[['walkin', 'Walk-in'], ['order', 'Order'], ['quote', 'Quotation']].map(([k, lab]) => <Button key={k} onClick={() => { POS.mode = k; A.re(); }} sx={{ borderRadius: 99, textTransform: 'none', fontWeight: 700, py: 1, bgcolor: POS.mode === k ? OR : 'transparent', color: POS.mode === k ? '#fff' : DK, '&:hover': { bgcolor: POS.mode === k ? OR : '#efe9dc' } }}>{lab}</Button>)}
+    </Box>
+    <H>Customer</H>
     <CustBox A={A} />
-    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, my: 1.5 }}>{pays.map(x => <Button key={x} size="small" variant={POS.pay === x ? 'contained' : 'outlined'} sx={POS.pay === x ? { bgcolor: OR } : { color: 'text.primary', borderColor: '#e5e7eb' }} onClick={() => { POS.pay = x; A.re(); }}>{x}</Button>)}</Box>
-    <Stack gap={1}>
-      <Button size="large" variant="contained" sx={{ bgcolor: OR, justifyContent: 'flex-start' }} onClick={() => posSave(POS.mode === 'walkin' ? 'walkin' : 'order', A)}>{POS.mode === 'walkin' ? 'Save Walk-in Sale' : 'Save Order'}</Button>
-      <Button size="large" variant="contained" sx={{ bgcolor: '#1c1c1c', justifyContent: 'flex-start' }} onClick={() => posSave('invoice', A)}>Generate Invoice</Button>
-      <Stack direction="row" gap={1}><Button fullWidth variant="outlined" onClick={() => posSave('quote', A)}>Save as Quotation</Button><Button fullWidth variant="outlined" onClick={() => posHold(A)}>Hold Order</Button></Stack>
+    <Stack direction="row" justifyContent="space-between" alignItems="center"><H>Order list</H>{POS.cart.length > 0 && <Button size="small" color="error" sx={{ textTransform: 'none', mt: 1 }} onClick={() => { POS.cart = []; POS.disc = 0; A.re(); }}>🗑 Clear</Button>}</Stack>
+    <Box sx={{ border: '1px solid ' + LN, borderRadius: '18px', px: 1.2, maxHeight: wide ? '38vh' : 'none', overflow: 'auto' }}>{POS.cart.length ? POS.cart.map((l, i) => <CartLine key={i} l={l} i={i} A={A} />) : <Box sx={{ py: 4, textAlign: 'center', color: '#9ca3af' }}><Box sx={{ fontSize: 36 }}>🛒</Box>Cart is empty. Tap + on a product.</Box>}</Box>
+    <H>Payment Details</H>
+    <Stack gap={.7}>
+      <Row a="Subtotal" b={inr(t.gross)} /><Row a="Item discount" b={inr(t.ld)} />
+      <Stack direction="row" justifyContent="space-between" alignItems="center"><span>Overall discount ₹</span><TextField size="small" sx={{ width: 110, '& .MuiOutlinedInput-root': { borderRadius: 99 } }} inputProps={{ inputMode: 'decimal', style: { textAlign: 'right' } }} value={POS.disc || 0} onChange={e => { POS.disc = +e.target.value || 0; A.re(); }} /></Stack>
+      <FormControlLabel control={<Checkbox checked={POS.gst} onChange={e => { POS.gst = e.target.checked; A.re(); }} sx={{ color: OR, '&.Mui-checked': { color: OR } }} />} label="GST 18% umero" />
+      {POS.gst && <><Row a="CGST (9%)" b={inr(t.gst / 2)} /><Row a="SGST (9%)" b={inr(t.gst / 2)} /></>}
+      <Box sx={{ borderTop: '1.5px dashed ' + LN, pt: 1.2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><Typography fontWeight={700}>Total {POS.gst ? '(incl. GST)' : ''}</Typography><Typography sx={{ fontSize: 26, fontWeight: 900, color: OR }}>{inr(t.total)}</Typography></Box>
+    </Stack>
+    <H>Payment method</H>
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1 }}>{pays.map(x => <Button key={x} size="small" onClick={() => { POS.pay = x; A.re(); }} sx={{ ...pill(POS.pay === x), px: 1, py: .8, fontSize: 13 }}>{x}</Button>)}</Box>
+    <Stack gap={1} sx={{ mt: 2 }}>
+      <Button size="large" variant="contained" sx={{ bgcolor: OR, borderRadius: 99, py: 1.5, fontWeight: 800, textTransform: 'none', fontSize: 16, boxShadow: 'none' }} onClick={() => posSave(POS.mode === 'walkin' ? 'walkin' : 'order', A)}>{POS.mode === 'walkin' ? 'Save Walk-in Sale' : 'Save Order'} · {inr(t.total)}</Button>
+      <Button size="large" variant="contained" sx={{ bgcolor: DK, borderRadius: 99, py: 1.3, fontWeight: 700, textTransform: 'none', boxShadow: 'none' }} onClick={() => posSave('invoice', A)}>🧾 Generate Invoice</Button>
+      <Stack direction="row" gap={1}><Button fullWidth sx={pill(false)} onClick={() => posSave('quote', A)}>Save as Quotation</Button><Button fullWidth sx={pill(false)} onClick={() => posHold(A)}>Hold Order</Button></Stack>
     </Stack>
   </Paper>;
 }
@@ -200,11 +229,11 @@ function CartLine({ l, i, A }) {
     if (POS.cart.some(o => o !== l && o.item === f.itemId)) return toast('Aa serial pehla umeryo chhe', 'bad');
     l.item = f.itemId; l.serial = f.serial; A.re();
   }, 'Serial scan karo');
-  return <Stack direction="row" gap={1} sx={{ py: 1, borderBottom: '1px dashed #eee' }}>
-    <Thumb id={l.id} size={48} />
+  return <Stack direction="row" gap={1.2} sx={{ py: 1.2, borderBottom: '1px dashed ' + LN }}>
+    <Box sx={{ width: 64, height: 64, flex: 'none', borderRadius: '14px', bgcolor: CR, p: .6 }}><Photo id={l.id} h={52} /></Box>
     <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Stack direction="row" justifyContent="space-between" gap={1}><Typography variant="body2" fontWeight={800}><span style={{ color: OR }}>{l.qty}x</span> {l.name}</Typography><Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => { l._ed = !l._ed; A.re(); }}>✏ Edit</Button></Stack>
-      <Stack direction="row" justifyContent="space-between"><Typography variant="caption" color="text.secondary">{[l.brand, l.model].filter(Boolean).join(' · ')}{l.disc ? ' · Disc ' + inr(l.disc) : ''}</Typography><b>{inr(l.qty * l.price - (+l.disc || 0))}</b></Stack>
+      <Stack direction="row" justifyContent="space-between" gap={1}><Typography variant="body2" fontWeight={800} sx={{ color: DK }}>{l.name}</Typography><Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => { l._ed = !l._ed; A.re(); }}>✏ Edit</Button></Stack>
+      <Stack direction="row" justifyContent="space-between"><Typography variant="caption" color="text.secondary">{inr(l.price)} <b style={{ color: OR }}>x{l.qty}</b>{l.disc ? ' · Disc ' + inr(l.disc) : ''}{l.model ? ' · ' + l.model : ''}</Typography><b>{inr(l.qty * l.price - (+l.disc || 0))}</b></Stack>
       {showType ? <TextField fullWidth size="small" sx={{ mt: .5 }} placeholder={l.track === 'QTY' ? '✍ Serial (hoy to j lakho)' : '✍ Serial number lakho'} value={typed} onChange={e => setTyped(e.target.value)} onBlur={onType} onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }} autoComplete="off" />
         : <Button size="small" sx={{ p: 0, mt: .5 }} onClick={() => { l._sopen = 1; A.re(); }}>+ Serial umero (hoy to)</Button>}
       {desc.length > 0 && <Stack direction="row" gap={.5} flexWrap="wrap" sx={{ mt: .5 }} alignItems="center"><small>Stock na serial:</small>{desc.slice(0, 12).map(x => <Chip key={x} size="small" label={x} onClick={() => { l.typed = x; A.re(); }} />)}</Stack>}
