@@ -3561,24 +3561,63 @@ async function rpLoad() {
     const cnt = {}; r.forEach(x => cnt[x.status] = (cnt[x.status] || 0) + 1);
     const chips = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"><button type="button" class="btn s ${RP.f ? 'g' : ''}" data-rpf="">Badha (${r.length})</button>${REP_ST.filter(k => cnt[k]).map(k => `<button type="button" class="btn s ${RP.f === k ? '' : 'g'}" data-rpf="${k}" style="${RP.f === k ? 'background:' + REP_CLR[k] + ';color:#fff' : ''}">${REP_SH[k]} (${cnt[k]})</button>`).join('')}</div>`;
     const vis = r.map((x, i) => [x, i]).filter(([x]) => !RP.f || x.status === RP.f);
-    h.innerHTML = chips + (vis.length ? vis.map(([x, i]) => `<div class="qrow" style="cursor:pointer;align-items:flex-start" data-rpo="${i}"><span><b>${esc(x.name)}</b> ${x.mobile ? '· ' + esc(x.mobile) : ''}<br><small>${esc(x.date)} · ${esc(x.product)} ${esc(x.size || '')} ${esc(x.brand || '')}${x.billNo ? ' · Bill ' + esc(x.billNo) : ''}${x.company ? ' · 🏭 ' + esc(x.company) : ''}${x.photos ? ' · 📷' + x.photos : ''}</small></span><span style="background:${REP_CLR[x.status] || '#64748b'};color:#fff;border-radius:20px;padding:3px 10px;font-size:12px;white-space:nowrap">${esc(REP_SH[x.status] || x.status)}</span></div>`).join('') : '<small>Haju koi entry nathi</small>');
+    h.innerHTML = chips + (vis.length ? vis.map(([x, i]) => `<div class="qrow" style="cursor:pointer;align-items:flex-start" data-rpo="${i}"><span><b>${esc(x.name)}</b> ${x.mobile ? '· ' + esc(x.mobile) : ''}<br><small>${esc(x.date)}${rpTime(x) ? ' ' + rpTime(x) : ''} · ${esc(x.product)} ${esc(x.size || '')} ${esc(x.brand || '')}${x.billNo ? ' · Bill ' + esc(x.billNo) : ''}${x.company ? ' · 🏭 ' + esc(x.company) : ''}${x.photos ? ' · 📷' + x.photos : ''}${x.by ? '<br>👤 ' + esc(x.by) : ''}</small></span><span style="background:${REP_CLR[x.status] || '#64748b'};color:#fff;border-radius:20px;padding:3px 10px;font-size:12px;white-space:nowrap">${esc(REP_SH[x.status] || x.status)}</span></div>`).join('') : '<small>Haju koi entry nathi</small>');
     $$('[data-rpf]', h).forEach(b => b.onclick = () => { RP.f = b.dataset.rpf; rpLoad(); }); $$('[data-rpo]', h).forEach(b => b.onclick = () => rpOpen(RP.list[+b.dataset.rpo]));
   } catch (e) { h.innerHTML = '<small>' + esc(e.message) + '</small>'; }
 }
+function rpTime(x) { const t = String(((x.log || [])[0] || {}).t || ''); const m = t.match(/(\d{2}):(\d{2})/); if (!m) return ''; let h = +m[1]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + m[2] + ' ' + ap; }
+function rpPrint(x) {
+  const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const dt = String(x.date || '').split('-').reverse().join('-');
+  const R = (k, v) => `<tr><td>${k}</td><td>${e(v) || '&nbsp;'}</td></tr>`;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Replacement ${e(x.id)}</title><style>
+@page{size:A4;margin:8mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#0b1f4b;background:#e5e7eb}
+.pg{width:194mm;min-height:281mm;margin:10px auto;background:#fff;border:2px solid #0b1f4b;display:flex;flex-direction:column}
+.hd{display:flex;background:#0b1f4b;color:#fff}.hd .lg{background:#fff;padding:8px 14px;display:flex;align-items:center;border-bottom-right-radius:40px}.hd .lg img{height:54px}
+.hd .ct{flex:1;padding:10px 16px;text-align:right;font-size:12.5px;line-height:1.6}.hd .ct b{color:#f5b800;font-size:17px}.bar{height:6px;background:#f5b800}
+.ban{display:flex;align-items:center;justify-content:space-between;padding:10px 14px}.ban h1{margin:0;background:#0b1f4b;color:#f5b800;padding:6px 22px;letter-spacing:3px;font-size:21px;border-radius:4px}
+.ban .no{font-size:13px;text-align:right;line-height:1.6}.box2{display:flex;gap:10px;margin:6px 14px}.bx{flex:1;border:1.5px solid #0b1f4b;border-radius:4px;overflow:hidden}
+.bx h3{margin:0;background:#0b1f4b;color:#fff;font-size:12px;padding:5px 8px;letter-spacing:1px}.bx table{width:100%;font-size:13px;border-collapse:collapse}.bx td{padding:6px 8px;border-bottom:1px solid #e2e8f0;vertical-align:top}.bx td:first-child{width:130px;font-weight:700}
+.st{margin:10px 14px;padding:10px;border:2px dashed #f5b800;border-radius:6px;font-size:14px;text-align:center;font-weight:700}
+.tc{margin:10px 14px 0;border:1.5px solid #0b1f4b;border-radius:4px;font-size:11.5px}.tc h3{margin:0;background:#0b1f4b;color:#f5b800;font-size:11.5px;padding:4px 8px;letter-spacing:1px}.tc ol{margin:6px 0;padding-left:22px;line-height:1.6}
+.sg{display:flex;justify-content:space-between;margin:auto 14px 0;padding:30px 0 8px;font-size:12px}.sg div{width:44%;text-align:center;border-top:1.5px solid #0b1f4b;padding-top:5px;font-weight:700}
+.ft{background:#0b1f4b;color:#fff;text-align:center;padding:8px;font-size:13px}.ft b{color:#f5b800}
+.tb{position:sticky;top:0;background:#0b1f4b;padding:8px;text-align:center}.tb button{font-size:16px;padding:10px 22px;border:0;border-radius:6px;background:#f5b800;color:#0b1f4b;font-weight:800;margin:0 4px}
+@media print{body{background:#fff}.tb{display:none}.pg{margin:0;min-height:279mm}}@media screen and (max-width:760px){body{zoom:.5}}
+</style></head><body><div class="tb"><button onclick="window.print()">🖨 Print / Save PDF (A4)</button><button onclick="window.close()">✖ Close</button></div>
+<div class="pg"><div class="hd"><div class="lg"><img src="${window.LOGO}" alt="C COMPUTER"></div><div class="ct"><b>C COMPUTER</b> – THE COMPUTER HOUSE<br>📞 +91 81600 88439<br>📍 C-5, Near Business Fair, Laxmi Nagar Society,<br>Katargam Road, Surat – 395004</div></div><div class="bar"></div>
+<div class="ban"><h1>REPLACEMENT RECEIPT</h1><div class="no"><b>Receipt No.:</b> ${e(x.id)}<br><b>Date:</b> ${e(dt)} ${e(rpTime(x))}</div></div>
+<div class="box2"><div class="bx"><h3>CUSTOMER DETAILS</h3><table>${R('Name', x.name)}${R('Mobile', x.mobile)}${R('Purchase Bill No.', x.billNo)}</table></div>
+<div class="bx"><h3>PRODUCT DETAILS</h3><table>${R('Product', x.product)}${R('Capacity', x.size)}${R('Brand / Model', x.brand)}${R('Old Serial No.', x.oldSerial)}${x.newSerial ? R('New Serial No.', x.newSerial) : ''}</table></div></div>
+<div class="box2"><div class="bx"><h3>SERVICE DETAILS</h3><table>${R('Problem', x.note)}${R('Sent to', x.company)}${R('Received by (Staff)', x.by)}</table></div></div>
+<div class="st">Current Status: ${e(({ 'Received': 'Product received at shop', 'Sent to Company': 'Sent to company / service center', 'Replacement Received': 'Replacement received – ready to collect', 'Given to Customer': 'Delivered to customer', 'Rejected': 'Rejected by company' })[x.status] || x.status)}</div>
+<div class="tc"><h3>TERMS &amp; CONDITIONS</h3><ol>
+<li>Replacement / repair is as per company warranty policy. Final decision is of the company.</li>
+<li>Replacement usually takes 15 to 30 working days. Time depends on the company.</li>
+<li>No warranty for physical damage, burn, water damage, or broken / tampered seal.</li>
+<li>C COMPUTER is not responsible for data inside the product. Please keep your own data backup.</li>
+<li>Please bring this receipt when collecting the product.</li>
+<li>Product not collected within 60 days of intimation, shop is not responsible.</li></ol></div>
+<div class="sg"><div>Customer Signature</div><div>For C COMPUTER<br><br>Authorized Signature</div></div>
+<div class="ft">Thank you for choosing <b>C COMPUTER!</b> &nbsp;•&nbsp; Technology You Can Trust.</div></div></body></html>`;
+  const w = window.open('', '_blank'); if (!w) return toast('Popup block thayu — browser ma popups allow karo', 'bad');
+  w.document.open(); w.document.write(html); w.document.close();
+}
 function rpOpen(x) {
   const row = (k, v) => v ? `<tr><td style="color:#64748b;padding:4px 10px 4px 0">${k}</td><td><b>${esc(v)}</b></td></tr>` : '';
-  const m = modal(x.id + ' · ' + x.name, `<table style="font-size:14px">${row('Tarikh', x.date)}${row('Mobile', x.mobile)}${row('Product', x.product + ' ' + (x.size || ''))}${row('Brand', x.brand)}${row('Bill no.', x.billNo)}${row('Company', x.company)}${row('Juno serial', x.oldSerial)}${row('Navo serial', x.newSerial)}${row('Note', x.note)}${row('Entry', x.by)}</table>
+  const m = modal(x.id + ' · ' + x.name, `<table style="font-size:14px">${row('Tarikh', x.date + (rpTime(x) ? ' · ' + rpTime(x) : ''))}${row('Mobile', x.mobile)}${row('Product', x.product + ' ' + (x.size || ''))}${row('Brand', x.brand)}${row('Bill no.', x.billNo)}${row('Company', x.company)}${row('Juno serial', x.oldSerial)}${row('Navo serial', x.newSerial)}${row('Note', x.note)}${row('Entry', x.by)}</table>
     <div id="rpPh" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:10px 0">${x.photos ? '<small>⏳ Photo aave chhe…</small>' : ''}</div>
     <div class="fld"><label>Status badlo</label><select id="rpSt">${REP_ST.map(s => `<option value="${s}" ${s === x.status ? 'selected' : ''}>${REP_GU[s]}</option>`).join('')}</select></div>
     <div class="fld"><label>Kai company / service center ne aapyu</label><input id="rpCo" list="rpCL2" value="${esc(x.company || '')}"><datalist id="rpCL2">${[...new Set((RP.list || []).map(y => y.company).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
     <div class="fld"><label>Navo serial no. (replacement aave tyare)</label><input id="rpNS" value="${esc(x.newSerial || '')}"></div>
     <div class="fld"><label>Navo photo umero (jem ke service center ni slip, navu SSD)</label><div id="rpMI" style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0"></div><div class="row" style="gap:8px"><button type="button" class="btn s" id="rpMC">📷 Photo pado</button><button type="button" class="btn s g" id="rpMU">🖼 Upload</button></div></div>
     ${(x.log || []).length ? `<div style="margin:8px 0;font-size:12.5px;color:#475569"><b>Itihas</b>${x.log.map(l => `<div>• ${esc(String(l.t || '').slice(0, 16))} – ${esc(REP_GU[l.s] || l.s)}${l.co ? ' (' + esc(l.co) + ')' : ''}${l.ns ? ' · navo SN ' + esc(l.ns) : ''} – ${esc(l.by || '')}</div>`).join('')}</div>` : ''}
-    ${x.mobile ? `<a class="btn g" target="_blank" href="https://wa.me/91${x.mobile}?text=${encodeURIComponent('Namaste ' + x.name + ', C COMPUTER thi. Tamara ' + x.product + ' ' + (x.size || '') + ' nu replacement: ' + (REP_GU[x.status] || x.status).replace(/^\S+\s/, '') + '. Aabhar!')}">💬 WhatsApp</a>` : ''}`, { foot: '<button class="btn ok" id="rpUpd">Save status</button>' });
+    ${x.mobile ? `<a class="btn g" target="_blank" href="https://wa.me/91${x.mobile}?text=${encodeURIComponent('Namaste ' + x.name + ', C COMPUTER thi. Tamara ' + x.product + ' ' + (x.size || '') + ' nu replacement: ' + (REP_GU[x.status] || x.status).replace(/^\S+\s/, '') + '. Aabhar!')}">💬 WhatsApp</a>` : ''}`, { foot: '<button class="btn" id="rpPr" style="background:#0b1f4b;color:#f5b800">🖨 Print Receipt</button><button class="btn ok" id="rpUpd">Save status</button>' });
   const NI = []; const dNI = () => { m.$('#rpMI').innerHTML = NI.map((u, i) => `<span style="position:relative"><img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:6px"><button data-nix="${i}" style="position:absolute;top:-6px;right:-6px;border:0;border-radius:50%;width:20px;height:20px;background:#dc2626;color:#fff;font-size:11px">✕</button></span>`).join(''); m.$$('[data-nix]').forEach(b => b.onclick = () => { NI.splice(+b.dataset.nix, 1); dNI(); }); };
   const addNI = async fs => { for (const f of fs) { if (NI.length >= 4) break; try { NI.push(await shrinkImage(f, 1600, 0.8)); } catch (e) { toast(e.message, 'bad'); } } dNI(); };
   m.$('#rpMC').onclick = async () => { const f = await pickFile(true); if (f) addNI([f]); };
   m.$('#rpMU').onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.multiple = true; i.onchange = () => addNI([...i.files]); i.click(); };
+  m.$('#rpPr').onclick = () => rpPrint(x);
   m.$('#rpUpd').onclick = e => work(e.currentTarget, async () => { if (m.$('#rpSt').value === 'Sent to Company' && !m.$('#rpCo').value.trim()) { m.$('#rpCo').focus(); throw new Error('Kai company / service center ne aapyu te lakho'); }
     await api('rpl.status', { id: x.id, status: m.$('#rpSt').value, newSerial: m.$('#rpNS').value.trim(), company: m.$('#rpCo').value.trim(), images: NI }, { rid: rid() }); toast('Save ✓', 'ok'); m.close(); rpLoad(); });
   if (x.photos) api('rpl.photo', { id: x.id }, { loader: false }).then(ph => { const h = m.$('#rpPh'); if (h) { h.innerHTML = ph.map((u, i) => `<img src="${u}" data-rpv="${i}" style="width:100%;border-radius:8px;cursor:pointer;border:1px solid var(--line)">`).join(''); h.querySelectorAll('[data-rpv]').forEach(im => im.onclick = () => modal('Bill photo', `<img src="${ph[+im.dataset.rpv]}" style="width:100%">`, { cls: 'w' })); } }).catch(e => { const h = m.$('#rpPh'); if (h) h.innerHTML = '<small>' + esc(e.message) + '</small>'; });
