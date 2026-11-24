@@ -3517,7 +3517,8 @@ async function docPdfWa(html, fname, mobile, msg) {
     file = new File([pdf.output('blob')], fname.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf', { type: 'application/pdf' });
   } finally { f.remove(); }
   const d = String(mobile || '').replace(/\D/g, '').slice(-10);
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+  const phone = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  if (phone && navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file], text: msg }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
     const mm = modal('📲 WhatsApp par mokalo', `<p>PDF taiyar chhe. Niche button dabavo, pachhi <b>WhatsApp</b> ane customer pasand karo.</p>`, { foot: '<button class="btn ok" id="dpS" style="padding:14px 20px;font-size:16px">📲 PDF mokalo</button>' });
     mm.$('#dpS').onclick = async () => { try { await navigator.share({ files: [file], text: msg }); mm.close(); } catch (e) { if (e && e.name !== 'AbortError') toast('Share nathi thatu', 'bad'); } };
