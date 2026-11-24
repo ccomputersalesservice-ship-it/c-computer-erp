@@ -5,7 +5,7 @@ export const ADMIN_ONLY = ['users', 'settings', 'pcmp', 'fixed'];
 export const ROUTE_KEYS = ['dash', 'products', 'purchase', 'sales', 'stock', 'serial', 'customers', 'reports', 'audit', 'build', 'brec', 'chal', 'replace', 'print', 'users', 'settings', 'scan', 'crm', 'service', 'quotes', 'quote', 'cash', 'pcmp', 'pos', 'fixed'];
 /* Which menus each staff member sees (by name). Admin sees everything. */
 export const STAFF_MENUS = { USTAV: ['quotes', 'service', 'replace', 'crm', 'sales', 'build', 'brec', 'serial', 'products'], NAKUL: ['quotes', 'service', 'replace', 'crm', 'cash', 'purchase', 'sales', 'stock'] };
-export const ACCT_MENUS = ['purchase', 'pos', 'sales', 'cash', 'customers'];
+export const ACCT_MENUS = ['products', 'purchase', 'pos', 'sales', 'quotes', 'stock', 'serial', 'build', 'brec', 'replace', 'service', 'cash', 'customers', 'crm'];
 export function userMenus() {
   if (!S.user || isAdmin() || isAcct()) return null;
   const k = String(S.user.name || '').trim().split(/\s+/)[0].toUpperCase(), k2 = String(S.user.loginId || '').trim().toUpperCase();
@@ -31,7 +31,7 @@ export function setCrmBlocked(f) { onCrmBlocked = f; }
 export function go(route, params, noPush) {
   { const um = userMenus(); if (um && !um.includes(route) && !(route === 'quote' && um.includes('quotes'))) route = um[0]; }
   if (route === 'crm' && isAdmin()) { const w = window.open(CRM_URL, '_blank'); if (!w) onCrmBlocked(); return; }
-  if (isAcct() && !ACCT_MENUS.includes(route)) route = 'sales';
+  if (isAcct() && !ACCT_MENUS.includes(route) && route !== 'quote') route = 'sales';
   if (!ROUTE_KEYS.includes(route) || (ADMIN_ONLY.includes(route) && !isAdmin())) route = isAcct() ? 'sales' : 'dash';
   if ((!noPush && S.route !== route) || (!noPush && params && Object.keys(params).length)) S.stack.push({ route: S.route, params: S.params });
   if (S.stack.length > 30) S.stack.shift();
