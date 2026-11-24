@@ -3472,8 +3472,8 @@ table.it{width:calc(100% - 28px);margin:0 14px;border-collapse:collapse;font-siz
   <div class="bl"><div class="pm"><b>PAYMENT MODE</b>${pays.map(p => `<span class="ck"><i>${p[1].test(pay) ? '✔' : ''}</i>${p[0]}</span>`).join('')}${/hdfc|idbi/.test(pay) ? `<small> (${e(payM.trim())})</small>` : ''}</div>
    <div class="aw"><b>AMOUNT IN WORDS:</b><br><span id="aw"></span></div></div>
   <div class="tt"><table>
-   <tr><td>Sub Total</td><td id="sub"></td></tr><tr><td>Discount</td><td id="dis"></td></tr><tr><td>Taxable Amount</td><td id="tax"></td></tr>
-   <tr><td>CGST @ 9%</td><td id="cg"></td></tr><tr><td>SGST @ 9%</td><td id="sg"></td></tr><tr class="g"><td>GRAND TOTAL ₹</td><td id="gt"></td></tr></table></div>
+   <tr><td>Sub Total</td><td id="sub"></td></tr><tr><td>Discount</td><td id="dis"></td></tr><tr class="gr"><td>Taxable Amount</td><td id="tax"></td></tr>
+   <tr class="gr"><td>CGST @ 9%</td><td id="cg"></td></tr><tr class="gr"><td>SGST @ 9%</td><td id="sg"></td></tr><tr class="g"><td>GRAND TOTAL ₹</td><td id="gt"></td></tr></table></div>
  </div>
  <div class="sg"><div>Customer Signature</div><div>For C COMPUTER<br><br>Authorized Signature</div></div>
  <div class="ft">Thank you for choosing <b>C COMPUTER!</b> &nbsp;•&nbsp; Technology You Can Trust.</div>
@@ -3484,7 +3484,7 @@ function m(v){return (Math.round(v*100)/100).toLocaleString('en-IN',{minimumFrac
 var W=${invWords.toString()};
 function calc(){var t=Math.max(0,SUB-DIS),g=GST?Math.round(t*0.09*100)/100:0,G=Math.round(t+2*g);
  document.getElementById('sub').textContent=m(SUB);document.getElementById('dis').textContent=DIS?'- '+m(DIS):m(0);document.getElementById('tax').textContent=m(t);
- document.getElementById('cg').textContent=m(g);document.getElementById('sg').textContent=m(g);document.getElementById('gt').textContent=m(G);document.getElementById('aw').textContent=W(G);}
+ document.getElementById('cg').textContent=m(g);document.getElementById('sg').textContent=m(g);document.getElementById('gt').textContent=m(G);document.getElementById('aw').textContent=W(G);document.querySelectorAll('tr.gr').forEach(function(r){r.style.display=GST?'':'none'});}
 document.addEventListener('click',function(ev){var c=ev.target.closest('.ck');if(!c)return;
  if(c.dataset.g!=null){GST=+c.dataset.g;document.querySelectorAll('[data-g]').forEach(function(x){x.querySelector('i').textContent=(+x.dataset.g===GST)?'✔':''});calc();return;}
  var i=c.querySelector('i');i.textContent=i.textContent?'':'✔';});
