@@ -75,9 +75,9 @@ export default function POSPage() {
   const A = { re, add: pid => posAdd(pid, re), newOrder: () => { Object.assign(POS, { free: {}, cart: [], disc: 0, cust: null, pay: 'Cash', gst: false, step: 'shop' }); re(); } };
   const showCart = wide || POS.step === 'cart';
   const t = posTotals();
-  return <Box sx={{ bgcolor: CR, m: { xs: -1.5, md: -3 }, p: { xs: 1.5, md: 3 }, minHeight: '100vh' }}>
+  return <Box sx={{ bgcolor: CR, m: { xs: -1.5, md: -3 }, p: wide ? 'clamp(8px,min(1.4vw,2vh),24px)' : 1.5, ...(wide ? { height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' } : { minHeight: '100vh' }) }}>
     <TopBar A={A} />
-    <Box sx={{ display: 'grid', gap: 2.5, gridTemplateColumns: wide ? 'minmax(0,1fr) 390px' : 'minmax(0,1fr)', alignItems: 'start' }}>
+    <Box sx={{ display: 'grid', gap: 'clamp(10px,1.4vw,20px)', gridTemplateColumns: wide ? 'minmax(0,1fr) clamp(300px,27vw,400px)' : 'minmax(0,1fr)', alignItems: wide ? 'stretch' : 'start', ...(wide ? { flex: 1, minHeight: 0 } : {}) }}>
       {(wide || POS.step !== 'cart') && <Center A={A} wide={wide} />}
       {showCart && <Cart A={A} wide={wide} />}
     </Box>
@@ -91,8 +91,8 @@ function TopBar({ A }) {
   const h = posHeld(), today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
   const openHeld = i => { const hh = posHeld(), x = hh[i]; if (!x) return; if (POS.cart.length) hh.push({ at: Date.now(), cart: POS.cart, cust: POS.cust, disc: POS.disc, gst: POS.gst, mode: POS.mode, pay: POS.pay }); Object.assign(POS, { cart: x.cart, cust: x.cust, disc: x.disc, gst: x.gst, mode: x.mode, pay: x.pay }); hh.splice(i, 1); store.lset('pos_hold', JSON.stringify(hh.slice(0, 10))); A.re(); };
   const delHeld = i => { const hh = posHeld(); hh.splice(i, 1); store.lset('pos_hold', JSON.stringify(hh)); A.re(); };
-  return <Stack direction="row" gap={1.5} flexWrap="wrap" alignItems="center" justifyContent="space-between" sx={{ mb: 2.5 }}>
-    <Box><Typography variant="h5" fontWeight={900} sx={{ color: DK, lineHeight: 1.1 }}>Quick Order</Typography><Typography sx={{ color: OR, fontWeight: 700 }}>{today}</Typography></Box>
+  return <Stack direction="row" gap={1.5} flexWrap="wrap" alignItems="center" justifyContent="space-between" sx={{ mb: 'clamp(6px,1.6vh,20px)', flex: 'none' }}>
+    <Box><Typography fontWeight={900} sx={{ color: DK, lineHeight: 1.1, fontSize: 'clamp(19px,1.7vw,26px)' }}>Quick Order</Typography><Typography sx={{ color: OR, fontWeight: 700, fontSize: 'clamp(12px,1vw,16px)' }}>{today}</Typography></Box>
     <Stack direction="row" gap={1} flexWrap="wrap" alignItems="center">
       {h.map((x, i) => <Chip key={i} sx={{ bgcolor: '#fff', border: '1px solid ' + LN, fontWeight: 700, height: 40, borderRadius: 99 }} label={`${x.cust ? x.cust.name : 'Held ' + (i + 1)} · ${x.cart.length}`} onClick={() => openHeld(i)} onDelete={() => delHeld(i)} />)}
       <Button sx={{ ...pill(false), height: 44 }} onClick={() => posHold(A)}>Hold</Button>
@@ -104,12 +104,12 @@ function TopBar({ A }) {
 function CatTiles({ A, onPick }) {
   const cats = {}, inS = {}; POS.prods.forEach(p => { const c = p.Category || 'Other'; cats[c] = (cats[c] || 0) + 1; if (posAvail(p) > 0) inS[c] = (inS[c] || 0) + 1; });
   const all = [['all', 'All Products', POS.prods.length, POS.prods.filter(p => posAvail(p) > 0).length]].concat(Object.keys(cats).sort().map(c => [c, c, cats[c], inS[c] || 0]));
-  return <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1, mb: 1.5, scrollSnapType: 'x mandatory', '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: LN, borderRadius: 9 } }}>
+  return <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: .8, mb: 'clamp(6px,1.4vh,12px)', scrollSnapType: 'x mandatory', '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: LN, borderRadius: 9 } }}>
     {all.map(([k, label, n, av]) => { const on = POS.q.trim() ? k === 'all' : POS.cat === k, low = av === 0; return <Box key={k} onClick={() => { POS.cat = k; POS.q = ''; onPick(); A.re(); }}
-      sx={{ flex: '0 0 auto', width: { xs: 150, md: 190 }, height: { xs: 110, md: 128 }, p: 1.6, borderRadius: '22px', cursor: 'pointer', position: 'relative', overflow: 'hidden', scrollSnapAlign: 'start', bgcolor: on ? OR : '#fff', color: on ? '#fff' : DK, border: '1px solid ' + (on ? OR : LN), transition: 'all .15s', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 18px rgba(0,0,0,.06)' } }}>
-      <Box component="span" sx={{ display: 'inline-block', fontSize: 11, fontWeight: 700, px: 1.2, py: .3, borderRadius: 99, border: low ? 0 : '1px solid ' + (on ? '#fff' : DK), bgcolor: low ? '#f87171' : 'transparent', color: low ? '#fff' : 'inherit' }}>{low ? 'Need re-stock' : 'Available'}</Box>
+      sx={{ flex: '0 0 auto', width: { xs: 140, md: 'clamp(128px,11vw,190px)' }, height: { xs: 100, md: 'clamp(66px,min(7.6vw,13vh),128px)' }, p: 1.2, borderRadius: '22px', cursor: 'pointer', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-start', scrollSnapAlign: 'start', bgcolor: on ? OR : '#fff', color: on ? '#fff' : DK, border: '1px solid ' + (on ? OR : LN), transition: 'all .15s', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 18px rgba(0,0,0,.06)' } }}>
+      <Box component="span" sx={{ display: 'inline-block', fontSize: 10.5, fontWeight: 700, px: 1, py: .2, borderRadius: 99, position: 'relative', whiteSpace: 'nowrap', border: low ? 0 : '1px solid ' + (on ? '#fff' : DK), bgcolor: low ? '#f87171' : 'transparent', color: low ? '#fff' : 'inherit' }}>{low ? 'Need re-stock' : 'Available'}</Box>
       <Box sx={{ position: 'absolute', right: -6, bottom: -14, fontSize: { xs: 58, md: 72 }, opacity: on ? .35 : .18, filter: 'grayscale(.3)', lineHeight: 1 }}>{k === 'all' ? '🛍' : posIcon(k)}</Box>
-      <Box sx={{ position: 'absolute', left: 14, bottom: 12 }}><Typography fontWeight={800} sx={{ fontSize: { xs: 17, md: 21 }, lineHeight: 1.1 }}>{label}</Typography><Typography variant="caption" sx={{ opacity: .85 }}>{n} items</Typography></Box>
+      <Box sx={{ position: 'relative', minWidth: 0, maxWidth: '100%' }}><Typography fontWeight={800} noWrap sx={{ fontSize: { xs: 16, md: 'clamp(14px,min(1.3vw,2.6vh),21px)' }, lineHeight: 1.15 }}>{label}</Typography><Typography variant="caption" sx={{ opacity: .85, lineHeight: 1.2, display: 'block' }}>{n} items</Typography></Box>
     </Box>; })}
   </Box>;
 }
@@ -118,25 +118,29 @@ function Center({ A, wide }) {
   const [q, setQ] = useState(POS.q);
   const deb = useRef(debounce(v => { POS.q = v; A.re(); }, 150)).current;
   const l = posFiltered(), shown = l.slice(0, 60);
-  const sel = { bgcolor: '#fff', borderRadius: 99, height: 40, fontSize: 14, fontWeight: 600, '& fieldset': { borderColor: LN } };
+  const sel = { bgcolor: '#fff', borderRadius: 99, height: 'clamp(34px,5vh,40px)', fontSize: 14, fontWeight: 600, '& fieldset': { borderColor: LN } };
   const scan = () => openScanner(code => { const c = String(code).trim().toLowerCase(), hit = POS.prods.find(p => [p.Barcode, p.SKU].some(x => x && String(x).toLowerCase() === c)); if (hit) A.add(hit.ProductID); else toast('Not found: ' + code, 'bad'); }, 'Barcode scan');
-  return <Box>
+  return <Box sx={wide ? { display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' } : undefined}>
+    <Box sx={{ flex: 'none' }}>
     <TextField fullWidth placeholder="Search name / model / SKU / barcode" value={q} onChange={e => { setQ(e.target.value); deb(e.target.value); }}
       onKeyDown={ev => { if (ev.key === 'Enter') { const code = q.trim().toLowerCase(), hit = POS.prods.find(p => [p.Barcode, p.SKU].some(x => x && String(x).toLowerCase() === code)); if (hit) { A.add(hit.ProductID); setQ(''); POS.q = ''; A.re(); } } }}
       InputProps={{ startAdornment: <Box component="span" sx={{ mr: 1, fontSize: 20 }}>🔍</Box>, endAdornment: <IconButton onClick={scan} title="Scan" sx={{ color: OR }}><QrCodeScannerIcon /></IconButton> }}
-      sx={{ mb: 2, '& .MuiOutlinedInput-root': { bgcolor: '#fff', borderRadius: 99, height: 58, fontSize: 17, px: 1.5 }, '& fieldset': { borderColor: OR + '66' } }} />
+      sx={{ mb: 'clamp(6px,1.4vh,16px)', '& .MuiOutlinedInput-root': { bgcolor: '#fff', borderRadius: 99, height: { xs: 50, md: 'clamp(40px,min(3.6vw,7vh),58px)' }, fontSize: { xs: 16, md: 'clamp(14px,1.1vw,17px)' }, px: 1.5 }, '& fieldset': { borderColor: OR + '66' } }} />
     <CatTiles A={A} onPick={() => setQ('')} />
-    <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mb: 2 }}>
+    <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mb: 'clamp(8px,1.8vh,16px)' }}>
       <Select size="small" value={POS.brand} displayEmpty onChange={e => { POS.brand = e.target.value; A.re(); }} sx={{ ...sel, minWidth: 130 }}><MenuItem value="">All Brands</MenuItem>{brands.map(b => <MenuItem key={b} value={b}>{b}</MenuItem>)}</Select>
       <Select size="small" value={POS.stock} displayEmpty onChange={e => { POS.stock = e.target.value; A.re(); }} sx={{ ...sel, minWidth: 130 }}><MenuItem value="">All Stock</MenuItem><MenuItem value="in">In stock</MenuItem><MenuItem value="out">Out of stock</MenuItem><MenuItem value="fav">♥ Favourites</MenuItem></Select>
       <Select size="small" value={POS.sort} onChange={e => { POS.sort = e.target.value; A.re(); }} sx={{ ...sel, minWidth: 150 }}><MenuItem value="pop">Sort: Popular</MenuItem><MenuItem value="lo">Price low→high</MenuItem><MenuItem value="hi">Price high→low</MenuItem><MenuItem value="name">Name A–Z</MenuItem></Select>
-      <Button sx={{ ...pill(false), height: 40 }} onClick={() => { POS.view = POS.view === 'grid' ? 'list' : 'grid'; A.re(); }}>{POS.view === 'grid' ? '☰ List' : '▦ Grid'}</Button>
+      <Button sx={{ ...pill(false), height: 'clamp(34px,5vh,40px)' }} onClick={() => { POS.view = POS.view === 'grid' ? 'list' : 'grid'; A.re(); }}>{POS.view === 'grid' ? '☰ List' : '▦ Grid'}</Button>
       <Typography variant="caption" sx={{ alignSelf: 'center', ml: 'auto', color: '#6b7280' }}>{l.length} products</Typography>
     </Stack>
-    {shown.length ? <Box sx={{ display: 'grid', gap: 1.8, gridTemplateColumns: POS.view === 'list' ? 'minmax(0,1fr)' : { xs: 'repeat(2,minmax(0,1fr))', sm: 'repeat(auto-fill,minmax(180px,1fr))' } }}>
+    </Box>
+    <Box sx={wide ? { flex: 1, minHeight: 0, overflowY: 'auto', pr: .5, pb: 2, mr: -.5 } : { pb: 10 }}>
+    {shown.length ? <Box sx={{ display: 'grid', gap: 'clamp(10px,1vw,16px)', gridTemplateColumns: POS.view === 'list' ? 'minmax(0,1fr)' : { xs: 'repeat(2,minmax(0,1fr))', sm: 'repeat(auto-fill,minmax(clamp(150px,11.5vw,200px),1fr))' } }}>
       {shown.map(p => <PosCard key={p.ProductID} p={p} A={A} list={POS.view === 'list'} />)}
     </Box> : <Empty>No product found</Empty>}
     {l.length > shown.length && <Empty>Showing 60 of {l.length}. Search or choose a category to narrow down.</Empty>}
+    </Box>
   </Box>;
 }
 /* product photo without a grey box (photo floats on the white card) */
@@ -146,16 +150,17 @@ function Photo({ id, h }) {
   return <Box sx={{ height: h, width: '100%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '14px' }}>{u ? <img src={u} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', mixBlendMode: 'multiply' }} /> : <Box sx={{ width: h * .8, height: h * .8, borderRadius: 99, bgcolor: CR, display: 'grid', placeItems: 'center', fontSize: h > 80 ? 44 : 26, opacity: .6 }}>{posIcon((POS.prods.find(x => x.ProductID === id) || {}).Category || '')}</Box>}</Box>;
 }
 function PosCard({ p, A, list }) {
+  const big = useMediaQuery('(min-width:1500px)');
   const av = posAvail(p), pr = posPriceOf(p), spec = [p.Brand, p.Model].filter(Boolean).join(' · ');
   const n = POS.cart.filter(x => x.id === p.ProductID).reduce((a, x) => a + x.qty, 0), first = POS.cart.findIndex(x => x.id === p.ProductID), last = POS.cart.map(x => x.id).lastIndexOf(p.ProductID);
   const fav = !!POS.fav[p.ProductID];
-  const plus = <IconButton onClick={() => n ? posQty(first, 1, A) : A.add(p.ProductID)} sx={{ width: 48, height: 48, flex: 'none', fontSize: 26, fontWeight: 300, bgcolor: n ? OR : '#fff', color: n ? '#fff' : OR, border: '1.5px solid ' + OR, '&:hover': { bgcolor: n ? OR : '#fff1eb' } }}>+</IconButton>;
-  return <Paper elevation={0} sx={{ p: 1.6, position: 'relative', display: 'flex', flexDirection: list ? 'row' : 'column', alignItems: list ? 'center' : 'stretch', gap: list ? 1.5 : .5, borderRadius: '22px', border: '1.5px solid ' + (n ? OR : LN), bgcolor: '#fff', height: '100%', minWidth: 0, transition: 'all .15s', '&:hover': { boxShadow: '0 8px 22px rgba(0,0,0,.07)' } }}>
+  const plus = <IconButton onClick={() => n ? posQty(first, 1, A) : A.add(p.ProductID)} sx={{ width: { xs: 42, md: 'clamp(38px,3vw,48px)' }, height: { xs: 42, md: 'clamp(38px,3vw,48px)' }, flex: 'none', fontSize: 24, fontWeight: 300, bgcolor: n ? OR : '#fff', color: n ? '#fff' : OR, border: '1.5px solid ' + OR, '&:hover': { bgcolor: n ? OR : '#fff1eb' } }}>+</IconButton>;
+  return <Paper elevation={0} sx={{ p: 'clamp(10px,1vw,14px)', position: 'relative', display: 'flex', flexDirection: list ? 'row' : 'column', alignItems: list ? 'center' : 'stretch', gap: list ? 1.5 : .5, borderRadius: '22px', border: '1.5px solid ' + (n ? OR : LN), bgcolor: '#fff', height: '100%', minWidth: 0, transition: 'all .15s', '&:hover': { boxShadow: '0 8px 22px rgba(0,0,0,.07)' } }}>
     <IconButton size="small" onClick={() => { POS.fav[p.ProductID] = !fav; if (fav) delete POS.fav[p.ProductID]; store.lset('pos_fav', JSON.stringify(POS.fav)); A.re(); }} sx={{ position: 'absolute', top: 8, left: 8, zIndex: 1, color: fav ? OR : '#cbd5e1', fontSize: 18 }}>{fav ? '♥' : '♡'}</IconButton>
     {n > 0 && <Box sx={{ position: 'absolute', top: 10, right: 10, zIndex: 1, minWidth: 26, height: 26, px: .6, borderRadius: 99, bgcolor: '#fde3d6', color: OR, fontWeight: 800, fontSize: 13, display: 'grid', placeItems: 'center' }}>{n}</Box>}
-    <Box sx={{ width: list ? 70 : '100%', flex: 'none', pt: list ? 0 : 2 }}><Photo id={p.ProductID} h={list ? 60 : 120} /></Box>
+    <Box sx={{ width: list ? 70 : '100%', flex: 'none', pt: list ? 0 : 1.5 }}><Photo id={p.ProductID} h={list ? 56 : big ? 120 : 92} /></Box>
     <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-      <Typography fontWeight={800} title={p.Name} sx={{ fontSize: 15, color: DK, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', minHeight: list ? 0 : 38, lineHeight: 1.25, mt: list ? 0 : 1 }}>{p.Name}</Typography>
+      <Typography fontWeight={800} title={p.Name} sx={{ fontSize: { xs: 14, md: 'clamp(13px,1vw,15px)' }, color: DK, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', minHeight: list ? 0 : 38, lineHeight: 1.25, mt: list ? 0 : 1 }}>{p.Name}</Typography>
       {spec && <Typography variant="caption" sx={{ color: '#9ca3af', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{spec}</Typography>}
       <Stack direction="row" justifyContent="space-between" alignItems="flex-end" gap={.5} sx={{ mt: 'auto', pt: 1 }}>
         <Box sx={{ minWidth: 0 }}>
@@ -181,7 +186,7 @@ function posQty(i, d, A) { const l = POS.cart[i]; if (!l) return; if (l.track !=
 function Cart({ A, wide }) {
   const t = posTotals(), pays = ['Cash', 'UPI HDFC', 'UPI IDBI', 'Card', 'Bank Transfer', 'Credit / Udhar', 'Split'];
   const H = ({ children }) => <Typography sx={{ fontSize: 13, color: '#6b7280', fontWeight: 600, mt: 2, mb: .8 }}>{children}</Typography>;
-  return <Paper elevation={0} sx={{ p: 2.2, borderRadius: '26px', border: '1px solid ' + LN, bgcolor: '#fff', position: wide ? 'sticky' : 'static', top: 80 }}>
+  return <Paper elevation={0} sx={{ p: 'clamp(12px,1.3vw,20px)', borderRadius: '26px', border: '1px solid ' + LN, bgcolor: '#fff', ...(wide ? { height: '100%', overflowY: 'auto', minHeight: 0 } : {}) }}>
     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
       {!wide ? <IconButton onClick={() => { POS.step = 'shop'; A.re(); }} sx={{ border: '1px solid ' + LN }}>‹</IconButton> : <Box sx={{ width: 42, height: 42, borderRadius: 99, bgcolor: '#fde3d6', display: 'grid', placeItems: 'center', fontSize: 20 }}>🧾</Box>}
       <Box sx={{ textAlign: 'right' }}><Typography fontWeight={800} sx={{ color: DK }}>{POS.mode === 'quote' ? 'Quotation' : POS.mode === 'order' ? 'Order' : 'Walk-in Sale'}</Typography><Typography variant="caption" sx={{ color: '#6b7280' }}>{t.count} item{t.count === 1 ? '' : 's'}</Typography></Box>
@@ -192,7 +197,7 @@ function Cart({ A, wide }) {
     <H>Customer</H>
     <CustBox A={A} />
     <Stack direction="row" justifyContent="space-between" alignItems="center"><H>Order list</H>{POS.cart.length > 0 && <Button size="small" color="error" sx={{ textTransform: 'none', mt: 1 }} onClick={() => { POS.cart = []; POS.disc = 0; A.re(); }}>🗑 Clear</Button>}</Stack>
-    <Box sx={{ border: '1px solid ' + LN, borderRadius: '18px', px: 1.2, maxHeight: wide ? '38vh' : 'none', overflow: 'auto' }}>{POS.cart.length ? POS.cart.map((l, i) => <CartLine key={i} l={l} i={i} A={A} />) : <Box sx={{ py: 4, textAlign: 'center', color: '#9ca3af' }}><Box sx={{ fontSize: 36 }}>🛒</Box>Cart is empty. Tap + on a product.</Box>}</Box>
+    <Box sx={{ border: '1px solid ' + LN, borderRadius: '18px', px: 1.2, overflow: 'auto' }}>{POS.cart.length ? POS.cart.map((l, i) => <CartLine key={i} l={l} i={i} A={A} />) : <Box sx={{ py: 4, textAlign: 'center', color: '#9ca3af' }}><Box sx={{ fontSize: 36 }}>🛒</Box>Cart is empty. Tap + on a product.</Box>}</Box>
     <H>Payment Details</H>
     <Stack gap={.7}>
       <Row a="Subtotal" b={inr(t.gross)} /><Row a="Item discount" b={inr(t.ld)} />
