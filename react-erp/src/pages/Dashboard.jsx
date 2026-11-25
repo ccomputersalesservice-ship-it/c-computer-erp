@@ -12,11 +12,11 @@ import { sv } from './Service.jsx';
 import { CB } from './Cash.jsx';
 
 const Ic = ({ k }) => { const I = NAV_ICON[k] || NAV_ICON.dash; return <I />; };
-const OPS = { date: '' };
+const OPS = { date: '', more: false };
 const opsToday = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
 
 export default function Dashboard({ params }) {
-  const [per, setPer] = useState(params.period || 'month'), [d, setD] = useState(null), [ops, setOps] = useState(undefined), [opsDate, setOpsDate] = useState(OPS.date);
+  const [per, setPer] = useState(params.period || 'month'), [d, setD] = useState(null), [more, setMore] = useState(OPS.more), [ops, setOps] = useState(undefined), [opsDate, setOpsDate] = useState(OPS.date);
   const a = isAdmin();
   useEffect(() => { let on = true; setD(null); api('dash', { period: per }).then(x => { if (on) { setD(x); S.dash = x; } }).catch(e => toast(e.message, 'bad')); return () => { on = false; }; }, [per]);
   useEffect(() => { let on = true; api('dash.ops', { date: opsDate || opsToday() }).then(x => on && setOps(x), () => on && setOps(null)); return () => { on = false; }; }, [opsDate]);
@@ -24,12 +24,13 @@ export default function Dashboard({ params }) {
     {[['month', 'thismonth'], ['lastmonth', 'lastmonth'], ['year', 'thisyear'], ['all', 'alltime']].map(p => <MenuItem key={p[0]} value={p[0]}>{LT(p[1])}</MenuItem>)}</Select>;
   return <Box>
     <PageHead title={LI('dash')}>{perSel}</PageHead>
-    <Ops d={ops} date={opsDate} setDate={v => { OPS.date = v === opsToday() ? '' : v; setOpsDate(OPS.date); }} />
-    {!d ? <Skel /> : <DashBody d={d} a={a} />}
+    <Ops part="hero" d={ops} />
+    {!d ? <Skel /> : <DashBody d={d} a={a} more={more} ops={<Ops part="body" more={more} d={ops} date={opsDate} setDate={v => { OPS.date = v === opsToday() ? '' : v; setOpsDate(OPS.date); }} />} />}
+    <Box sx={{ textAlign: 'center', mt: 2 }}><Button variant={more ? 'outlined' : 'contained'} onClick={() => { OPS.more = !more; setMore(!more); }}>{more ? 'Ochhu jovo ▴' : 'Vadhare jovo ▾'}</Button></Box>
   </Box>;
 }
 
-function DashBody({ d, a }) {
+function DashBody({ d, a, more, ops }) {
   const c = d.cards, [showVal, setShowVal] = useState(false);
   const stats = [['available', c.available, '#16a34a'], ['reserved', c.reserved, '#1f6feb'], ['lowstock', c.low, '#ef4444'], ['orders', c.orders, '#7c3aed'], ['pending', c.pending, '#f59e0b'], ['delivered', c.delivered, '#16a34a']];
   if (a) stats.push(['Serialised Items', c.serialised, '#06b6d4'], ['Quantity-based Items', c.qtyBased, '#84cc16']);
@@ -39,21 +40,23 @@ function DashBody({ d, a }) {
         .concat([[LI('totproducts'), nf(c.products), '#dcfce7', '#16a34a', 'products'], a ? [LI('totstock'), nf(c.stockUnits), '#ecfccb', '#65a30d', 'stock'] : [LI('lowstock'), nf(c.low), '#fee2e2', '#ef4444', 'stock']])
         .map(k => <SoftKpi key={k[0]} label={k[0]} value={k[1]} bg={k[2]} col={k[3]} icon={<Ic k={k[4]} />} />)}
     </Grid>
-    <Grid cols={2}><RecentProducts /><MiniCal /></Grid>
+    {more && <Grid cols={2}><RecentProducts /><MiniCal /></Grid>}
     {a && <Card><CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
       <Typography fontSize={26}>₹</Typography>
       <Box sx={{ flex: 1, minWidth: 180 }}><Typography variant="caption">Stock Value (at cost price)</Typography>
         <Stack direction="row" alignItems="center" gap={1.5}><Typography variant="h4" fontWeight={800}>{showVal ? inr(c.stockValue) : '₹ ••••••'}</Typography><Button size="small" variant="contained" onClick={() => setShowVal(!showVal)}>{showVal ? 'Hide' : 'Show'}</Button></Stack></Box>
       <Box><Typography variant="caption">{nf(c.stockUnits)} units in {nf(c.products)} products</Typography>{c.noCost ? <Typography variant="caption" display="block" sx={{ color: '#b45309' }}>{nf(c.noCost)} products have no cost price yet (not counted)</Typography> : null}</Box>
     </CardContent></Card>}
-    <DashExtra d={d} a={a} />
-    <Grid cols={4}>{stats.map(s => <Stat key={s[0]} label={LI(s[0])} value={nf(s[1])} color={s[2]} />)}</Grid>
+    <DashExtra d={d} a={a} more={more} />
+    {ops}
+    {more && <Grid cols={4}>{stats.map(s => <Stat key={s[0]} label={LI(s[0])} value={nf(s[1])} color={s[2]} />)}</Grid>}
+    {more && <>
     <Grid cols={2}>
       {a ? <Section title={LI('salestrend')}><BarChart data={d.trend} series={[{ k: 'sales', n: 'Sales', c: '#1f6feb' }, { k: 'purchase', n: 'Purchase', c: '#7c3aed' }]} /></Section>
         : <Section title={LI('movement')}><BarChart data={d.movement} series={[{ k: 'in', n: 'In', c: '#16a34a' }, { k: 'out', n: 'Out', c: '#ef4444' }]} /></Section>}
       <Section title={LI('stockcat')}>{d.categories.length ? <Donut items={d.categories} top={nf(c.stockUnits)} sub="Units" /> : <Empty>No stock yet</Empty>}</Section>
     </Grid>
-    {a && <Section title={LI('movement')}><BarChart data={d.movement} series={[{ k: 'in', n: 'Stock In', c: '#16a34a' }, { k: 'out', n: 'Stock Out', c: '#ef4444' }]} w={1160} h={200} /></Section>}
+    {more && a && <Section title={LI('movement')}><BarChart data={d.movement} series={[{ k: 'in', n: 'Stock In', c: '#16a34a' }, { k: 'out', n: 'Stock Out', c: '#ef4444' }]} w={1160} h={200} /></Section>}
     <Grid cols={2}>
       <Section title={LI('lowalert')}><DataTable rows={d.lowStock} empty="No low stock products 👍" cols={[{ h: '#', k: (r, i) => i + 1 }, { h: LT('products'), k: r => r.name }, { h: 'Current', k: r => nf(r.current), align: 'right' }, { h: 'Reorder', k: r => nf(r.reorder), align: 'right' }, { h: '', k: () => <Button size="small" color="error" variant="contained" onClick={() => go('reports', { tab: 'reorder' })}>Reorder</Button>, align: 'right' }]} /></Section>
       <Section title={LI('recentorders')}><DataTable rows={d.recentOrders} empty="No orders yet" onRow={r => openOrder(r.orderId)} cols={[{ h: 'Order ID', k: r => r.orderId }, { h: LT('customers'), k: r => r.customer }].concat(a ? [{ h: LT('total'), k: r => inr(r.total), align: 'right' }] : []).concat([{ h: LT('status'), k: r => <Pill s={r.status} /> }])} /></Section>
@@ -62,10 +65,11 @@ function DashBody({ d, a }) {
       {a && <Section title={LI('recentpur')}><DataTable rows={d.recentPurchases} empty="No purchases yet" onRow={r => openPurchase(r.purchaseId)} cols={[{ h: 'ID', k: r => r.purchaseId }, { h: LT('vendor'), k: r => r.vendor }, { h: LT('total'), k: r => inr(r.amount), align: 'right' }, { h: LT('status'), k: r => <Pill s={r.status} /> }]} /></Section>}
       <Section title={LI('recentact')}><DataTable rows={d.recentActivity} empty="No activity yet" cols={[{ h: LT('date'), k: r => r.dt.slice(5, 16), nw: true }, { h: LT('products'), k: r => <>{r.product}{r.serial && <><br /><small>{r.serial}</small></>}</> }, { h: 'Type', k: r => <Chip size="small" label={r.type} /> }, { h: LT('qty'), k: r => nf(r.qty), align: 'right' }]} /></Section>
     </Grid>
+    </>}
   </Stack>;
 }
 
-function DashExtra({ d, a }) {
+function DashExtra({ d, a, more }) {
   const chg = p => <span style={{ fontSize: 12, fontWeight: 700, color: p >= 0 ? '#16a34a' : '#dc2626' }}>{p >= 0 ? '▲' : '▼'} {Math.abs(p)}%</span>;
   const al = d.alerts;
   const H = ({ children }) => <Typography variant="h6" fontWeight={800} sx={{ mt: 1 }}>{children}</Typography>;
@@ -75,16 +79,16 @@ function DashExtra({ d, a }) {
   const qa = [['Add Product', () => openProduct(null)], ['New Purchase', () => go('purchase', { new: 1 })], ['New Sale', () => go('sales', { new: 1 })], ['Build PC', () => go('build')], ['New Customer', () => go('customers')], ['Service Entry', () => go('crm')], ['Stock Audit', () => go('audit')], ['Print Barcode', () => go('print')], ['Add Photo', addPhotoDialog]];
   return <>
     {a && d.today && <><H>Today's Business</H><Grid cols={3}>{[['sales', "Today's Sales", '#1f6feb'], ['profit', "Today's Profit", '#16a34a'], ['purchase', "Today's Purchase", '#7c3aed']].map(([k, lab, col]) => <Paper key={k} sx={{ p: 2, borderTop: `3px solid ${col}` }}><Typography variant="caption">{lab}</Typography><Typography variant="h5" fontWeight={800} sx={{ my: .5 }}>{inr(d.today.today[k])}</Typography><Typography variant="caption">Yesterday {inr(d.today.yesterday[k])} · {chg(d.today.growth[k])}</Typography></Paper>)}</Grid></>}
-    {a && d.target && <Section title="Monthly Sales Target" right={<b>{inr(d.target.achieved)} / {inr(d.target.target)} · {d.target.pct}%</b>}>
+    {more && a && d.target && <Section title="Monthly Sales Target" right={<b>{inr(d.target.achieved)} / {inr(d.target.target)} · {d.target.pct}%</b>}>
       <LinearProgress variant="determinate" value={Math.min(100, d.target.pct)} color={d.target.pct >= 100 ? 'success' : 'primary'} sx={{ height: 14, borderRadius: 9, my: 1 }} />
       <Grid cols={4}>{[['Remaining', inr(d.target.remaining)], [`Need per day (${d.target.daysLeft} days left)`, inr(d.target.perDay)], ['Achieved', inr(d.target.achieved)], ['Month profit', inr(d.target.profit)]].map(x => <Box key={x[0]}><Typography variant="caption">{x[0]}</Typography><Typography fontWeight={800}>{x[1]}</Typography></Box>)}</Grid>
     </Section>}
-    {d.followups && d.followups.rows.length > 0 && <Section title={`Quotation follow-ups due (${d.followups.count})`}><DataTable rows={d.followups.rows} onRow={r => openQuote(r.id)} cols={[{ h: 'Quotation', k: r => <b>{r.id}</b> }, { h: 'Customer', k: r => <>{r.name}{r.mobile && <><br /><small>{r.mobile}</small></>}</> }, { h: 'Amount', k: r => inr(r.total), align: 'right' }, { h: 'Due', k: r => r.followDate }, { h: 'Staff', k: r => r.by }, { h: 'Note', k: r => r.followNote }]} /></Section>}
-    {al && <><H>Stock Alerts <small style={{ fontWeight: 400, fontSize: 13 }}>(tap to see list)</small></H><Grid cols={a ? 5 : 4}>
+    {more && d.followups && d.followups.rows.length > 0 && <Section title={`Quotation follow-ups due (${d.followups.count})`}><DataTable rows={d.followups.rows} onRow={r => openQuote(r.id)} cols={[{ h: 'Quotation', k: r => <b>{r.id}</b> }, { h: 'Customer', k: r => <>{r.name}{r.mobile && <><br /><small>{r.mobile}</small></>}</> }, { h: 'Amount', k: r => inr(r.total), align: 'right' }, { h: 'Due', k: r => r.followDate }, { h: 'Staff', k: r => r.by }, { h: 'Note', k: r => r.followNote }]} /></Section>}
+    {more && al && <><H>Stock Alerts <small style={{ fontWeight: 400, fontSize: 13 }}>(tap to see list)</small></H><Grid cols={a ? 5 : 4}>
       {[['out', 'Out of Stock', '#ef4444'], ['low', 'Low / Reorder', '#f59e0b'], ['dead', 'Dead Stock (90d)', '#64748b'], ['slow', 'Slow Moving (30-90d)', '#06b6d4']].concat(a ? [['noCost', 'No Purchase Price', '#7c3aed']] : []).map(x => <Stat key={x[0]} label={x[1]} value={nf(al.counts[x[0]])} color={x[2]} onClick={() => alertList(d, x[0])} />)}</Grid></>}
-    {d.best && <><H>Best Selling</H><Grid cols={2}>{lst('Top 10 Best Selling', d.best.top, a)}{a && lst('Highest Profit Products', d.best.profit, true)}</Grid>{a && lst('Most Purchased', d.best.purchased, false)}</>}
+    {more && d.best && <><H>Best Selling</H><Grid cols={2}>{lst('Top 10 Best Selling', d.best.top, a)}{a && lst('Highest Profit Products', d.best.profit, true)}</Grid>{a && lst('Most Purchased', d.best.purchased, false)}</>}
     <H>Quick Actions</H><Stack direction="row" flexWrap="wrap" gap={1}>{qa.map(x => <Button key={x[0]} variant="outlined" onClick={x[1]}>{x[0]}</Button>)}</Stack>
-    {d.recentAct2 && d.recentAct2.length > 0 && <Section title="Latest Activity"><DataTable rows={d.recentAct2} cols={[{ h: 'Date & time', k: r => dtm('', r.dt), nw: true }, { h: 'Staff', k: r => <b>{r.who}</b> }, { h: 'What', k: r => <>{r.action} {r.id && <small>{r.id}</small>}</> }]} /></Section>}
+    {more && d.recentAct2 && d.recentAct2.length > 0 && <Section title="Latest Activity"><DataTable rows={d.recentAct2} cols={[{ h: 'Date & time', k: r => dtm('', r.dt), nw: true }, { h: 'Staff', k: r => <b>{r.who}</b> }, { h: 'What', k: r => <>{r.action} {r.id && <small>{r.id}</small>}</> }]} /></Section>}
   </>;
 }
 function alertList(d, k) {
@@ -100,7 +104,7 @@ function opsText(d) {
 function opsList(title, cols, rows) {
   const dl = openDialog(title, () => <><DataTable rows={rows} cols={cols} empty="Nothing here" /><Box sx={{ textAlign: 'right', mt: 1 }}><Button variant="outlined" onClick={() => { dl.close(); go('crm'); }}>Open CRM</Button></Box></>);
 }
-function Ops({ d, date, setDate }) {
+function Ops({ d, date, setDate, part, more }) {
   const nm = String((S.user && S.user.name) || '').trim().split(/\s+/)[0], dt = new Date(Date.now() + 330 * 60000);
   const dateTxt = dt.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
   const Card_ = ({ lab, v, col, onClick, children }) => <Paper onClick={onClick} sx={{ p: 1.5, borderTop: `3px solid ${col || '#0f2a5e'}`, cursor: onClick ? 'pointer' : 'default' }}><Typography variant="caption" color="text.secondary">{lab}</Typography><Typography variant="h6" fontWeight={800}>{v}</Typography>{children}</Paper>;
@@ -108,13 +112,13 @@ function Ops({ d, date, setDate }) {
   const toSv = s => { sv.status = s || ''; sv.q = ''; sv.page = 1; go('service'); };
   const toCash = () => { CB.mode = ''; CB.range = 'all'; go('cash'); };
   return <Box sx={{ mb: 2 }}>
-    <Hero nm={nm} dateTxt={dateTxt} />
-    {d && <>
+    {part !== 'body' && <Hero nm={nm} dateTxt={dateTxt} />}
+    {part !== 'hero' && d && <>
       <H>Service Summary</H>
       <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { xs: 'repeat(3,1fr)', md: 'repeat(9,1fr)' } }}>
         {[['Total', d.services.total, '', '#0f2a5e'], ['Pending', d.services.Pending, 'Pending', '#f59e0b'], ['Processing', d.services.Processing, 'Processing', '#2563eb'], ['Ready', d.services.Ready, 'Ready', '#16a34a'], ['Delivered', d.services.Delivered, 'Delivered', '#64748b'], ['Urgent', d.services.urgent, '', '#dc2626'], ['On-site', d.services.onsite, '', '#7c3aed'], ['Returned', d.services.Returned, 'Returned', '#ef4444'], ['Replacement', d.services.Replacement, 'Replacement', '#0891b2']].map(x => <Card_ key={x[0]} lab={x[0]} v={nf(x[1])} col={x[3]} onClick={() => toSv(x[2])} />)}
       </Box>
-      {d.full && <FullOps d={d} date={date} setDate={setDate} Card_={Card_} H={H} toSv={toSv} toCash={toCash} />}
+      {more && d.full && <FullOps d={d} date={date} setDate={setDate} Card_={Card_} H={H} toSv={toSv} toCash={toCash} />}
     </>}
   </Box>;
 }
