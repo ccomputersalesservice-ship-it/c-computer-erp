@@ -5,7 +5,7 @@ import AddIcon from '@mui/icons-material/Add';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import CloseIcon from '@mui/icons-material/Close';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
-import { api, S, isAdmin, rid, toast, work, dtm, shrinkImage, pickFile, debounce } from '../lib/core.js';
+import { api, S, isAdmin, rid, toast, work, dtm, shrinkImage, shrinkPair, pickFile, debounce } from '../lib/core.js';
 import { PageHead, Skel, DataTable, openDialog, openScanner, promptBox, Loading } from '../lib/ui.jsx';
 import { refresh } from '../lib/nav.js';
 
@@ -79,9 +79,9 @@ function PartRow({ p, re }) {
     <Box sx={{ display: 'grid', gap: 1.2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1.3fr 1fr' }, alignItems: 'center' }}>
       <Autocomplete freeSolo options={BR_BRANDS[p.bk] || []} value={p.brand} onInputChange={(e, v) => set('brand', v)} renderInput={x => <TextField {...x} label="Brand" placeholder="Brand" />} />
       {isMon ? <Autocomplete freeSolo options={BR_INCH} value={p.spec} onInputChange={(e, v) => set('spec', v)} renderInput={x => <TextField {...x} label="Inch" placeholder={p.ph} />} /> : <TextField label="Spec / Model" placeholder={p.ph} value={p.spec} onChange={e => set('spec', e.target.value)} />}
-      <Stack direction="row" gap={.5}><TextField fullWidth label="Serial No." placeholder="Serial (box par lakhelo)" autoComplete="off" inputProps={{ autoCapitalize: 'characters' }} value={p.serial} onChange={e => set('serial', e.target.value)} /><IconButton onClick={() => openScanner(c => set('serial', String(c).toUpperCase()), p.part + ' - Serial', async f => { await work(async () => { p.dataUrl = await shrinkImage(f, 800, 0.65); p.thumb = await shrinkImage(f, 150, 0.6); re(); }); toast('Serial vanchayo nahi, photo save karyo', 'ok'); })}><QrCodeScannerIcon /></IconButton></Stack>
+      <Stack direction="row" gap={.5}><TextField fullWidth label="Serial No." placeholder="Serial (box par lakhelo)" autoComplete="off" inputProps={{ autoCapitalize: 'characters' }} value={p.serial} onChange={e => set('serial', e.target.value)} /><IconButton onClick={() => openScanner(c => set('serial', String(c).toUpperCase()), p.part + ' - Serial', async f => { await work(async () => { [p.dataUrl, p.thumb] = await shrinkPair(f, 720, 0.6, 150, 0.6); re(); }); toast('Serial vanchayo nahi, photo save karyo', 'ok'); })}><QrCodeScannerIcon /></IconButton></Stack>
       <Stack direction="row" gap={1} alignItems="center">{p.thumb ? <img src={p.thumb} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }} /> : <span>-</span>}
-        <Button size="small" variant="outlined" startIcon={<CameraAltIcon />} onClick={async () => { const f = await pickFile(true); if (f) work(async () => { p.dataUrl = await shrinkImage(f, 800, 0.65); p.thumb = await shrinkImage(f, 150, 0.6); re(); toast('Photo li lidhi', 'ok'); }); }}>{p.thumb ? 'Fari' : 'Photo'}</Button>
+        <Button size="small" variant="outlined" startIcon={<CameraAltIcon />} onClick={async () => { const f = await pickFile(true); if (f) work(async () => { [p.dataUrl, p.thumb] = await shrinkPair(f, 720, 0.6, 150, 0.6); re(); toast('Photo li lidhi', 'ok'); }); }}>{p.thumb ? 'Fari' : 'Photo'}</Button>
         {p.thumb && <IconButton size="small" color="error" onClick={() => { p.dataUrl = ''; p.thumb = ''; re(); }}><CloseIcon fontSize="small" /></IconButton>}</Stack>
     </Box>
     {!p.serial && !p.thumb && !p.skip && <Typography variant="caption" color="error">Serial ke photo jaruri che</Typography>}
@@ -97,7 +97,7 @@ function NewRec({ st }) {
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}><TextField fullWidth label="Customer nu naam *" value={st.cn} onChange={e => H('cn', e.target.value)} autoComplete="off" /><TextField fullWidth label="Mobile" inputProps={{ inputMode: 'numeric', maxLength: 10 }} value={st.cm} onChange={e => H('cm', e.target.value)} autoComplete="off" /></Stack>
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}><TextField fullWidth label="Brand / Title (example: Dell, i5 PC)" value={st.ti} onChange={e => H('ti', e.target.value)} /><TextField fullWidth label="Note" value={st.no} onChange={e => H('no', e.target.value)} /></Stack>
     {st.parts.length ? st.parts.map(p => <PartRow key={p.id} p={p} re={re} />) : <Alert severity="info">Neeche "Photo thi part umero" (serial na hoy to) ke "+ Part umero" dabavo.</Alert>}
-    <Stack direction="row" gap={1} flexWrap="wrap"><Button variant="contained" startIcon={<CameraAltIcon />} onClick={async () => { const n = await promptBox('Part nu naam? (example: Cabinet, SMPS, UPS)', 'Cabinet'); if (!n || !n.trim()) return; const f = await pickFile(true); const row = { id: ++UID, part: n.trim().slice(0, 40), bk: 'oth', ph: '', brand: '', spec: '', serial: '', dataUrl: '', thumb: '', skip: false }; if (f) await work(async () => { row.dataUrl = await shrinkImage(f, 800, 0.65); row.thumb = await shrinkImage(f, 150, 0.6); }); st.parts.push(row); re(); }}>Photo thi part umero (serial na hoy to)</Button>
+    <Stack direction="row" gap={1} flexWrap="wrap"><Button variant="contained" startIcon={<CameraAltIcon />} onClick={async () => { const n = await promptBox('Part nu naam? (example: Cabinet, SMPS, UPS)', 'Cabinet'); if (!n || !n.trim()) return; const f = await pickFile(true); const row = { id: ++UID, part: n.trim().slice(0, 40), bk: 'oth', ph: '', brand: '', spec: '', serial: '', dataUrl: '', thumb: '', skip: false }; if (f) await work(async () => { [row.dataUrl, row.thumb] = await shrinkPair(f, 720, 0.6, 150, 0.6); }); st.parts.push(row); re(); }}>Photo thi part umero (serial na hoy to)</Button>
     <Button variant="outlined" onClick={async () => { const n = await promptBox('Part nu naam? (example: Webcam, UPS, Printer)', 'Part'); if (n && n.trim()) { st.parts.push({ id: ++UID, part: n.trim().slice(0, 40), bk: 'oth', ph: '', brand: '', spec: '', serial: '', dataUrl: '', thumb: '', skip: false }); re(); } }}>+ Part umero</Button></Stack>
   </Stack>;
 }
@@ -143,7 +143,7 @@ export async function openBrec(id) {
 function PhotoPick({ v }) {
   const [, setN] = useState(0);
   return <Stack direction="row" gap={1} alignItems="center">{v.th ? <img src={v.th} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }} /> : <span>-</span>}
-    <Button variant="outlined" startIcon={<CameraAltIcon />} onClick={async () => { const f = await pickFile(true); if (f) work(async () => { v.du = await shrinkImage(f, 800, 0.65); v.th = await shrinkImage(f, 150, 0.6); setN(n => n + 1); }); }}>Photo</Button></Stack>;
+    <Button variant="outlined" startIcon={<CameraAltIcon />} onClick={async () => { const f = await pickFile(true); if (f) work(async () => { [v.du, v.th] = await shrinkPair(f, 720, 0.6, 150, 0.6); setN(n => n + 1); }); }}>Photo</Button></Stack>;
 }
 function SerialField({ v, k, label }) {
   const [, setN] = useState(0);
