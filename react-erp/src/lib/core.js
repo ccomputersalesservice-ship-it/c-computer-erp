@@ -142,6 +142,15 @@ export function barcodeSvg(value, o) {
 }
 
 /* ---------- images ---------- */
+/* fast: decode the photo once, make the big copy and the small thumbnail from it (no slow base64 round trip) */
+export async function shrinkPair(file, max, q, tmax, tq) {
+  try {
+    const bmp = await createImageBitmap(file), k = Math.min(1, max / Math.max(bmp.width, bmp.height)), w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const cx = c.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(bmp, 0, 0, w, h); if (bmp.close) bmp.close();
+    const t = Math.min(1, tmax / Math.max(w, h)), c2 = document.createElement('canvas'); c2.width = Math.round(w * t); c2.height = Math.round(h * t); c2.getContext('2d').drawImage(c, 0, 0, c2.width, c2.height);
+    return [c.toDataURL('image/jpeg', q), c2.toDataURL('image/jpeg', tq)];
+  } catch (e) { return [await shrinkImage(file, max, q), await shrinkImage(file, tmax, tq)]; }
+}
 export function shrinkImage(file, max, q) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
