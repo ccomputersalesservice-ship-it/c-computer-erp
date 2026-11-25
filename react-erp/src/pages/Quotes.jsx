@@ -209,7 +209,7 @@ const EDCSS = `.qdoc{background:#fff;border:1px solid #e5e7eb;border-radius:14px
 .qd-t{width:100%;border-collapse:collapse}.qd-t th{background:#16a34a;color:#fff;text-align:center;padding:8px 4px}.qd-t td{vertical-align:top;padding:6px 4px;border-bottom:1px solid #eef2f7}.qd-t .c{text-align:center}.qd-t .r{text-align:right}
 .qd-t .qi{width:48px;height:40px;object-fit:contain;float:left;margin-right:8px}.qtag{font-size:11px;background:#eef2f9;border-radius:6px;padding:2px 7px;color:#475569}.qint{color:#64748b}
 .qd-tot{border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;flex:1}.qrow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;gap:10px}
-.qd-gt{font-size:18px;background:#f97316;color:#fff;border-radius:6px;padding:8px 10px!important;margin-top:6px}.qd-empty{padding:20px;text-align:center;color:#64748b}
+.qd-gt{font-size:18px;background:#6b7280;color:#fff;border-radius:6px;padding:8px 10px!important;margin-top:6px}.qd-empty{padding:20px;text-align:center;color:#64748b}
 @media(max-width:700px){.qpv .pcw{display:none!important}.qpv .cu{flex-direction:column}.qpv .pcw,.qpv .bf{width:100%!important}.qpv .two{flex-direction:column}.qpv .tc{flex-direction:column}.qpv .tc .b{border-left:0}.qpv .bn{flex-direction:column;align-items:stretch}.qpv .hd .tx{display:none}.qdoc{padding:8px}}`;
 const SCOPED = qScope(qDocCss(false, qDNV, qDNV2, qDGD), '.qpv');
 const H = ({ h, ...p }) => <span {...p} dangerouslySetInnerHTML={{ __html: h }} />;

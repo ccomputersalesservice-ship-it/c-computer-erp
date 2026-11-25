@@ -61,11 +61,11 @@ export default function Cash() {
   const vm = cbCalc(d), s = d.sum, ac = d.accts, over = s.Personal > d.personalLimit;
   const setCat = (c, t) => { const m = CB.month; Object.assign(CB, { cat: c || '', type: t || '', mode: '', q: '', by: '', view: 'hist', range: 'custom', from: m + '-01', to: m + '-31' }); re(); setTimeout(() => sumRef.current && sumRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); };
   const acct = m => { Object.assign(CB, { cat: '', mode: m || '', type: '', q: '', by: '', view: 'hist' }); re(); };
-  const Box1 = ({ label, v, col, sub, on, onClick, vcol }) => <Paper onClick={onClick} sx={{ p: 1.5, cursor: 'pointer', borderLeft: col ? `5px solid ${col}` : undefined, outline: on ? '2px solid #e2603f' : 'none' }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={800} sx={{ color: vcol }}>{v}{sub}</Typography></Paper>;
+  const Box1 = ({ label, v, col, sub, on, onClick, vcol }) => <Paper onClick={onClick} sx={{ p: 1.5, cursor: 'pointer', borderLeft: col ? `5px solid ${col}` : undefined, outline: on ? '2px solid #4b5563' : 'none' }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={800} sx={{ color: vcol }}>{v}{sub}</Typography></Paper>;
   const g5 = { display: 'grid', gap: 1.2, gridTemplateColumns: { xs: 'repeat(2,1fr)', md: 'repeat(5,1fr)' }, mb: 1.5 };
   return <Box>
     <PageHead title="Cash Book"><TextField type="month" value={d.month} onChange={e => { CB.month = e.target.value || CB.month; setMonth(CB.month); }} sx={{ bgcolor: '#fff' }} /><Button variant="outlined" onClick={() => { CB.month = new Date().toISOString().slice(0, 7); setMonth(CB.month); }}>Current Month</Button></PageHead>
-    <Box sx={g5}>{[['Office', s.Office, '#2f6bff'], ['Personal', s.Personal, over ? '#d92d20' : '#e2603f', ` / ${inr(d.personalLimit)}`], ['Family', s.Family, '#8b5cf6'], ['Vendor', s.Vendor, '#0ea5e9'], ['Saving', s.Saving, '#22b573']].filter(x => !(isAcct() && HID.includes(x[0]))).map(x => <Box1 key={x[0]} label={x[0] + ' - Selected Month'} v={inr(x[1])} col={x[2]} sub={x[3]} on={CB.cat === x[0]} onClick={() => setCat(x[0])} />)}</Box>
+    <Box sx={g5}>{[['Office', s.Office, '#2f6bff'], ['Personal', s.Personal, over ? '#d92d20' : '#4b5563', ` / ${inr(d.personalLimit)}`], ['Family', s.Family, '#8b5cf6'], ['Vendor', s.Vendor, '#0ea5e9'], ['Saving', s.Saving, '#22b573']].filter(x => !(isAcct() && HID.includes(x[0]))).map(x => <Box1 key={x[0]} label={x[0] + ' - Selected Month'} v={inr(x[1])} col={x[2]} sub={x[3]} on={CB.cat === x[0]} onClick={() => setCat(x[0])} />)}</Box>
     <Box sx={{ ...g5, gridTemplateColumns: { xs: '1fr', md: 'repeat(3,1fr)' } }}>
       <Box1 label="Bija kharcha (Salary, Rent, Light, Other...)" v={inr(s.Other)} on={CB.cat === '_other'} onClick={() => setCat('_other')} />
       <Box1 label="Kul OUT - Selected Month" v={inr(s.OUT)} vcol="#d92d20" on={!CB.cat && CB.type === 'out'} onClick={() => setCat('', 'out')} />
@@ -126,7 +126,7 @@ function TransferForm({ ac, onSaved }) {
     <TextField type="number" placeholder="Amount" inputProps={{ inputMode: 'decimal' }} value={v.amount} onChange={e => S_('amount', e.target.value)} />
     <TextField placeholder="Note" value={v.note} onChange={e => S_('note', e.target.value)} />
     <TextField type="date" value={v.date} onChange={e => S_('date', e.target.value)} />
-    <Button variant="contained" sx={{ bgcolor: '#f97316' }} onClick={() => work(async () => { await api('cash.transfer', { _rid: rid(), from: v.from, to: v.to, amount: v.amount, note: v.note, date: v.date }); setV(o => ({ ...o, amount: '', note: '' })); toast('Transfer saved'); await onSaved(); })}>Transfer</Button>
+    <Button variant="contained" sx={{ bgcolor: '#6b7280' }} onClick={() => work(async () => { await api('cash.transfer', { _rid: rid(), from: v.from, to: v.to, amount: v.amount, note: v.note, date: v.date }); setV(o => ({ ...o, amount: '', note: '' })); toast('Transfer saved'); await onSaved(); })}>Transfer</Button>
   </Stack></CardContent></Card>;
 }
 function EditBody({ r, v, ac }) {

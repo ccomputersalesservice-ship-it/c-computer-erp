@@ -59,7 +59,7 @@ function posDescSerials(pid) {
   return [...new Set(m[1].split(/[\s,;\/]+/).map(x => x.trim().toUpperCase()).filter(x => x.length >= 5 && /\d/.test(x) && /^[A-Z0-9\-]+$/.test(x)))];
 }
 
-const OR = '#f2541b';
+const OR = '#4b5563';
 export default function POSPage() {
   const [, setN] = useState(0), [err, setErr] = useState(''), [ready, setReady] = useState(!!POS.prods);
   const re = () => setN(n => n + 1);
@@ -86,7 +86,7 @@ export default function POSPage() {
   </Box>;
 }
 const CR = '#f6f3ea', LN = '#ead9cc', DK = '#1f2937';
-const pill = on => ({ borderRadius: 99, textTransform: 'none', fontWeight: 700, px: 2, bgcolor: on ? OR : '#fff', color: on ? '#fff' : DK, border: '1px solid ' + (on ? OR : LN), boxShadow: 'none', '&:hover': { bgcolor: on ? OR : '#fff7f2', boxShadow: 'none' } });
+const pill = on => ({ borderRadius: 99, textTransform: 'none', fontWeight: 700, px: 2, bgcolor: on ? OR : '#fff', color: on ? '#fff' : DK, border: '1px solid ' + (on ? OR : LN), boxShadow: 'none', '&:hover': { bgcolor: on ? OR : '#f9fafb', boxShadow: 'none' } });
 function TopBar({ A }) {
   const h = posHeld(), today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
   const openHeld = i => { const hh = posHeld(), x = hh[i]; if (!x) return; if (POS.cart.length) hh.push({ at: Date.now(), cart: POS.cart, cust: POS.cust, disc: POS.disc, gst: POS.gst, mode: POS.mode, pay: POS.pay }); Object.assign(POS, { cart: x.cart, cust: x.cust, disc: x.disc, gst: x.gst, mode: x.mode, pay: x.pay }); hh.splice(i, 1); store.lset('pos_hold', JSON.stringify(hh.slice(0, 10))); A.re(); };
@@ -154,10 +154,10 @@ function PosCard({ p, A, list }) {
   const av = posAvail(p), pr = posPriceOf(p), spec = [p.Brand, p.Model].filter(Boolean).join(' · ');
   const n = POS.cart.filter(x => x.id === p.ProductID).reduce((a, x) => a + x.qty, 0), first = POS.cart.findIndex(x => x.id === p.ProductID), last = POS.cart.map(x => x.id).lastIndexOf(p.ProductID);
   const fav = !!POS.fav[p.ProductID];
-  const plus = <IconButton onClick={() => n ? posQty(first, 1, A) : A.add(p.ProductID)} sx={{ width: { xs: 42, md: 'clamp(38px,3vw,48px)' }, height: { xs: 42, md: 'clamp(38px,3vw,48px)' }, flex: 'none', fontSize: 24, fontWeight: 300, bgcolor: n ? OR : '#fff', color: n ? '#fff' : OR, border: '1.5px solid ' + OR, '&:hover': { bgcolor: n ? OR : '#fff1eb' } }}>+</IconButton>;
+  const plus = <IconButton onClick={() => n ? posQty(first, 1, A) : A.add(p.ProductID)} sx={{ width: { xs: 42, md: 'clamp(38px,3vw,48px)' }, height: { xs: 42, md: 'clamp(38px,3vw,48px)' }, flex: 'none', fontSize: 24, fontWeight: 300, bgcolor: n ? OR : '#fff', color: n ? '#fff' : OR, border: '1.5px solid ' + OR, '&:hover': { bgcolor: n ? OR : '#f3f4f6' } }}>+</IconButton>;
   return <Paper elevation={0} sx={{ p: 'clamp(10px,1vw,14px)', position: 'relative', display: 'flex', flexDirection: list ? 'row' : 'column', alignItems: list ? 'center' : 'stretch', gap: list ? 1.5 : .5, borderRadius: '22px', border: '1.5px solid ' + (n ? OR : LN), bgcolor: '#fff', height: '100%', minWidth: 0, transition: 'all .15s', '&:hover': { boxShadow: '0 8px 22px rgba(0,0,0,.07)' } }}>
     <IconButton size="small" onClick={() => { POS.fav[p.ProductID] = !fav; if (fav) delete POS.fav[p.ProductID]; store.lset('pos_fav', JSON.stringify(POS.fav)); A.re(); }} sx={{ position: 'absolute', top: 8, left: 8, zIndex: 1, color: fav ? OR : '#cbd5e1', fontSize: 18 }}>{fav ? '♥' : '♡'}</IconButton>
-    {n > 0 && <Box sx={{ position: 'absolute', top: 10, right: 10, zIndex: 1, minWidth: 26, height: 26, px: .6, borderRadius: 99, bgcolor: '#fde3d6', color: OR, fontWeight: 800, fontSize: 13, display: 'grid', placeItems: 'center' }}>{n}</Box>}
+    {n > 0 && <Box sx={{ position: 'absolute', top: 10, right: 10, zIndex: 1, minWidth: 26, height: 26, px: .6, borderRadius: 99, bgcolor: '#e5e7eb', color: OR, fontWeight: 800, fontSize: 13, display: 'grid', placeItems: 'center' }}>{n}</Box>}
     <Box sx={{ width: list ? 70 : '100%', flex: 'none', pt: list ? 0 : 1.5 }}><Photo id={p.ProductID} h={list ? 56 : big ? 120 : 92} /></Box>
     <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
       <Typography fontWeight={800} title={p.Name} sx={{ fontSize: { xs: 14, md: 'clamp(13px,1vw,15px)' }, color: DK, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', minHeight: list ? 0 : 38, lineHeight: 1.25, mt: list ? 0 : 1 }}>{p.Name}</Typography>
@@ -188,7 +188,7 @@ function Cart({ A, wide }) {
   const H = ({ children }) => <Typography sx={{ fontSize: 13, color: '#6b7280', fontWeight: 600, mt: 2, mb: .8 }}>{children}</Typography>;
   return <Paper elevation={0} sx={{ p: 'clamp(12px,1.3vw,20px)', borderRadius: '26px', border: '1px solid ' + LN, bgcolor: '#fff', ...(wide ? { height: '100%', overflowY: 'auto', minHeight: 0 } : {}) }}>
     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
-      {!wide ? <IconButton onClick={() => { POS.step = 'shop'; A.re(); }} sx={{ border: '1px solid ' + LN }}>‹</IconButton> : <Box sx={{ width: 42, height: 42, borderRadius: 99, bgcolor: '#fde3d6', display: 'grid', placeItems: 'center', fontSize: 20 }}>🧾</Box>}
+      {!wide ? <IconButton onClick={() => { POS.step = 'shop'; A.re(); }} sx={{ border: '1px solid ' + LN }}>‹</IconButton> : <Box sx={{ width: 42, height: 42, borderRadius: 99, bgcolor: '#e5e7eb', display: 'grid', placeItems: 'center', fontSize: 20 }}>🧾</Box>}
       <Box sx={{ textAlign: 'right' }}><Typography fontWeight={800} sx={{ color: DK }}>{POS.mode === 'quote' ? 'Quotation' : POS.mode === 'order' ? 'Order' : 'Walk-in Sale'}</Typography><Typography variant="caption" sx={{ color: '#6b7280' }}>{t.count} item{t.count === 1 ? '' : 's'}</Typography></Box>
     </Stack>
     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', bgcolor: CR, borderRadius: 99, p: .5, mt: 2 }}>
@@ -270,9 +270,9 @@ function CustBox({ A }) {
     A.re(); if (x) toast('Customer: ' + POS.cust.name, 'ok');
   };
   return <Box>
-    <Stack direction="row" gap={1}><TextField fullWidth id="posmob" placeholder="📱 Customer mobile number" inputProps={{ inputMode: 'numeric', maxLength: 10, style: { fontSize: 16, letterSpacing: 1 } }} value={mo} onChange={e => onMob(e.target.value)} autoComplete="off" sx={{ '& fieldset': { borderColor: '#fdba74' } }} /><Button variant="outlined" onClick={() => posCustDialog(A)} title="Naam thi shodho">🔍</Button></Stack>
+    <Stack direction="row" gap={1}><TextField fullWidth id="posmob" placeholder="📱 Customer mobile number" inputProps={{ inputMode: 'numeric', maxLength: 10, style: { fontSize: 16, letterSpacing: 1 } }} value={mo} onChange={e => onMob(e.target.value)} autoComplete="off" sx={{ '& fieldset': { borderColor: '#d1d5db' } }} /><Button variant="outlined" onClick={() => posCustDialog(A)} title="Naam thi shodho">🔍</Button></Stack>
     <Box sx={{ mt: 1 }}>{busyS ? <small>⏳ Shodhe chhe…</small> : !c ? <Typography variant="caption" color="text.secondary">10 ank lakho – juno customer hashe to naam aapo-aap aavi jashe</Typography>
-      : c._new ? <Paper variant="outlined" sx={{ p: 1, bgcolor: '#fff7ed', borderColor: '#fdba74' }}><Typography variant="caption" sx={{ color: '#c2410c', fontWeight: 700 }}>🆕 Navo customer</Typography>
+      : c._new ? <Paper variant="outlined" sx={{ p: 1, bgcolor: '#f3f4f6', borderColor: '#d1d5db' }}><Typography variant="caption" sx={{ color: '#4b5563', fontWeight: 700 }}>🆕 Navo customer</Typography>
         <TextField fullWidth size="small" id="posnn" placeholder="Customer naam *" defaultValue={c.name} onChange={e => { c.name = e.target.value.trim(); }} sx={{ my: .5, bgcolor: '#fff' }} autoFocus />
         <TextField fullWidth size="small" placeholder="Address (optional)" defaultValue={c.address} onChange={e => { c.address = e.target.value.trim(); }} sx={{ bgcolor: '#fff' }} /></Paper>
         : <Paper variant="outlined" sx={{ p: 1, bgcolor: '#ecfdf5', borderColor: '#86efac', color: '#065f46', display: 'flex', justifyContent: 'space-between' }}><span>✅ <b>{c.name}</b>{c.address ? <small> · {c.address}</small> : null}</span><IconButton size="small" onClick={() => { POS.cust = null; setMo(''); A.re(); }}><CloseIcon fontSize="small" /></IconButton></Paper>}</Box>

@@ -102,7 +102,7 @@ function PickBody({ l, onPick }) {
   const run = useRef(debounce(async v => { try { setR(await api('prod.quick', { q: v }, { loader: false })); } catch (e) { setR([]); } }, 250)).current;
   useEffect(() => { run(q); }, []);
   return <Stack gap={1}><TextField autoFocus placeholder="Search product" value={q} onChange={e => { setQ(e.target.value); run(e.target.value); }} />
-    {r === null ? <Skel /> : r.length ? r.map(p => <Paper key={p.ProductID} variant="outlined" sx={{ p: 1.2, cursor: 'pointer' }} onClick={() => onPick(p)}><b>{p.Name}</b>{p.Model && <b style={{ color: '#f2541b' }}> · {p.Model}</b>}<br /><Chip size="small" label={`${p.Brand || ''} ${p.Category} · ${p.TrackingType}`} /></Paper>) : <i>No product found. Use "+ New".</i>}</Stack>;
+    {r === null ? <Skel /> : r.length ? r.map(p => <Paper key={p.ProductID} variant="outlined" sx={{ p: 1.2, cursor: 'pointer' }} onClick={() => onPick(p)}><b>{p.Name}</b>{p.Model && <b style={{ color: '#4b5563' }}> · {p.Model}</b>}<br /><Chip size="small" label={`${p.Brand || ''} ${p.Category} · ${p.TrackingType}`} /></Paper>) : <i>No product found. Use "+ New".</i>}</Stack>;
 }
 function piPick(l, re) {
   const dl = openDialog('Choose product', () => <PickBody l={l} onPick={p => { l.productId = p.ProductID; l.pname = p.Name + (p.Model ? ' · ' + p.Model : ''); dl.close(); re(); }} />, { maxWidth: 'sm' });
