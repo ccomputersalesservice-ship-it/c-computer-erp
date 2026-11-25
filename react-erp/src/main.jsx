@@ -5,7 +5,7 @@ import App from './App.jsx';
 import './global.css';
 
 const theme = createTheme({
-  palette: { primary: { main: '#e2603f', 50: '#fdeee9', contrastText: '#fff' }, secondary: { main: '#7c3aed' }, background: { default: '#f6f7fb' } },
+  palette: { primary: { main: '#4b5563', 50: '#f3f4f6', contrastText: '#fff' }, secondary: { main: '#7c3aed' }, background: { default: '#f6f7fb' } },
   shape: { borderRadius: 12 },
   typography: { fontFamily: '"Segoe UI", Roboto, Arial, sans-serif', button: { textTransform: 'none', fontWeight: 700 } },
   components: {
