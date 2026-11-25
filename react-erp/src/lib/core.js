@@ -195,7 +195,7 @@ export function csvDownload(name, head, rows) {
 }
 export function niceStep(x) { const p = Math.pow(10, Math.floor(Math.log10(x || 1))), f = x / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
 export function shortNum(v) { return v >= 1e7 ? (v / 1e7).toFixed(1).replace('.0', '') + 'Cr' : v >= 1e5 ? (v / 1e5).toFixed(1).replace('.0', '') + 'L' : v >= 1e3 ? (v / 1e3).toFixed(1).replace('.0', '') + 'k' : String(v); }
-export const PAL = ['#e2603f', '#16a34a', '#f59e0b', '#7c3aed', '#ef4444', '#06b6d4', '#ec4899', '#84cc16', '#64748b'];
+export const PAL = ['#4b5563', '#16a34a', '#f59e0b', '#7c3aed', '#ef4444', '#06b6d4', '#ec4899', '#84cc16', '#64748b'];
 
 /* load an outside script (PDF / barcode libraries), trying each address in turn */
 export function qLoadJs(urls) {
