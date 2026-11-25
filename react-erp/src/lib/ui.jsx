@@ -210,15 +210,19 @@ async function scDetector() {
   return {
     detect: async src => {
       const w0 = src.videoWidth || src.width, h0 = src.videoHeight || src.height; if (!w0 || !h0) return [];
-      for (const k of [Math.min(1, 1280 / Math.max(w0, h0)), 0.5]) {
-        cv.width = Math.round(w0 * k); cv.height = Math.round(h0 * k); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(src, 0, 0, cv.width, cv.height);
+      const still = !src.videoWidth;
+      const regs = still ? [[0, 0, 1, 1], [0, .5, 1, .5], [0, .3, 1, .4], [.15, .5, .7, .3], [0, 0, 1, .5], [0, .65, 1, .35]] : [[0, 0, 1, 1]];
+      const ks = still ? [1, 2, .5] : [1, .5];
+      for (const g of regs) for (const kk of ks) {
+        const sx = g[0] * w0, sy = g[1] * h0, sw = g[2] * w0, sh = g[3] * h0, k = Math.min(kk * (still ? 1.5 : 1), 1600 / Math.max(sw, sh), still ? 4 : 1);
+        cv.width = Math.max(40, Math.round(sw * k)); cv.height = Math.max(40, Math.round(sh * k)); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(src, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
         try { const r = new Z.MultiFormatReader(); r.setHints(hints); const res = r.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(cv)))); if (res) return [{ rawValue: res.getText() }]; } catch (e) { }
       }
       return [];
     }
   };
 }
-function ScannerBody({ close, onCode }) {
+function ScannerBody({ close, onCode, onPhoto }) {
   const [v, setV] = useState(''), [msg, setMsg] = useState(null), [cam, setCam] = useState(false);
   const vid = useRef(null), stream = useRef(null), timer = useRef(null);
   const stop = () => { if (timer.current) clearInterval(timer.current); if (stream.current) stream.current.getTracks().forEach(t => t.stop()); stream.current = null; };
@@ -228,7 +232,7 @@ function ScannerBody({ close, onCode }) {
     let det = null; try { det = await scDetector(); } catch (e) { det = null; }
     if (!det) { setMsg('Barcode reader load na thayu (internet check karo). Serial type karo.'); return; }
     try {
-      stream.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      stream.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } });
       setCam(true); setMsg('Hold the barcode inside the picture.');
       setTimeout(async () => {
         const el = vid.current; if (!el) return; el.srcObject = stream.current; await el.play();
@@ -241,16 +245,22 @@ function ScannerBody({ close, onCode }) {
     try { const bmp = await createImageBitmap(f); const r = await det.detect(bmp); if (r.length) fin(r[0].rawValue); else setMsg('Barcode not found in photo. Move closer and try again, or type it.'); }
     catch (e) { setMsg('Could not read the photo. Type the number instead.'); }
   };
+  const takePhoto = async () => {
+    const f = await pickFile(true); if (!f) return;
+    try { const det = await scDetector(), bmp = await createImageBitmap(f), r = await det.detect(bmp); if (r.length) return fin(r[0].rawValue); } catch (e) { }
+    stop(); close(); onPhoto(f);
+  };
   return <Box sx={{ textAlign: 'center' }}>
     <QrCodeScannerIcon sx={{ fontSize: 48, color: 'primary.main' }} />
     <Typography><b>Scan with Bluetooth scanner</b> or type code, then press Enter</Typography>
     <TextField autoFocus fullWidth value={v} onChange={e => setV(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); fin(v); } }} placeholder="Barcode / Serial / Item ID" sx={{ maxWidth: 360, my: 1 }} inputProps={{ style: { textAlign: 'center', fontSize: 16 } }} />
-    <Stack direction="row" gap={1} justifyContent="center"><Button variant="contained" onClick={() => fin(v)}>OK</Button><Button variant="outlined" startIcon={<CameraAltIcon />} onClick={startCam}>Camera</Button></Stack>
+    <Stack direction="row" gap={1} justifyContent="center"><Button variant="contained" onClick={() => fin(v)}>OK</Button><Button variant="outlined" startIcon={<CameraAltIcon />} onClick={startCam}>Camera</Button>
+      {onPhoto && <Button variant="outlined" startIcon={<CameraAltIcon />} onClick={takePhoto}>Photo lo</Button>}</Stack>
     {cam && <video ref={vid} playsInline muted style={{ width: '100%', maxWidth: 420, marginTop: 12, borderRadius: 12 }} />}
     {msg && <Alert severity="info" sx={{ mt: 1 }}>{msg}</Alert>}
   </Box>;
 }
-export function openScanner(onCode, title) { return openDialog(title || LT('scan'), close => <ScannerBody close={close} onCode={onCode} />, { maxWidth: 'sm' }); }
+export function openScanner(onCode, title, onPhoto) { return openDialog(title || LT('scan'), close => <ScannerBody close={close} onCode={onCode} onPhoto={onPhoto} />, { maxWidth: 'sm' }); }
 
 /* ---------- reload a page when a fresher saved copy arrives (instant screens) ---------- */
 export function useAsync(fn, deps) {
