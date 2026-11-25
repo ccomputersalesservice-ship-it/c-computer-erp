@@ -84,7 +84,7 @@ function PartRow({ p, re }) {
         <Button size="small" variant="outlined" startIcon={<CameraAltIcon />} onClick={async () => { const f = await pickFile(true); if (f) work(async () => { [p.dataUrl, p.thumb] = await shrinkPair(f, 720, 0.6, 150, 0.6); re(); toast('Photo li lidhi', 'ok'); }); }}>{p.thumb ? 'Fari' : 'Photo'}</Button>
         {p.thumb && <IconButton size="small" color="error" onClick={() => { p.dataUrl = ''; p.thumb = ''; re(); }}><CloseIcon fontSize="small" /></IconButton>}</Stack>
     </Box>
-    {!p.serial && !p.thumb && !p.skip && <Typography variant="caption" color="error">Serial ke photo jaruri che</Typography>}
+    
   </Paper>;
 }
 function NewRec({ st }) {
@@ -97,7 +97,7 @@ function NewRec({ st }) {
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}><TextField fullWidth label="Customer nu naam *" value={st.cn} onChange={e => H('cn', e.target.value)} autoComplete="off" /><TextField fullWidth label="Mobile" inputProps={{ inputMode: 'numeric', maxLength: 10 }} value={st.cm} onChange={e => H('cm', e.target.value)} autoComplete="off" /></Stack>
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}><TextField fullWidth label="Brand / Title (example: Dell, i5 PC)" value={st.ti} onChange={e => H('ti', e.target.value)} /><TextField fullWidth label="Note" value={st.no} onChange={e => H('no', e.target.value)} /></Stack>
     {st.parts.length ? st.parts.map(p => <PartRow key={p.id} p={p} re={re} />) : <Alert severity="info">Neeche "Photo thi part umero" (serial na hoy to) ke "+ Part umero" dabavo.</Alert>}
-    <Stack direction="row" gap={1} flexWrap="wrap"><Button variant="contained" startIcon={<CameraAltIcon />} onClick={async () => { const n = await promptBox('Part nu naam? (example: Cabinet, SMPS, UPS)', 'Cabinet'); if (!n || !n.trim()) return; const f = await pickFile(true); const row = { id: ++UID, part: n.trim().slice(0, 40), bk: 'oth', ph: '', brand: '', spec: '', serial: '', dataUrl: '', thumb: '', skip: false }; if (f) await work(async () => { [row.dataUrl, row.thumb] = await shrinkPair(f, 720, 0.6, 150, 0.6); }); st.parts.push(row); re(); }}>Photo thi part umero (serial na hoy to)</Button>
+    <Stack direction="row" gap={1} flexWrap="wrap"><Button variant="contained" startIcon={<CameraAltIcon />} onClick={async () => { const f = await pickFile(true); if (!f) return; const n = await promptBox('Part nu naam? (example: Cabinet, SMPS, UPS)', 'Cabinet'); if (!n || !n.trim()) return; const row = { id: ++UID, part: n.trim().slice(0, 40), bk: 'oth', ph: '', brand: '', spec: '', serial: '', dataUrl: '', thumb: '', skip: false }; if (f) await work(async () => { [row.dataUrl, row.thumb] = await shrinkPair(f, 720, 0.6, 150, 0.6); }); st.parts.push(row); re(); }}>Photo thi part umero (serial na hoy to)</Button>
     <Button variant="outlined" onClick={async () => { const n = await promptBox('Part nu naam? (example: Webcam, UPS, Printer)', 'Part'); if (n && n.trim()) { st.parts.push({ id: ++UID, part: n.trim().slice(0, 40), bk: 'oth', ph: '', brand: '', spec: '', serial: '', dataUrl: '', thumb: '', skip: false }); re(); } }}>+ Part umero</Button></Stack>
   </Stack>;
 }
@@ -107,8 +107,6 @@ function brNew() {
     maxWidth: 'lg', sticky: true, actions: close => <Button variant="contained" onClick={() => {
       if (!st.kind) return;
       const parts = st.parts.filter(x => !x.skip);
-      const miss = parts.filter(x => !x.serial.trim() && !x.dataUrl).map(x => x.part);
-      if (miss.length) { toast('Serial ke photo nakho: ' + miss.join(', '), 'bad'); return; }
       const payload = { kind: st.kind, title: st.ti, note: st.no, customer: { name: st.cn, mobile: st.cm }, parts: parts.map(x => ({ part: x.part, brand: x.brand, spec: x.spec, serial: x.serial, dataUrl: x.dataUrl || undefined, thumbUrl: x.dataUrl ? x.thumb : undefined })) };
       close(); brBgSave(payload, rid());
     }}>Save</Button>
@@ -178,7 +176,6 @@ function brAdd(b, parent) {
     maxWidth: 'sm', sticky: true, actions: close => <Button variant="contained" onClick={() => {
       const part = v.part.trim(), serial = v.serial.trim();
       if (!part) return toast('Part nu naam lakho.', 'bad');
-      if (!serial && !v.du) return toast('Serial ke photo nakho.', 'bad');
       const payload = { id: b.recId, parts: [{ part, serial, brand: v.brand, spec: v.spec, dataUrl: v.du || undefined, thumbUrl: v.du ? v.th : undefined }] };
       close(); parent.close(); brBgSave(payload, rid(), 'brec.add', b.recId + ' · ' + part);
     }}>Save</Button>
