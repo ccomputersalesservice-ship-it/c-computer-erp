@@ -180,8 +180,8 @@ function qpc() {
     <Button variant="contained" onClick={() => { const list = PC_SLOTS.filter(s => slots[s]); if (!list.length) return toast('Choose at least one part', 'bad'); for (const s of list) QE.lines.push(prodLine(slots[s], s)); m.close(); reQ(); }}>Add to quotation</Button></> });
 }
 const QTYPES = [   /* [label, name regex, search words, category/name regex] */
-  ['cpu', /\b(i[3579][- ]?\d*|ryzen|\d{4,5}k[fs]?f?|processor|cpu|pentium|celeron|core)\b/, ['processor', 'cpu', 'intel', 'ryzen'], 'processor|cpu|ryzen|intel core'],
-  ['mb', /\b(motherboard|mother board|mobo|[bhzaxq]\d{3}m?e?|mb)\b/, ['motherboard', 'mother board', 'b760', 'h610'], 'motherboard|mother board|mobo'],
+  ['cpu', /\b(i[3579][- ]?\d*|ryzen|\d{4,5}k[fs]?f?|processor|cpu|pentium|celeron|core)\b/, ['processor', 'cpu', 'intel', 'ryzen', 'i5', 'i3'], 'processor|cpu|ryzen|intel core'],
+  ['mb', /\b(motherboard|mother board|mobo|[bhzaxq]\d{3}m?e?|mb)\b/, ['motherboard', 'mother board', 'board', 'h110', 'h61'], 'motherboard|mother board|mobo'],
   ['ram', /\b(ram|ddr\d?|sodimm|memory)\b/, ['ram', 'ddr4', 'ddr5', 'memory'], '\\bram\\b|ddr|memory'],
   ['ssd', /\b(ssd|nvme|m\.?2|sata ssd)\b/, ['ssd', 'nvme'], 'ssd|nvme'],
   ['hdd', /\b(hdd|hard ?disk|hard drive)\b/, ['hdd', 'hard disk'], 'hdd|hard ?disk|hard drive'],
@@ -208,7 +208,7 @@ const qbulk = mode => work(async () => {
     const best = Object.values(pool).map(p => [sc(p), p]).filter(x => x[0] >= 0.3).sort((x, y) => y[0] - x[0]).slice(0, 5).map(x => x[1]);
     /* same-type fallback: no exact product -> any product of the SAME type (processor -> a processor photo, RAM -> a RAM photo) */
     const nm = it.name.toLowerCase(), ty = QTYPES.find(t => t[1].test(nm));
-    let fb = []; if (ty) { const pl = {}; await Promise.all(ty[2].map(q => api('prod.quick', { q }).then(r => (r || []).forEach(p => { pl[p.ProductID] = p; })).catch(() => { }))); const re = new RegExp(ty[3], 'i'); fb = Object.values(pl).filter(p => re.test((p.Category || '') + ' ' + p.Name)).sort((x, y) => sc(y) - sc(x)).slice(0, 12); }
+    let fb = []; if (ty) { const pl = {}; await Promise.all(ty[2].map(q => api('prod.quick', { q }).then(r => (r || []).forEach(p => { pl[p.ProductID] = p; })).catch(() => { }))); fb = Object.values(pl).filter(p => { const t = QTYPES.find(x => x[1].test(String(p.Name || '').toLowerCase())); return t && t[0] === ty[0]; }).sort((x, y) => sc(y) - sc(x)).slice(0, 12); }
     return { best, fb };
   }));
   try { await loadThumbs([...new Set(found.flatMap(f => f.best.concat(f.fb)).map(p => p.ProductID))]); } catch (e) { }
