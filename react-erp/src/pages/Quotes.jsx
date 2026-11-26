@@ -6,7 +6,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { api, S, inr, nf, rid, toast, work, isAdmin, dtm, LT, debounce, loadThumbs, qLoadJs } from '../lib/core.js';
 import { PageHead, Skel, Loading, DataTable, Pager, Section, openDialog, promptBox, ProductPicker } from '../lib/ui.jsx';
 import { go } from '../lib/nav.js';
-import { rupeesWords, PARTICO, qNm, QIC, QPCIMG, qDNV, qDNV2, qDGD, qDocCss, qHd, qBf, qFt, qScope, qDocHtml, qPrintHtml, qPdfTimed } from '../docs/quote.js';
+import { qPhSet, qPhId, rupeesWords, PARTICO, qNm, QIC, QPCIMG, qDNV, qDNV2, qDGD, qDocCss, qHd, qBf, qFt, qScope, qDocHtml, qPrintHtml, qPdfTimed } from '../docs/quote.js';
 
 export const QST = ['Draft', 'Sent', 'Follow-up Required', 'Approved', 'Rejected', 'Expired', 'Converted'];
 const QCOL = { Draft: 'warning', Sent: 'info', 'Follow-up Required': 'warning', Approved: 'success', Rejected: 'error', Expired: 'error', Converted: 'secondary' };
@@ -101,7 +101,7 @@ const qsave = () => work(async () => {
   const r = await api('quote.save', body, { rid: rid(), loader: true }); toast('Saved ' + r.id); S.params = { id: r.id }; qApply(r);
 });
 async function qEnsureSaved() { if (!QE.id) await qsave(); if (!QE.id) { toast('Save the quotation first', 'bad'); return false; } return true; }
-async function qDocData() { const q = await api('quote.get', { id: QE.id }); const ids = q.lines.map(l => l.productId).filter(Boolean); try { await Promise.race([loadThumbs(ids), new Promise(r => setTimeout(r, 2500))]); } catch (e) { } q.forTick = QE.forTick || {}; return q; }
+async function qDocData() { const q = await api('quote.get', { id: QE.id }); const ids = q.lines.map(qPhId).filter(Boolean); try { await Promise.race([loadThumbs(ids), new Promise(r => setTimeout(r, 2500))]); } catch (e) { } q.forTick = QE.forTick || {}; return q; }
 const qlog = (event, detail) => api('quote.log', { id: QE.id, event, detail }, { rid: rid() }).catch(() => { });
 async function qDoc(kind, inv) { if (!await qEnsureSaved()) return; const fmt = QE.format, q = await qDocData(); qPrintHtml(qDocHtml(q, fmt, inv)); qlog(inv ? 'Invoice' : kind, fmt); }
 const qpdf = () => work(async () => {
@@ -209,7 +209,7 @@ async function qBulkPhotos(lines) {
       return { best, fb };
     }));
     await loadThumbs([...new Set(found.flatMap(f => f.best.concat(f.fb)).map(p => p.ProductID))]);
-    lines.forEach((ln, i) => { const f = found[i], hp = p => S.thumbs[p.ProductID], prod = f.best.find(hp) || f.fb.find(hp) || f.best[0]; if (prod) { ln.kind = 'Product'; ln.productId = prod.ProductID; ln.brand = prod.Brand; ln.model = prod.Model; ln.available = prod.available; } });
+    lines.forEach((ln, i) => { const f = found[i], hp = p => S.thumbs[p.ProductID], prod = f.best.find(hp) || f.fb.find(hp) || f.best[0]; if (prod) qPhSet(ln.name, prod.ProductID); });
     reQ();
   } catch (e) { }
 }
@@ -255,7 +255,7 @@ export function Quote({ params }) {
       QE = q ? { id: q.id, status: q.status, date: q.date, validUntil: q.validUntil, name: q.name, mobile: q.mobile, address: q.address, gstNo: q.gstNo, customerId: q.customerId, gst: q.gst, taxType: q.taxType, gstRate: (q.lines[0] && q.lines[0].gstRate) || 18, billDisc: q.billDisc, note: q.note, terms: q.terms, format: q.format || 'premium', discStatus: q.discStatus, orderId: q.orderId, followDate: q.followDate, followNote: q.followNote, followBy: q.followBy, log: q.log, shop: q.shop, createdBy: q.createdBy, lines: q.lines.map(mapLine) }
         : { id: '', status: 'Draft', date: new Date().toISOString().slice(0, 10), validUntil: '', name: '', mobile: '', address: '', gstNo: '', customerId: '', gst: false, taxType: '', gstRate: 18, billDisc: 0, note: '', terms: '', format: 'premium', lines: [], log: [], discStatus: 'OK' };
       QE.stateCode = cfg.state; QE.maxDisc = cfg.maxDiscPct; if (!q) QE.gstRate = cfg.gstRate; QE._fd = QE.followDate || ''; QE._fn = QE.followNote || '';
-      const ids = QE.lines.map(l => l.productId).filter(Boolean); if (ids.length) loadThumbs(ids).then(() => reQ(), () => { });
+      const ids = QE.lines.map(qPhId).filter(Boolean); if (ids.length) loadThumbs(ids).then(() => reQ(), () => { });
       setReady(true); qPreload();
     });
     return () => { reQ = () => { }; };
@@ -276,7 +276,7 @@ function QuoteBody() {
   };
   if (!e._tInit) { e._tInit = true; if (!String(e.terms || '').trim()) e.terms = (String(sh.terms || '').split('\n').map(x => x.trim()).filter(x => x && !/warrant|payment|advance|bank|upi|a\/c|account no|ifsc/i.test(x)).map(x => x.replace(/^\d+[.)]\s*/, '')).join('\n') || 'Quotation prices are valid for 2 days only.\nProduct price and availability are subject to stock and market price changes.'); }
   const termsTxt = e.terms || '';
-  const lim = l => (l.productId && S.thumbs[l.productId]) || (l.name === QSET ? '' : PARTICO((l.part || '') + ' ' + l.name));
+  const lim = l => (qPhId(l) && S.thumbs[qPhId(l)]) || (l.name === QSET ? '' : PARTICO((l.part || '') + ' ' + l.name));
   const btns = <>
     <Button variant="outlined" onClick={() => go('quotes')}>Back</Button>
     <Button variant="contained" startIcon={<AddIcon />} onClick={() => work(async () => { if (!lock && e.lines.length) await qsave(); go('quote', { newq: 1 }); })}>New Quotation</Button>
