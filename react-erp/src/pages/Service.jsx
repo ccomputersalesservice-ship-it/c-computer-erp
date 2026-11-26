@@ -44,13 +44,36 @@ export default function Service() {
 }
 
 /* ---------- Job sticker (same as the CRM sticker: 50x25, no shop-name line, one label) ---------- */
-function jobSticker(j) {
-  const due = Math.max(0, (j.total || 0) - (j.paid || 0)), bc = barcodeSvg(String(j.sid || '')), W = 50, H = 25, bw = Math.min(W - 4, bc.modules * 0.375);
+const STK_KEY = 'ccJobStk';
+const stkGet = () => { try { const o = JSON.parse(localStorage.getItem(STK_KEY) || '{}'); return { w: +o.w || 50, h: +o.h || 27, sc: +o.sc || 100, ask: o.ask !== false }; } catch (e) { return { w: 50, h: 27, sc: 100, ask: true }; } };
+function stkPrint(j, S) {
+  const W = S.w, H = S.h, sc = S.sc / 100, due = Math.max(0, (j.total || 0) - (j.paid || 0)), bc = barcodeSvg(String(j.sid || '')), bw = Math.min(W - 4, bc.modules * 0.375);
   const t = 'font:7.5pt Arial;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
   const svg = bc.svg.replace('<svg ', `<svg width="${bw}mm" height="5.5mm" `);
-  const html = `<div class="lbl" style="width:${W}mm;height:${H}mm;padding:.8mm 2mm 0;box-sizing:border-box;justify-content:flex-start"><div style="margin:.5mm auto">${svg}</div><div style="font:800 11pt Arial;line-height:1.1;text-align:center;letter-spacing:1px">${esc(j.sid)}</div><div style="${t}"><b>${esc(j.name)}</b> ${esc(j.phone)}</div><div style="${t}">${esc(j.device)}${j.brand ? ' - ' + esc(j.brand) : ''} | ${esc(j.date)}</div><div style="${t}">${esc(j.issue)}</div><div style="${t}"><b>Bill Rs ${Math.round(j.total || 0)}${due > 0 ? ' | Due Rs ' + Math.round(due) : ''}</b></div></div>`;
-  let size = '50x25'; try { const v = localStorage.getItem('ccStickerSize'); if (v === '50x30' || v === '50x38' || v === '50x40') size = v; } catch (e) { }
-  doPrint(html, size);
+  const html = `<div class="lbl" style="width:${W}mm;height:${H}mm;padding:0;box-sizing:border-box;justify-content:flex-start"><div style="width:${W - 4}mm;margin:0 auto;padding-top:.8mm;transform:scale(${sc});transform-origin:top center"><div style="margin:.5mm auto">${svg}</div><div style="font:800 11pt Arial;line-height:1.1;text-align:center;letter-spacing:1px">${esc(j.sid)}</div><div style="${t}"><b>${esc(j.name)}</b> ${esc(j.phone)}</div><div style="${t}">${esc(j.device)}${j.brand ? ' - ' + esc(j.brand) : ''} | ${esc(j.date)}</div><div style="${t}">${esc(j.issue)}</div><div style="${t}"><b>Bill Rs ${Math.round(j.total || 0)}${due > 0 ? ' | Due Rs ' + Math.round(due) : ''}</b></div></div></div>`;
+  doPrint(html, [W, H]);
+}
+function StkForm({ S }) {
+  const [, setN] = useState(0); const set = (k, x) => { S[k] = x; setN(n => n + 1); };
+  return <Stack gap={1.5}>
+    <Typography variant="body2" color="text.secondary">Printer EX58L. Label ni height tamara label roll pramane nakho (label + gap). Print saaru na aave to height ke scale badli ne pharithi try karo.</Typography>
+    <Stack direction="row" gap={1} flexWrap="wrap">{[[50, 25], [50, 27], [50, 28], [50, 30]].map(([w, h]) => <Chip key={h} label={w + ' x ' + h} onClick={() => { S.w = w; S.h = h; setN(n => n + 1); }} color={S.w === w && S.h === h ? 'primary' : 'default'} />)}</Stack>
+    <TextField type="number" label="Width (mm)" value={S.w} onChange={e => set('w', +e.target.value)} />
+    <TextField type="number" label="Height (mm)" value={S.h} onChange={e => set('h', +e.target.value)} />
+    <TextField type="number" label="Scale % (100 = normal, nanu karva 90)" value={S.sc} onChange={e => set('sc', +e.target.value)} />
+    <FormControlLabel control={<Checkbox checked={!S.ask} onChange={e => set('ask', !e.target.checked)} />} label="Aa size yaad rakho, pachhi puchhvu nahi" />
+  </Stack>;
+}
+function jobSticker(j) {
+  const S0 = stkGet();
+  if (!S0.ask) return stkPrint(j, S0);
+  openDialog('Sticker size', () => <StkForm S={S0} />, {
+    maxWidth: 'xs', actions: close => <><Button color="inherit" onClick={close}>Cancel</Button><Button variant="contained" onClick={() => {
+      if (!(S0.w >= 20 && S0.h >= 10 && S0.sc >= 50 && S0.sc <= 150)) return toast('Size barabar nakho', 'bad');
+      try { localStorage.setItem(STK_KEY, JSON.stringify(S0)); } catch (e) { }
+      close(); stkPrint(j, S0);
+    }}>Print</Button></>
+  });
 }
 async function openJob(id) {
   let j; try { j = await api('crm.job', { id }, { loader: true }); } catch (e) { return toast(e.message, 'bad'); }

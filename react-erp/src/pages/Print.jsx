@@ -25,7 +25,7 @@ function labelHtml(l, tpl, size) {
   return `<div class="lbl" style="width:${W}mm;height:${H}mm;padding:${pad}mm;box-sizing:border-box;${tpl === 'BARCODE' ? 'justify-content:center' : ''}">${inner}</div>`;
 }
 export function doPrint(html, size) {
-  const [W, H] = SIZES[size];
+  const [W, H] = Array.isArray(size) ? size : SIZES[size];
   let st = document.getElementById('pgStyle'); if (!st) { st = document.createElement('style'); st.id = 'pgStyle'; document.head.appendChild(st); }
   st.textContent = `@page{size:${W}mm ${H}mm;margin:0}@media print{html,body{width:${W}mm;margin:0;padding:0}}`;
   let root = document.getElementById('printRoot'); if (!root) { root = document.createElement('div'); root.id = 'printRoot'; document.body.appendChild(root); }
