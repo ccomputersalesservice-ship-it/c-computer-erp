@@ -21,6 +21,7 @@ const BR_INCH = ['15', '17', '18.5', '19', '19.5', '20', '21.5', '22', '23.8', '
 const BR_CPU = [['Processor', 'cpu', 'i5 7th Gen'], ['Motherboard', 'mb', 'H110 / B450'], ['RAM', 'ram', '8GB DDR4'], ['SSD', 'ssd', '256GB'], ['Hard Disk', 'hdd', '1TB'], ['Cabinet', 'cab', ''], ['Power Supply (SMPS)', 'smps', '450W'], ['CPU Fan', 'fan', ''], ['Power Cable', 'cable', '']];
 const BR_SET = BR_CPU.concat([['Keyboard', 'kb', ''], ['Mouse', 'ms', ''], ['Monitor', 'mon', '22']]);
 const BR_LAP = [['Laptop', 'lap', 'i5 / 8GB / 256GB'], ['Charger', 'chg', '']];
+const BR_LAPP = ['Body / Panel', 'Top Cover (A)', 'Screen Frame (B)', 'Palm Rest (C)', 'Bottom Base (D)', 'Battery', 'Display / Screen', 'Keyboard', 'Touchpad', 'Motherboard', 'RAM', 'SSD', 'Hard Disk', 'Hinge', 'Speaker', 'Webcam', 'WiFi Card', 'Cooling Fan', 'Charger Port'];
 let UID = 0;
 function brParts(kind) {
   const src = kind === 'SET' ? BR_SET : kind === 'CPU' ? BR_CPU : kind === 'LAPTOP' ? BR_LAP : [];
@@ -97,6 +98,8 @@ function NewRec({ st }) {
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}><TextField fullWidth label="Customer nu naam *" value={st.cn} onChange={e => H('cn', e.target.value)} autoComplete="off" /><TextField fullWidth label="Mobile" inputProps={{ inputMode: 'numeric', maxLength: 10 }} value={st.cm} onChange={e => H('cm', e.target.value)} autoComplete="off" /></Stack>
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}><TextField fullWidth label="Brand / Title (example: Dell, i5 PC)" value={st.ti} onChange={e => H('ti', e.target.value)} /><TextField fullWidth label="Note" value={st.no} onChange={e => H('no', e.target.value)} /></Stack>
     {st.parts.length ? st.parts.map(p => <PartRow key={p.id} p={p} re={re} />) : <Alert severity="info">Neeche "Photo thi part umero" (serial na hoy to) ke "+ Part umero" dabavo.</Alert>}
+    {st.kind === 'LAPTOP' && <Box><Typography variant="caption" fontWeight={700}>Laptop na part (badlelo hoy to dabavo):</Typography>
+      <Stack direction="row" gap={.75} flexWrap="wrap" sx={{ mt: .5 }}>{BR_LAPP.map(n => <Chip key={n} label={'+ ' + n} variant="outlined" onClick={() => { st.parts.push({ id: ++UID, part: n, bk: 'oth', ph: '', brand: '', spec: '', serial: '', dataUrl: '', thumb: '', skip: false }); re(); }} />)}</Stack></Box>}
     <Stack direction="row" gap={1} flexWrap="wrap"><Button variant="contained" startIcon={<CameraAltIcon />} onClick={async () => { const f = await pickFile(true); if (!f) return; const n = await promptBox('Part nu naam? (example: Cabinet, SMPS, UPS)', 'Cabinet'); if (!n || !n.trim()) return; const row = { id: ++UID, part: n.trim().slice(0, 40), bk: 'oth', ph: '', brand: '', spec: '', serial: '', dataUrl: '', thumb: '', skip: false }; if (f) await work(async () => { [row.dataUrl, row.thumb] = await shrinkPair(f, 720, 0.6, 150, 0.6); }); st.parts.push(row); re(); }}>Photo thi part umero (serial na hoy to)</Button>
     <Button variant="outlined" onClick={async () => { const n = await promptBox('Part nu naam? (example: Webcam, UPS, Printer)', 'Part'); if (n && n.trim()) { st.parts.push({ id: ++UID, part: n.trim().slice(0, 40), bk: 'oth', ph: '', brand: '', spec: '', serial: '', dataUrl: '', thumb: '', skip: false }); re(); } }}>+ Part umero</Button></Stack>
   </Stack>;
