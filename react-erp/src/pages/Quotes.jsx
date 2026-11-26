@@ -185,7 +185,7 @@ const qbulk = mode => work(async () => {
   QE.lines = QE.lines.filter(l => !l._bulk);   /* pressing the button again replaces the earlier bulk lines, no duplicates */
   const items = [];
   for (const ln of txt) { const mt = ln.match(/^(.*?)[\s:=-]*₹?\s*([\d,]+(?:\.\d+)?)\s*\+?\s*$/); if (!mt || !mt[1].trim()) continue; const price = +mt[2].replace(/,/g, ''); items.push({ name: mt[1].trim(), cost: Math.round(price * (1 + g / 100) * 100) / 100 }); }
-  const found = crm ? [] : await Promise.all(items.map(it => api('prod.quick', { q: it.name.split(/\s+/).slice(0, 3).join(' ') }).then(r => {
+  const found = await Promise.all(items.map(it => api('prod.quick', { q: it.name.split(/\s+/).slice(0, 3).join(' ') }).then(r => {
     const w = it.name.toLowerCase().split(/\s+/).filter(x => x.length > 1); const sc = p => { const t = (p.Name + ' ' + (p.Brand || '') + ' ' + (p.Model || '')).toLowerCase(); return w.filter(x => t.includes(x)).length / Math.max(1, w.length); };
     const b = r.map(p => [sc(p), p]).sort((x, y) => y[0] - x[0])[0]; return b && b[0] >= 0.7 ? b[1] : null;
   }).catch(() => null)));
@@ -196,7 +196,7 @@ const qbulk = mode => work(async () => {
   });
   if (crm && n) qSetLine(true);   /* ONE final line carries the total price */
   const pn = n ? qProfitApply() : 0;
-  reQ(); toast(n ? (crm ? `${n} items added, last line TOTAL COMPLETE SET.` : `${n} lines added (${m} with catalogue photo).`) + (pn ? ' Profit added too.' : ' Now add profit.') : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
+  reQ(); toast(n ? (crm ? `${n} items added (${m} with real photo), last line TOTAL COMPLETE SET.` : `${n} lines added (${m} with catalogue photo).`) + (pn ? ' Profit added too.' : ' Now add profit.') : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
 });
 
 /* ---------- editor page ---------- */
