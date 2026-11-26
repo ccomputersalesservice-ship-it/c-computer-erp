@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Button, Card, CardContent, Chip, MenuItem, Paper, Stack, TextField, Typography, Select, Divider } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { api, S, inr, nf, rid, toast, work, isAdmin, dtm, LT, debounce, loadThumbs, qLoadJs } from '../lib/core.js';
+import { api, S, inr, nf, rid, toast, work, isAdmin, dtm, LT, debounce, loadThumbs, qLoadJs, pickFile, shrinkImage } from '../lib/core.js';
 import { PageHead, Skel, Loading, DataTable, Pager, Section, openDialog, promptBox, ProductPicker } from '../lib/ui.jsx';
 import { go } from '../lib/nav.js';
-import { qPhSet, qPhId, rupeesWords, PARTICO, qNm, QIC, QPCIMG, qDNV, qDNV2, qDGD, qDocCss, qHd, qBf, qFt, qScope, qDocHtml, qPrintHtml, qPdfTimed } from '../docs/quote.js';
+import { qPhSet, qPhId, qPhImg, qPhDel, rupeesWords, PARTICO, qNm, QIC, QPCIMG, qDNV, qDNV2, qDGD, qDocCss, qHd, qBf, qFt, qScope, qDocHtml, qPrintHtml, qPdfTimed } from '../docs/quote.js';
 
 export const QST = ['Draft', 'Sent', 'Follow-up Required', 'Approved', 'Rejected', 'Expired', 'Converted'];
 const QCOL = { Draft: 'warning', Sent: 'info', 'Follow-up Required': 'warning', Approved: 'success', Rejected: 'error', Expired: 'error', Converted: 'secondary' };
@@ -101,7 +101,7 @@ const qsave = () => work(async () => {
   const r = await api('quote.save', body, { rid: rid(), loader: true }); toast('Saved ' + r.id); S.params = { id: r.id }; qApply(r);
 });
 async function qEnsureSaved() { if (!QE.id) await qsave(); if (!QE.id) { toast('Save the quotation first', 'bad'); return false; } return true; }
-async function qDocData() { const q = await api('quote.get', { id: QE.id }); const ids = q.lines.map(qPhId).filter(Boolean); try { await Promise.race([loadThumbs(ids), new Promise(r => setTimeout(r, 2500))]); } catch (e) { } q.forTick = QE.forTick || {}; return q; }
+async function qDocData() { const q = await api('quote.get', { id: QE.id }); const ids = q.lines.map(qPhId).filter(x => x && !/^data:/.test(x)); try { await Promise.race([loadThumbs(ids), new Promise(r => setTimeout(r, 2500))]); } catch (e) { } q.forTick = QE.forTick || {}; return q; }
 const qlog = (event, detail) => api('quote.log', { id: QE.id, event, detail }, { rid: rid() }).catch(() => { });
 async function qDoc(kind, inv) { if (!await qEnsureSaved()) return; const fmt = QE.format, q = await qDocData(); qPrintHtml(qDocHtml(q, fmt, inv)); qlog(inv ? 'Invoice' : kind, fmt); }
 const qpdf = () => work(async () => {
@@ -191,6 +191,14 @@ const QTYPES = [   /* [label, name regex, search words, category/name regex] */
   ['gpu', /\b(gpu|graphic|graphics|rtx|gtx|radeon)\b/, ['graphics', 'gpu', 'rtx'], 'graphic|gpu|rtx|gtx|radeon'],
   ['kb', /\b(keyboard)\b/, ['keyboard'], 'keyboard'], ['ms', /\b(mouse)\b/, ['mouse'], 'mouse'], ['mon', /\b(monitor|display|led)\b/, ['monitor'], 'monitor|display']
 ];
+/* change the photo of one quotation line: own photo (camera/gallery), a catalogue product photo, or back to the icon. Name/text never changes. */
+function qChangePhoto(l) {
+  const m = openDialog('Photo badlo - ' + String(l.name).slice(0, 40), () => <Stack gap={1.5} sx={{ pt: 1 }}>
+    <Button variant="contained" onClick={() => work(async () => { const f = await pickFile(false); if (!f) return; const du = await shrinkImage(f, 220, 0.7); qPhSet(l.name, du); m.close(); reQ(); toast('Photo badli', 'ok'); })}>Mara phone / computer no photo</Button>
+    <Typography variant="caption" fontWeight={700}>Athva Products mathi photo:</Typography>
+    <ProductPicker placeholder="Product shodho" onPick={p => work(async () => { await loadThumbs([p.ProductID]); if (!S.thumbs[p.ProductID]) return toast('Aa product ma photo nathi', 'bad'); qPhSet(l.name, p.ProductID); m.close(); reQ(); toast('Photo badli', 'ok'); })} />
+    <Button variant="outlined" color="inherit" onClick={() => { qPhDel(l.name); m.close(); reQ(); }}>Photo kadhi nakho (icon pachi)</Button></Stack>, { maxWidth: 'sm' });
+}
 /* background photo matcher: shared search cache, one fallback search per type, only 2 searches per line */
 const QPQ = {};
 const qQuick = q => QPQ[q] || (QPQ[q] = api('prod.quick', { q }, { loader: false }).then(r => r || []).catch(() => []));
@@ -255,7 +263,7 @@ export function Quote({ params }) {
       QE = q ? { id: q.id, status: q.status, date: q.date, validUntil: q.validUntil, name: q.name, mobile: q.mobile, address: q.address, gstNo: q.gstNo, customerId: q.customerId, gst: q.gst, taxType: q.taxType, gstRate: (q.lines[0] && q.lines[0].gstRate) || 18, billDisc: q.billDisc, note: q.note, terms: q.terms, format: q.format || 'premium', discStatus: q.discStatus, orderId: q.orderId, followDate: q.followDate, followNote: q.followNote, followBy: q.followBy, log: q.log, shop: q.shop, createdBy: q.createdBy, lines: q.lines.map(mapLine) }
         : { id: '', status: 'Draft', date: new Date().toISOString().slice(0, 10), validUntil: '', name: '', mobile: '', address: '', gstNo: '', customerId: '', gst: false, taxType: '', gstRate: 18, billDisc: 0, note: '', terms: '', format: 'premium', lines: [], log: [], discStatus: 'OK' };
       QE.stateCode = cfg.state; QE.maxDisc = cfg.maxDiscPct; if (!q) QE.gstRate = cfg.gstRate; QE._fd = QE.followDate || ''; QE._fn = QE.followNote || '';
-      const ids = QE.lines.map(qPhId).filter(Boolean); if (ids.length) loadThumbs(ids).then(() => reQ(), () => { });
+      const ids = QE.lines.map(qPhId).filter(x => x && !/^data:/.test(x)); if (ids.length) loadThumbs(ids).then(() => reQ(), () => { });
       setReady(true); qPreload();
     });
     return () => { reQ = () => { }; };
@@ -276,7 +284,7 @@ function QuoteBody() {
   };
   if (!e._tInit) { e._tInit = true; if (!String(e.terms || '').trim()) e.terms = (String(sh.terms || '').split('\n').map(x => x.trim()).filter(x => x && !/warrant|payment|advance|bank|upi|a\/c|account no|ifsc/i.test(x)).map(x => x.replace(/^\d+[.)]\s*/, '')).join('\n') || 'Quotation prices are valid for 2 days only.\nProduct price and availability are subject to stock and market price changes.'); }
   const termsTxt = e.terms || '';
-  const lim = l => (qPhId(l) && S.thumbs[qPhId(l)]) || (l.name === QSET ? '' : PARTICO((l.part || '') + ' ' + l.name));
+  const lim = l => qPhImg(l) || (l.name === QSET ? '' : PARTICO((l.part || '') + ' ' + l.name));
   const btns = <>
     <Button variant="outlined" onClick={() => go('quotes')}>Back</Button>
     <Button variant="contained" startIcon={<AddIcon />} onClick={() => work(async () => { if (!lock && e.lines.length) await qsave(); go('quote', { newq: 1 }); })}>New Quotation</Button>
@@ -310,7 +318,7 @@ function QuoteBody() {
           {!lock && <div className="qd-add"><ProductPicker placeholder="Search product by name / model / barcode / serial, Enter to scan" onPick={p => work(() => qAddProduct(p.ProductID))} />
             <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mt: 1 }}><Button size="small" variant="contained" onClick={() => qCustom('Custom')}>+ ADD PRODUCT</Button><Button size="small" variant="outlined" onClick={() => qCustom('Service')}>+ Service</Button><Button size="small" variant="outlined" onClick={qpc}>PC Build</Button><Button size="small" variant="outlined" onClick={qtpl}>Templates</Button><Button size="small" variant="outlined" onClick={qsavetpl}>Save as template</Button></Stack></div>}
           {e.lines.length ? <div style={{ overflowX: 'auto' }}><table className="qd-t"><thead><tr><th>#</th><th>Product / Description</th><th>Qty</th><th>Rate (₹)</th><th>Amount (₹)</th><th>X</th></tr></thead><tbody>
-            {e.lines.map((l, i) => { const u = lim(l); return <tr key={i}><td className="c">{i + 1}</td><td style={{ minWidth: 180 }}>{u && <img className="qi" src={u} alt="" />}
+            {e.lines.map((l, i) => { const u = lim(l); return <tr key={i}><td className="c">{i + 1}</td><td style={{ minWidth: 180 }}>{u && <img className="qi" src={u} alt="" title="Photo badalva dabavo" style={lock ? undefined : { cursor: 'pointer' }} onClick={() => { if (!lock) qChangePhoto(l); }} />}
               {l.productId || lock ? <b>{qNm(l)}</b> : <textarea rows={2} style={{ width: '100%' }} value={l.name} onChange={ev => { l.name = ev.target.value; reQ(); }} />}
               {l.part && <> <span className="qtag">{l.part}</span></>}
               {(l.brand || l.model || l.spec) && <><br /><small>{[l.brand, l.model].filter(Boolean).join(' · ')}{l.spec ? (l.brand || l.model ? ' · ' : '') + String(l.spec).slice(0, 80) : ''}</small></>}
