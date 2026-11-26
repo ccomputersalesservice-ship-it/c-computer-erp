@@ -1,8 +1,10 @@
 /* print-only area for stickers (same as the live ERP) */
 #printRoot{display:none}
 @media print{
-  body *{visibility:hidden!important}
+  body>*:not(#printRoot){display:none!important}
   #printRoot,#printRoot *{visibility:visible!important}
+  html,body{height:auto!important;min-height:0!important;overflow:visible!important}
+  .lbl:last-child{page-break-after:auto!important;break-after:auto!important}
   #printRoot{display:block!important;position:absolute;left:0;top:0}
   html,body{background:#fff!important}
 }

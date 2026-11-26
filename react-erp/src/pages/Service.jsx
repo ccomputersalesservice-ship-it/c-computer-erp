@@ -47,10 +47,10 @@ export default function Service() {
 const STK_KEY = 'ccJobStk';
 const stkGet = () => { try { const o = JSON.parse(localStorage.getItem(STK_KEY) || '{}'); return { w: +o.w || 50, h: +o.h || 27, sc: +o.sc || 100, ask: o.ask !== false }; } catch (e) { return { w: 50, h: 27, sc: 100, ask: true }; } };
 function stkPrint(j, S) {
-  const W = S.w, H = S.h, sc = S.sc / 100, due = Math.max(0, (j.total || 0) - (j.paid || 0)), bc = barcodeSvg(String(j.sid || '')), bw = Math.min(W - 4, bc.modules * 0.375);
+  const W = S.w, H = S.h, sc = S.sc / 100, due = Math.max(0, (j.total || 0) - (j.paid || 0)), bc = barcodeSvg(String(j.sid || ''), { style: 'display:block;margin:0 auto' }), bw = Math.min(W - 4, bc.modules * 0.375);
   const t = 'font:7.5pt Arial;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
-  const svg = bc.svg.replace('<svg ', `<svg width="${bw}mm" height="5.5mm" `);
-  const html = `<div class="lbl" style="width:${W}mm;height:${H}mm;padding:0;box-sizing:border-box;justify-content:flex-start"><div style="width:${W - 4}mm;margin:0 auto;padding-top:.8mm;transform:scale(${sc});transform-origin:top center"><div style="margin:.5mm auto">${svg}</div><div style="font:800 11pt Arial;line-height:1.1;text-align:center;letter-spacing:1px">${esc(j.sid)}</div><div style="${t}"><b>${esc(j.name)}</b> ${esc(j.phone)}</div><div style="${t}">${esc(j.device)}${j.brand ? ' - ' + esc(j.brand) : ''} | ${esc(j.date)}</div><div style="${t}">${esc(j.issue)}</div><div style="${t}"><b>Bill Rs ${Math.round(j.total || 0)}${due > 0 ? ' | Due Rs ' + Math.round(due) : ''}</b></div></div></div>`;
+  const svg = bc.svg.replace('<svg ', `<svg style="margin:0 auto" width="${bw}mm" height="5.5mm" `);
+  const html = `<div class="lbl" style="width:${W}mm;height:${H}mm;padding:0;box-sizing:border-box;justify-content:flex-start"><div style="width:${W - 4}mm;margin:0 auto;padding-top:.8mm;transform:scale(${sc});transform-origin:top center"><div style="margin:.5mm 0">${svg}</div><div style="font:800 11pt Arial;line-height:1.1;text-align:center;letter-spacing:1px">${esc(j.sid)}</div><div style="${t}"><b>${esc(j.name)}</b> ${esc(j.phone)}</div><div style="${t}">${esc(j.device)}${j.brand ? ' - ' + esc(j.brand) : ''} | ${esc(j.date)}</div><div style="${t}">${esc(j.issue)}</div><div style="${t}"><b>Bill Rs ${Math.round(j.total || 0)}${due > 0 ? ' | Due Rs ' + Math.round(due) : ''}</b></div></div></div>`;
   doPrint(html, [W, H]);
 }
 function StkForm({ S }) {
