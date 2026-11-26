@@ -179,6 +179,18 @@ function qpc() {
     <Button variant="outlined" onClick={() => work(async () => { const t = await qPickTpl('PC'); if (!t) return; const r = await api('quote.prod', { ids: t.lines.map(l => l.productId) }); t.lines.forEach(l => { const p = r.find(x => x.productId === l.productId); if (p && PC_SLOTS.includes(l.part)) slots[l.part] = Object.assign(p, { qty: 1 }); }); paint(); })}>Load template</Button>
     <Button variant="contained" onClick={() => { const list = PC_SLOTS.filter(s => slots[s]); if (!list.length) return toast('Choose at least one part', 'bad'); for (const s of list) QE.lines.push(prodLine(slots[s], s)); m.close(); reQ(); }}>Add to quotation</Button></> });
 }
+const QTYPES = [   /* [label, name regex, search words, category/name regex] */
+  ['cpu', /\b(i[3579][- ]?\d*|ryzen|\d{4,5}k[fs]?f?|processor|cpu|pentium|celeron|core)\b/, ['processor', 'cpu', 'intel', 'ryzen'], 'processor|cpu|ryzen|intel core'],
+  ['mb', /\b(motherboard|mother board|mobo|[bhzaxq]\d{3}m?e?|mb)\b/, ['motherboard', 'mother board', 'b760', 'h610'], 'motherboard|mother board|mobo'],
+  ['ram', /\b(ram|ddr\d?|sodimm|memory)\b/, ['ram', 'ddr4', 'ddr5', 'memory'], '\\bram\\b|ddr|memory'],
+  ['ssd', /\b(ssd|nvme|m\.?2|sata ssd)\b/, ['ssd', 'nvme'], 'ssd|nvme'],
+  ['hdd', /\b(hdd|hard ?disk|hard drive)\b/, ['hdd', 'hard disk'], 'hdd|hard ?disk|hard drive'],
+  ['smps', /\b(smps|psu|power supply)\b/, ['smps', 'psu', 'power supply'], 'smps|psu|power supply'],
+  ['cab', /\b(cabinet|case|chassis)\b/, ['cabinet', 'case'], 'cabinet|case|chassis'],
+  ['fan', /\b(fan|cooler|heatsink|cooling)\b/, ['cooler', 'fan'], 'cooler|fan|heatsink|cooling'],
+  ['gpu', /\b(gpu|graphic|graphics|rtx|gtx|radeon)\b/, ['graphics', 'gpu', 'rtx'], 'graphic|gpu|rtx|gtx|radeon'],
+  ['kb', /\b(keyboard)\b/, ['keyboard'], 'keyboard'], ['ms', /\b(mouse)\b/, ['mouse'], 'mouse'], ['mon', /\b(monitor|display|led)\b/, ['monitor'], 'monitor|display']
+];
 const qbulk = mode => work(async () => {
   /* "one" = Single item (total set): every part listed with NO price + one TOTAL COMPLETE SET line.  "sep" = Separate items: every part gets its own price. */
   const crm = mode === 'one', txt = (bk().txt || '').split('\n').map(x => x.trim()).filter(Boolean), g = qBulkG(); let n = 0, m = 0;
@@ -193,10 +205,14 @@ const qbulk = mode => work(async () => {
     const pool = {}; await Promise.all([...new Set(qs)].map(q => api('prod.quick', { q }).then(r => (r || []).forEach(p => { pool[p.ProductID] = p; })).catch(() => { })));
     const wt = x => /\d/.test(x) ? 2 : 1, tot = toks.reduce((a, x) => a + wt(x), 0) || 1;
     const sc = p => { const t = (p.Name + ' ' + (p.Brand || '') + ' ' + (p.Model || '')).toLowerCase(); return toks.filter(x => t.includes(x)).reduce((a, x) => a + wt(x), 0) / tot; };
-    return Object.values(pool).map(p => [sc(p), p]).filter(x => x[0] >= 0.3).sort((x, y) => y[0] - x[0]).slice(0, 5).map(x => x[1]);
+    const best = Object.values(pool).map(p => [sc(p), p]).filter(x => x[0] >= 0.3).sort((x, y) => y[0] - x[0]).slice(0, 5).map(x => x[1]);
+    /* same-type fallback: no exact product -> any product of the SAME type (processor -> a processor photo, RAM -> a RAM photo) */
+    const nm = it.name.toLowerCase(), ty = QTYPES.find(t => t[1].test(nm));
+    let fb = []; if (ty) { const pl = {}; await Promise.all(ty[2].map(q => api('prod.quick', { q }).then(r => (r || []).forEach(p => { pl[p.ProductID] = p; })).catch(() => { }))); const re = new RegExp(ty[3], 'i'); fb = Object.values(pl).filter(p => re.test((p.Category || '') + ' ' + p.Name)).sort((x, y) => sc(y) - sc(x)).slice(0, 12); }
+    return { best, fb };
   }));
-  try { await loadThumbs([...new Set(found.flat().map(p => p.ProductID))]); } catch (e) { }
-  const pick = i => { const c = found[i] || []; return c.find(p => S.thumbs[p.ProductID]) || c[0] || null; };
+  try { await loadThumbs([...new Set(found.flatMap(f => f.best.concat(f.fb)).map(p => p.ProductID))]); } catch (e) { }
+  const pick = i => { const f = found[i] || { best: [], fb: [] }, hp = p => S.thumbs[p.ProductID]; return f.best.find(hp) || f.fb.find(hp) || f.best[0] || null; };
   items.forEach((it, i) => {
     const up = crm ? 0 : it.cost, prod = pick(i);
     if (prod) { QE.lines.push({ _bulk: 1, kind: 'Product', part: '', productId: prod.ProductID, name: it.name, brand: prod.Brand, model: prod.Model, spec: '', qty: 1, unitPrice: up, lineDisc: 0, gstRate: '', cost: it.cost, available: prod.available }); m++; }
