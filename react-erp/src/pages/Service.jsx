@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Box, Button, MenuItem, Stack, TextField, Typography, Tab, Tabs, Chip, Paper, Checkbox, FormControlLabel, Link } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { api, S, inr, isAdmin, rid, toast, work, CRM_STAFF_URL } from '../lib/core.js';
+import { api, S, inr, isAdmin, rid, toast, work, CRM_STAFF_URL, barcodeSvg, esc } from '../lib/core.js';
+import { doPrint } from './Print.jsx';
 import { PageHead, Skel, Pager, DataTable, openDialog } from '../lib/ui.jsx';
 import { useList, useFilter, useDebounced } from '../lib/hooks.js';
 import { refresh } from '../lib/nav.js';
@@ -41,13 +42,23 @@ export default function Service() {
     {!r ? <Skel /> : <><DataTable rows={r.rows} cols={cols} empty="No service records" onRow={j => openJob(j.id)} /><Pager res={r} onPage={p => set('page', p)} /></>}
   </Box>;
 }
+
+/* ---------- Job sticker (same as the CRM sticker: 50x25, no shop-name line, one label) ---------- */
+function jobSticker(j) {
+  const due = Math.max(0, (j.total || 0) - (j.paid || 0)), bc = barcodeSvg(String(j.sid || '')), W = 50, H = 25, bw = Math.min(W - 4, bc.modules * 0.375);
+  const t = 'font:7.5pt Arial;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  const svg = bc.svg.replace('<svg ', `<svg width="${bw}mm" height="5.5mm" `);
+  const html = `<div class="lbl" style="width:${W}mm;height:${H}mm;padding:.8mm 2mm 0;box-sizing:border-box;justify-content:flex-start"><div style="margin:.5mm auto">${svg}</div><div style="font:800 11pt Arial;line-height:1.1;text-align:center;letter-spacing:1px">${esc(j.sid)}</div><div style="${t}"><b>${esc(j.name)}</b> ${esc(j.phone)}</div><div style="${t}">${esc(j.device)}${j.brand ? ' - ' + esc(j.brand) : ''} | ${esc(j.date)}</div><div style="${t}">${esc(j.issue)}</div><div style="${t}"><b>Bill Rs ${Math.round(j.total || 0)}${due > 0 ? ' | Due Rs ' + Math.round(due) : ''}</b></div></div>`;
+  let size = '50x25'; try { const v = localStorage.getItem('ccStickerSize'); if (v === '50x30' || v === '50x38' || v === '50x40') size = v; } catch (e) { }
+  doPrint(html, size);
+}
 async function openJob(id) {
   let j; try { j = await api('crm.job', { id }, { loader: true }); } catch (e) { return toast(e.message, 'bad'); }
   const adm = isAdmin(), due = adm ? Math.max(0, (j.total || 0) - (j.paid || 0)) : 0;
   const v = { status: svNext(j.status), rd: '', w: '', say: '', est: '', bill: '', pay: '', mode: '', dto: j.name }, _rid = rid();
   openDialog(j.sid + ' · ' + j.name, () => <JobView j={j} v={v} adm={adm} due={due} />, {
     maxWidth: 'sm', actions: close => <>
-      <Button variant="outlined" href={svWa(j)} target="_blank" rel="noopener">💬 WhatsApp</Button><Button color="inherit" onClick={close}>Close</Button>
+      <Button variant="outlined" href={svWa(j)} target="_blank" rel="noopener">💬 WhatsApp</Button><Button variant="outlined" onClick={() => jobSticker(j)}>🏷 Sticker</Button><Button color="inherit" onClick={close}>Close</Button>
       <Button variant="contained" color="success" onClick={() => work(async () => {
         const b = { id: j.id, status: v.status, w: v.w, say: v.say, est: +v.est || 0, bill: +v.bill || 0, pay: +v.pay || 0, mode: v.mode, rd: v.rd, dto: v.status === 'Delivered' ? v.dto : '' };
         if (b.pay && !b.mode) throw new Error('Payment kya aavyu te pasand karo (Cash / HDFC / IDBI).');

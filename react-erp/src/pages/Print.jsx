@@ -24,7 +24,7 @@ function labelHtml(l, tpl, size) {
   else inner = `<div style="margin:auto">${svg(5.5)}</div><div style="font:4pt Arial;text-align:center;line-height:1.1">${esc(l.itemId)}</div>`;
   return `<div class="lbl" style="width:${W}mm;height:${H}mm;padding:${pad}mm;box-sizing:border-box;${tpl === 'BARCODE' ? 'justify-content:center' : ''}">${inner}</div>`;
 }
-function doPrint(html, size) {
+export function doPrint(html, size) {
   const [W, H] = SIZES[size];
   let st = document.getElementById('pgStyle'); if (!st) { st = document.createElement('style'); st.id = 'pgStyle'; document.head.appendChild(st); }
   st.textContent = `@page{size:${W}mm ${H}mm;margin:0}@media print{html,body{width:${W}mm;margin:0;padding:0}}`;
