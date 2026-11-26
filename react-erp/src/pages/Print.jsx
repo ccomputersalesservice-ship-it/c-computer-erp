@@ -26,14 +26,15 @@ function labelHtml(l, tpl, size) {
 }
 export function doPrint(html, size) {
   const [W, H] = Array.isArray(size) ? size : SIZES[size];
-  let st = document.getElementById('pgStyle'); if (!st) { st = document.createElement('style'); st.id = 'pgStyle'; document.head.appendChild(st); }
   const one = (html.match(/class="lbl"/g) || []).length === 1;
-  st.textContent = `@page{size:${W}mm ${H}mm;margin:0}@media print{html,body{width:${W}mm;margin:0;padding:0}${one ? `html,body{height:${H - 0.5}mm!important;max-height:${H - 0.5}mm!important;overflow:hidden!important}#printRoot .lbl{height:${H - 0.5}mm!important;page-break-after:avoid!important;break-after:avoid!important}` : ''}}`;
-  let root = document.getElementById('printRoot'); if (!root) { root = document.createElement('div'); root.id = 'printRoot'; document.body.appendChild(root); }
-  root.innerHTML = html; setTimeout(() => window.print(), 150);
+  const old = document.getElementById('printFrame'); if (old) old.remove();
+  const f = document.createElement('iframe'); f.id = 'printFrame'; f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(f);
+  const d = f.contentWindow.document; d.open();
+  d.write(`<!doctype html><html><head><meta charset="utf-8"><title>Sticker</title><style>@page{size:${W}mm ${H}mm;margin:0}html,body{margin:0;padding:0;background:#fff;width:${W}mm}.lbl{page-break-after:always;break-after:page;overflow:hidden;background:#fff;color:#000;font-family:Arial,sans-serif;display:flex;flex-direction:column;justify-content:center}.lbl:last-child{page-break-after:auto;break-after:auto}.lbl svg{display:block}${one ? `html,body{height:${H - 0.4}mm;overflow:hidden}.lbl{height:${H - 0.4}mm!important}` : ''}</style></head><body>${html}</body></html>`);
+  d.close();
+  setTimeout(() => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { } setTimeout(() => { try { f.remove(); } catch (e) { } }, 120000); }, 350);
 }
-function addPrintRow(r) { const ex = PQ.items.find(x => x.ref === r.ref); if (ex) ex.qty++; else PQ.items.push(Object.assign({ qty: 1 }, r)); }
-
 export default function Print({ params }) {
   const [tab, setTab] = useState(PQ.tab), [, setN] = useState(0); const re = () => setN(n => n + 1);
   useEffect(() => { if (params.itemIds || params.productIds) { const p = { itemIds: params.itemIds, productIds: params.productIds }; params.itemIds = params.productIds = undefined; api('print.data', p, { loader: true }).then(rows => { rows.forEach(addPrintRow); re(); }).catch(e => toast(e.message, 'bad')); } }, []);
