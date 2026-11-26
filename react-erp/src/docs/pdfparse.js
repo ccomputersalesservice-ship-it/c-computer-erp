@@ -3,7 +3,10 @@ import { qLoadJs } from '../lib/core.js';
 const PI_NUM = /\d[\d,]*\.\d{1,2}/g;
 export const piN = s => { const v = parseFloat(String(s || '').replace(/,/g, '')); return isFinite(v) ? v : 0; };
 export const piNorm = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const PI_MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 function piDate(s) {
+  const mn = String(s || '').match(/(\d{1,2})[-\/. ]([A-Za-z]{3})[a-z]*[-\/., ]+(\d{2,4})/);
+  if (mn && PI_MON[mn[2].toLowerCase()]) { let y = +mn[3]; if (y < 100) y += 2000; return y + '-' + String(PI_MON[mn[2].toLowerCase()]).padStart(2, '0') + '-' + String(+mn[1]).padStart(2, '0'); }
   const m = String(s || '').match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/); if (!m) return '';
   let y = +m[3]; if (y < 100) y += 2000; const mo = +m[2], d = +m[1];
   if (mo < 1 || mo > 12 || d < 1 || d > 31) return '';
@@ -15,10 +18,17 @@ export function piParseLines(lines) {
   const L = lines.map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean), T = L.join('\n'), warn = [];
   const o = { vendor: '', gstin: '', invoiceNo: '', invoiceDate: '', terms: '', orderNo: '', subtotal: 0, sgst: 0, cgst: 0, igst: 0, grandTotal: 0, lines: [], warnings: warn };
   // invoice no / date / order no / terms
-  let m = T.match(/Invoice\s*(?:No|Number|#)\.?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/\-\._]{2,30})/i); if (m) o.invoiceNo = m[1];
-  m = T.match(/(?:Invoice\s*)?Date\s*[:\-]?\s*(\d{1,2}[-\/.]\d{1,2}[-\/.]\d{2,4})/i); if (m) o.invoiceDate = piDate(m[1]);
-  m = T.match(/(?:Order|PO|P\.O\.)\s*(?:No|Number)\.?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/\-]{2,25})/i); if (m) o.orderNo = m[1];
-  m = T.match(/(?:Terms|Payment Terms)\s*[:\-]?\s*(\d+\s*Days?)/i); if (m) o.terms = m[1];
+  const DATE_RE = '(\\d{1,2}[-\\/.]\\d{1,2}[-\\/.]\\d{2,4}|\\d{1,2}[- ][A-Za-z]{3}[a-z]*[-, ]+\\d{2,4})', LBL = /^(dated?|delivery|dispatch|mode|terms|buyer|reference|other|invoice|date|no)\.?$/i;
+  let m = T.match(/Invoice\s*(?:No|Number|#)\.?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/\-\._]{2,30})/i); if (m && !LBL.test(m[1])) o.invoiceNo = m[1];
+  m = T.match(new RegExp('(?:Invoice\\s*)?Date\\s*[:\\-]?\\s*' + DATE_RE, 'i')); if (m) o.invoiceDate = piDate(m[1]);
+  // Tally style: labels on one row ("Invoice No.  Dated"), values on the next row ("KSIT/5841/26-27  25-Nov-26")
+  if (!o.invoiceNo || !o.invoiceDate) {
+    const hi2 = L.findIndex(t => /Invoice\s*(No|Number)\.?\s+Dated?\b/i.test(t));
+    if (hi2 >= 0 && L[hi2 + 1]) { const nx = L[hi2 + 1], dm = nx.match(new RegExp(DATE_RE, 'i')); if (dm && !o.invoiceDate) o.invoiceDate = piDate(dm[1]); const nm = nx.match(/(?:^|\s)([A-Z0-9][A-Z0-9\/\-\._]{2,30})(?=\s+\d{1,2}[- ][A-Za-z]{3}|\s+\d{1,2}[-\/.]\d{1,2}[-\/.]\d{2,4}|\s*$)/i); if (nm && !o.invoiceNo && !LBL.test(nm[1])) o.invoiceNo = nm[1]; }
+  }
+  if (!o.invoiceDate) { const dm = T.match(new RegExp('\\bdt\\.?\\s*' + DATE_RE, 'i')); if (dm) o.invoiceDate = piDate(dm[1]); }
+  m = T.match(/(?:Order|PO|P\.O\.)\s*(?:No|Number)\.?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/\-]{2,25})/i); if (m && !LBL.test(m[1])) o.orderNo = m[1];
+  m = T.match(/(?:Terms|Payment Terms)\s*[:\-]?\s*(\d+\s*Days?)/i) || T.match(/Terms of Payment[^\n]*\n[^\n]*?\b(\d+\s*Days?)\b/i); if (m) o.terms = m[1];
   // vendor GSTIN: first GSTIN that is not right after a buyer-type label
   const gre = /\b\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]\b/g; let gm;
   const OWN = /BEMPC0588L/;
@@ -30,7 +40,7 @@ export function piParseLines(lines) {
   if (!vf) { const c = T.match(/certified that\s+(.{3,60}?)\s+has supplied/i); if (c && !me.test(c[1])) vf = c[1]; }
   if (!vf && o.gstin) vf = piVendorMap()[o.gstin];
   if (!vf && PI_HINT.from) { const f = clean(String(PI_HINT.from).replace(/<.*>/, '')); if (f.length > 3 && !/@|gmail|account|noreply|^sales$|^tax invoice$/i.test(f)) vf = f.replace(/^Account\s+\w+\s+/i, ''); }
-  if (!vf) for (let i = 0; i < Math.min(L.length, 12); i++) { const t = clean(L[i]); if (PI_SKIP_VENDOR.test(t) || /invoice|voucher|shree|shri|jay |jai |namah|ganesh|printed on|user\s*:/i.test(t) || /^[\d\W]+$/.test(t) || t.length < 4) continue; vf = t.replace(/\s*\(.*$/, ''); break; }
+  if (!vf) for (let i = 0; i < Math.min(L.length, 12); i++) { const t = clean(L[i]).replace(/\s+(Invoice\s*(No|Number)\.?|Dated?|Delivery Note|Mode\/Terms.*|Voucher No.*)(\s+(Dated?|Delivery Note.*))?$/i, '').trim(); if (PI_SKIP_VENDOR.test(t) || /invoice|voucher|shree|shri|jay |jai |namah|ganesh|printed on|user\s*:/i.test(t) || /^[\d\W]+$/.test(t) || t.length < 4) continue; vf = t.replace(/\s*\(.*$/, ''); break; }
   o.vendor = clean(vf);
   // find table
   let hi = L.findIndex(t => /(description|particulars|item)/i.test(t) && /(qty|quantity)/i.test(t));
@@ -64,6 +74,7 @@ export function piParseLines(lines) {
       } else if (cur && !cur.has && hasQ) fill(cur, t);
       else if (cur) {
         if (SER.test(t) && /\d/.test(t) && !/\s/.test(t)) cur.serialCand.push(t);
+        else if (cur.has && /^\d{3,7}$/.test(t) && cur.serialCand.length < Math.max(1, Math.round(cur.qty))) cur.serialCand.push(t);
         else if (!cur.has && !/^(previous|outstanding|page|continued)/i.test(t)) cur.desc += ' ' + t;
         else if (cur.has && /^[A-Za-z]/.test(t) && !/^(previous|outstanding|page|continued|sub|total|sgst|cgst|igst)/i.test(t)) cur.desc += ' ' + t;
       }
@@ -75,6 +86,9 @@ export function piParseLines(lines) {
   o.subtotal = last(/^sub\s*total/i); o.sgst = last(/\bSGST\b/i); o.cgst = last(/\bCGST\b/i); o.igst = last(/\bIGST\b/i);
   o.grandTotal = last(/(grand\s*total|net\s*amount|total\s*amount|invoice\s*total)/i);
   const sum = o.lines.reduce((a, l) => a + l.amount, 0);
+  if (!o.subtotal && sum) { const sl = L.find(t => /^[\d,]+\.\d{1,2}$/.test(t) && Math.abs(piN(t) - sum) <= 1); if (sl) o.subtotal = piN(sl); }
+  if (!o.grandTotal) { const gl = L.find(t => /^total\b/i.test(t) && /\b(pcs|nos|no|unit|units|set|sets)\b/i.test(t)); const gn = gl ? (gl.match(PI_NUM) || []) : []; if (gn.length) o.grandTotal = piN(gn[gn.length - 1]); }
+  if (!o.grandTotal && o.subtotal && (o.sgst + o.cgst + o.igst)) o.grandTotal = Math.round((o.subtotal + o.sgst + o.cgst + o.igst) * 100) / 100;
   if (!o.invoiceNo) warn.push('Invoice number not found - please type it.');
   if (!o.invoiceDate) warn.push('Invoice date not found - please set it.');
   if (!o.lines.length) warn.push('No item lines were read.');
