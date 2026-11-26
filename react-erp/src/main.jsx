@@ -18,3 +18,18 @@ const theme = createTheme({
 });
 createRoot(document.getElementById('root')).render(<ThemeProvider theme={theme}><CssBaseline /><App /></ThemeProvider>);
 import { go as __go } from './lib/nav.js'; window.ccGo = __go;
+
+// Auto-update: when a newer build is published, reload by itself (checked on open, on return to the app, and every 3 min)
+(function () {
+  let busy = false;
+  async function chk() {
+    if (busy || typeof __BUILD__ === 'undefined') return; busy = true;
+    try {
+      const v = (await fetch('./version.txt?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '')).trim();
+      if (/^\d{10,}$/.test(v) && v !== __BUILD__ && !document.querySelector('[role=dialog]')) location.reload();
+    } catch (e) { }
+    busy = false;
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) chk(); });
+  setInterval(chk, 180000); setTimeout(chk, 4000);
+})();
