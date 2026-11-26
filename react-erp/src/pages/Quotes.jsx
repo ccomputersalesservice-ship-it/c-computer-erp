@@ -191,36 +191,41 @@ const QTYPES = [   /* [label, name regex, search words, category/name regex] */
   ['gpu', /\b(gpu|graphic|graphics|rtx|gtx|radeon)\b/, ['graphics', 'gpu', 'rtx'], 'graphic|gpu|rtx|gtx|radeon'],
   ['kb', /\b(keyboard)\b/, ['keyboard'], 'keyboard'], ['ms', /\b(mouse)\b/, ['mouse'], 'mouse'], ['mon', /\b(monitor|display|led)\b/, ['monitor'], 'monitor|display']
 ];
+/* background photo matcher: shared search cache, one fallback search per type, only 2 searches per line */
+const QPQ = {};
+const qQuick = q => QPQ[q] || (QPQ[q] = api('prod.quick', { q }, { loader: false }).then(r => r || []).catch(() => []));
+async function qBulkPhotos(lines) {
+  const GEN = new Set(['yr', 'yrs', 'year', 'box', 'imp', 'with', 'and', 'the', 'new', 'gen']);
+  try {
+    const found = await Promise.all(lines.map(async ln => {
+      const toks = ln.name.toLowerCase().split(/[\s,\/()+-]+/).filter(x => x.length > 1 && !GEN.has(x));
+      const qs = [...new Set([ln.name.split(/\s+/).slice(0, 3).join(' ')].concat(toks.filter(x => /\d/.test(x) && x.length >= 4).slice(0, 1)))];
+      const pool = {}; (await Promise.all(qs.map(qQuick))).forEach(r => r.forEach(p => { pool[p.ProductID] = p; }));
+      const wt = x => /\d/.test(x) ? 2 : 1, tot = toks.reduce((a, x) => a + wt(x), 0) || 1;
+      const sc = p => { const t = (p.Name + ' ' + (p.Brand || '') + ' ' + (p.Model || '')).toLowerCase(); return toks.filter(x => t.includes(x)).reduce((a, x) => a + wt(x), 0) / tot; };
+      const best = Object.values(pool).map(p => [sc(p), p]).filter(x => x[0] >= 0.3).sort((x, y) => y[0] - x[0]).slice(0, 5).map(x => x[1]);
+      const ty = QTYPES.find(t => t[1].test(ln.name.toLowerCase()));
+      let fb = []; if (ty) { const pl = {}; (await Promise.all(ty[2].slice(0, 2).map(qQuick))).forEach(r => r.forEach(p => { pl[p.ProductID] = p; })); fb = Object.values(pl).filter(p => { const t = QTYPES.find(x => x[1].test(String(p.Name || '').toLowerCase())); return t && t[0] === ty[0]; }).slice(0, 12); }
+      return { best, fb };
+    }));
+    await loadThumbs([...new Set(found.flatMap(f => f.best.concat(f.fb)).map(p => p.ProductID))]);
+    lines.forEach((ln, i) => { const f = found[i], hp = p => S.thumbs[p.ProductID], prod = f.best.find(hp) || f.fb.find(hp) || f.best[0]; if (prod) { ln.kind = 'Product'; ln.productId = prod.ProductID; ln.brand = prod.Brand; ln.model = prod.Model; ln.available = prod.available; } });
+    reQ();
+  } catch (e) { }
+}
 const qbulk = mode => work(async () => {
   /* "one" = Single item (total set): every part listed with NO price + one TOTAL COMPLETE SET line.  "sep" = Separate items: every part gets its own price. */
   const crm = mode === 'one', txt = (bk().txt || '').split('\n').map(x => x.trim()).filter(Boolean), g = qBulkG(); let n = 0, m = 0;
   QE.lines = QE.lines.filter(l => !l._bulk);   /* pressing the button again replaces the earlier bulk lines, no duplicates */
   const items = [];
   for (const ln of txt) { const mt = ln.match(/^(.*?)[\s:=-]*₹?\s*([\d,]+(?:\.\d+)?)\s*\+?\s*$/); if (!mt || !mt[1].trim()) continue; const price = +mt[2].replace(/,/g, ''); items.push({ name: mt[1].trim(), cost: Math.round(price * (1 + g / 100) * 100) / 100 }); }
-  /* smart match: several searches per line (whole name + each brand/model word), score by common words (model numbers count double), then prefer a match that has a real photo */
-  const GEN = new Set(['yr', 'yrs', 'year', 'box', 'imp', 'with', 'and', 'the', 'new', 'gen']);
-  const found = await Promise.all(items.map(async it => {
-    const toks = it.name.toLowerCase().split(/[\s,\/()+-]+/).filter(x => x.length > 1 && !GEN.has(x));
-    const qs = [it.name.split(/\s+/).slice(0, 3).join(' ')].concat(toks.filter(x => /\d/.test(x) || x.length >= 4).slice(0, 4));
-    const pool = {}; await Promise.all([...new Set(qs)].map(q => api('prod.quick', { q }).then(r => (r || []).forEach(p => { pool[p.ProductID] = p; })).catch(() => { })));
-    const wt = x => /\d/.test(x) ? 2 : 1, tot = toks.reduce((a, x) => a + wt(x), 0) || 1;
-    const sc = p => { const t = (p.Name + ' ' + (p.Brand || '') + ' ' + (p.Model || '')).toLowerCase(); return toks.filter(x => t.includes(x)).reduce((a, x) => a + wt(x), 0) / tot; };
-    const best = Object.values(pool).map(p => [sc(p), p]).filter(x => x[0] >= 0.3).sort((x, y) => y[0] - x[0]).slice(0, 5).map(x => x[1]);
-    /* same-type fallback: no exact product -> any product of the SAME type (processor -> a processor photo, RAM -> a RAM photo) */
-    const nm = it.name.toLowerCase(), ty = QTYPES.find(t => t[1].test(nm));
-    let fb = []; if (ty) { const pl = {}; await Promise.all(ty[2].map(q => api('prod.quick', { q }).then(r => (r || []).forEach(p => { pl[p.ProductID] = p; })).catch(() => { }))); fb = Object.values(pl).filter(p => { const t = QTYPES.find(x => x[1].test(String(p.Name || '').toLowerCase())); return t && t[0] === ty[0]; }).sort((x, y) => sc(y) - sc(x)).slice(0, 12); }
-    return { best, fb };
-  }));
-  try { await loadThumbs([...new Set(found.flatMap(f => f.best.concat(f.fb)).map(p => p.ProductID))]); } catch (e) { }
-  const pick = i => { const f = found[i] || { best: [], fb: [] }, hp = p => S.thumbs[p.ProductID]; return f.best.find(hp) || f.fb.find(hp) || f.best[0] || null; };
-  items.forEach((it, i) => {
-    const up = crm ? 0 : it.cost, prod = pick(i);
-    if (prod) { QE.lines.push({ _bulk: 1, kind: 'Product', part: '', productId: prod.ProductID, name: it.name, brand: prod.Brand, model: prod.Model, spec: '', qty: 1, unitPrice: up, lineDisc: 0, gstRate: '', cost: it.cost, available: prod.available }); m++; }
-    else QE.lines.push({ _bulk: 1, kind: 'Custom', part: '', productId: '', name: it.name, brand: '', model: '', spec: '', qty: 1, unitPrice: up, lineDisc: 0, gstRate: '', cost: it.cost }); n++;
-  });
+  /* lines are added at once (fast); catalogue photos are matched in the background and appear a moment later */
+  const added = [];
+  items.forEach(it => { const ln = { _bulk: 1, kind: 'Custom', part: '', productId: '', name: it.name, brand: '', model: '', spec: '', qty: 1, unitPrice: crm ? 0 : it.cost, lineDisc: 0, gstRate: '', cost: it.cost }; QE.lines.push(ln); added.push(ln); n++; });
+  qBulkPhotos(added);
   if (crm && n) qSetLine(true);   /* ONE final line carries the total price */
   const pn = n ? qProfitApply() : 0;
-  reQ(); toast(n ? (crm ? `${n} items added (${m} with real photo), last line TOTAL COMPLETE SET.` : `${n} lines added (${m} with catalogue photo).`) + (pn ? ' Profit added too.' : ' Now add profit.') : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
+  reQ(); toast(n ? (crm ? `${n} items added, last line TOTAL COMPLETE SET. Photos are loading...` : `${n} lines added. Photos are loading...`) + (pn ? ' Profit added too.' : ' Now add profit.') : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
 });
 
 /* ---------- editor page ---------- */
