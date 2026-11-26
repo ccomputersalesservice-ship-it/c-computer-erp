@@ -44,8 +44,8 @@ export default function Service() {
 }
 
 /* ---------- Job sticker (same as the CRM sticker: 50x25, no shop-name line, one label) ---------- */
-const STK_KEY = 'ccJobStk';
-const stkGet = () => { try { const o = JSON.parse(localStorage.getItem(STK_KEY) || '{}'); return { w: +o.w || 50, h: +o.h || 27, sc: +o.sc || 100, ask: o.ask !== false }; } catch (e) { return { w: 50, h: 27, sc: 100, ask: true }; } };
+const STK_KEY = 'ccJobStk2';
+const stkGet = () => { try { const o = JSON.parse(localStorage.getItem(STK_KEY) || '{}'); return { w: +o.w || 50, h: +o.h || 25, sc: +o.sc || 100, ask: o.ask !== false }; } catch (e) { return { w: 50, h: 25, sc: 100, ask: true }; } };
 function stkPrint(j, S) {
   const W = S.w, H = S.h, sc = S.sc / 100, due = Math.max(0, (j.total || 0) - (j.paid || 0)), bc = barcodeSvg(String(j.sid || ''), { style: 'display:block;margin:0 auto' }), bw = Math.min(W - 4, bc.modules * 0.375);
   const t = 'font:7.5pt Arial;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
@@ -56,8 +56,8 @@ function stkPrint(j, S) {
 function StkForm({ S }) {
   const [, setN] = useState(0); const set = (k, x) => { S[k] = x; setN(n => n + 1); };
   return <Stack gap={1.5}>
-    <Typography variant="body2" color="text.secondary">Printer EX58L. Label ni height tamara label roll pramane nakho (label + gap). Print saaru na aave to height ke scale badli ne pharithi try karo.</Typography>
-    <Stack direction="row" gap={1} flexWrap="wrap">{[[50, 25], [50, 27], [50, 28], [50, 30]].map(([w, h]) => <Chip key={h} label={w + ' x ' + h} onClick={() => { S.w = w; S.h = h; setN(n => n + 1); }} color={S.w === w && S.h === h ? 'primary' : 'default'} />)}</Stack>
+    <Typography variant="body2" color="text.secondary">Printer EX58L. Tamara printer (LABEL) nu paper 50 x 25 che, etle Height 25 rakho. Sticker upar-niche khisake to Scale 95 karo.</Typography>
+    <Stack direction="row" gap={1} flexWrap="wrap">{[[50, 25], [50, 24], [50, 30]].map(([w, h]) => <Chip key={h} label={w + ' x ' + h} onClick={() => { S.w = w; S.h = h; setN(n => n + 1); }} color={S.w === w && S.h === h ? 'primary' : 'default'} />)}</Stack>
     <TextField type="number" label="Width (mm)" value={S.w} onChange={e => set('w', +e.target.value)} />
     <TextField type="number" label="Height (mm)" value={S.h} onChange={e => set('h', +e.target.value)} />
     <TextField type="number" label="Scale % (100 = normal, nanu karva 90)" value={S.sc} onChange={e => set('sc', +e.target.value)} />
