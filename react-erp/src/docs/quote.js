@@ -11,7 +11,7 @@ window.QPNG = window.QPNG || {"cpu":"data:image/png;base64,iVBORw0KGgoAAAANSUhEU
 const qPhNorm = n => String(n || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const qPhMap = () => { try { return JSON.parse(localStorage.getItem('ccQPh') || '{}'); } catch (e) { return {}; } };
 const qPhSet = (name, id) => { try { const m = qPhMap(), k = qPhNorm(name); if (!k || !id) return; m[k] = id; const ks = Object.keys(m); if (ks.length > 600) ks.slice(0, ks.length - 600).forEach(x => delete m[x]); localStorage.setItem('ccQPh', JSON.stringify(m)); } catch (e) { } };
-const qPhId = l => l.productId || qPhMap()[qPhNorm(l.name)] || '';
+const qPhId = l => l.productId || '';   /* bulk lines keep the cartoon part icons (no auto photo) */
 const PARTICO=(()=>{const W=(b)=>'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="56" viewBox="0 0 64 56">'+b+'</svg>');const N='#0b2a6f',G='#f6b800',L='#dbe4f7';
 const m={cpu:W('<rect x="16" y="10" width="32" height="32" rx="3" fill="#333" stroke="'+N+'" stroke-width="2"/><rect x="22" y="16" width="20" height="20" fill="#9aa7c0"/><text x="32" y="30" font-size="9" font-weight="700" text-anchor="middle" fill="'+N+'">CPU</text><g stroke="'+G+'" stroke-width="2.5">'+[20,28,36,44].map(x=>'<path d="M'+x+' 42v7M'+x+' 10v-6"/>').join('')+'</g>'),
 ram:W('<rect x="4" y="16" width="56" height="22" rx="2" fill="#1d7a46"/>'+[9,19,29,39].map(x=>'<rect x="'+x+'" y="21" width="7" height="9" fill="#222"/>').join('')+'<rect x="48" y="21" width="8" height="9" fill="#222"/><path d="M6 38v6M10 38v6M14 38v6M18 38v6M22 38v6M26 38v6M30 38v6M34 38v6M38 38v6M42 38v6M46 38v6M50 38v6M54 38v6" stroke="'+G+'" stroke-width="2"/>'),

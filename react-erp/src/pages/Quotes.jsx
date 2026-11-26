@@ -222,10 +222,9 @@ const qbulk = mode => work(async () => {
   /* lines are added at once (fast); catalogue photos are matched in the background and appear a moment later */
   const added = [];
   items.forEach(it => { const ln = { _bulk: 1, kind: 'Custom', part: '', productId: '', name: it.name, brand: '', model: '', spec: '', qty: 1, unitPrice: crm ? 0 : it.cost, lineDisc: 0, gstRate: '', cost: it.cost }; QE.lines.push(ln); added.push(ln); n++; });
-  qBulkPhotos(added);
   if (crm && n) qSetLine(true);   /* ONE final line carries the total price */
   const pn = n ? qProfitApply() : 0;
-  reQ(); toast(n ? (crm ? `${n} items added, last line TOTAL COMPLETE SET. Photos are loading...` : `${n} lines added. Photos are loading...`) + (pn ? ' Profit added too.' : ' Now add profit.') : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
+  reQ(); toast(n ? (crm ? `${n} items added, last line TOTAL COMPLETE SET. ` : `${n} lines added. `) + (pn ? ' Profit added too.' : ' Now add profit.') : 'No valid line found. Last number of each line must be the price.', n ? '' : 'bad');
 });
 
 /* ---------- editor page ---------- */
