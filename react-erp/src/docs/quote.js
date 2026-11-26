@@ -58,7 +58,7 @@ function qBf() {
 }
 function qFt(sh) {
   const GD = qDGD, IC = QIC;
-  return `<div class="ft"><div class="it">${IC('pin', GD, 22)}<span>${esc(sh.addr || '')}</span></div><div class="it">${IC('wa', GD, 20)}<span>${esc(sh.phone || '')}</span></div><div class="it">${IC('globe', GD, 22)}<span><b>${esc(sh.name || 'C COMPUTER')}</b><br>The Computer House</span></div></div>`;
+  return `<div class="ft"><div class="it">${IC('pin', GD, 22)}<span>${esc(sh.addr || 'C-5, Near Business Fair, Laxmi Nagar Society, Katargam Road, Surat – 395004')}</span></div><div class="it">${IC('wa', GD, 20)}<span>${esc(sh.phone || '8160088439')}</span></div><div class="it">${IC('globe', GD, 22)}<span><b>${esc(sh.name || 'C COMPUTER')}</b><br>The Computer House</span></div></div>`;
 }
 function qScope(css, pre) { return css.replace(/([^{}]+)\{([^{}]*)\}/g, (m, sel, body) => { sel = sel.trim(); if (sel[0] === '@') return ''; const ss = sel.split(',').map(x => x.trim()).filter(x => x && !/^(\.s|\.c|\.r|\.red|\.box)$/.test(x)).map(x => /^(html|body)$/.test(x) ? pre : x === '*' ? pre + ' *' : pre + ' ' + x.replace(/\.dl\b/g, '.pdl').replace(/\.ft\b/g, '.pft').replace(/\.it\b/g, '.pit').replace(/\.lg\b/g, '.plg')); return ss.length ? ss.join(',') + '{' + body + '}' : ''; }); }
 function qDocHtml(q, fmt, invoice, full) {
