@@ -27,7 +27,8 @@ function labelHtml(l, tpl, size) {
 export function doPrint(html, size) {
   const [W, H] = Array.isArray(size) ? size : SIZES[size];
   let st = document.getElementById('pgStyle'); if (!st) { st = document.createElement('style'); st.id = 'pgStyle'; document.head.appendChild(st); }
-  st.textContent = `@page{size:${W}mm ${H}mm;margin:0}@media print{html,body{width:${W}mm;margin:0;padding:0}}`;
+  const one = (html.match(/class="lbl"/g) || []).length === 1;
+  st.textContent = `@page{size:${W}mm ${H}mm;margin:0}@media print{html,body{width:${W}mm;margin:0;padding:0}${one ? `html,body{height:${H - 0.5}mm!important;max-height:${H - 0.5}mm!important;overflow:hidden!important}#printRoot .lbl{height:${H - 0.5}mm!important;page-break-after:avoid!important;break-after:avoid!important}` : ''}}`;
   let root = document.getElementById('printRoot'); if (!root) { root = document.createElement('div'); root.id = 'printRoot'; document.body.appendChild(root); }
   root.innerHTML = html; setTimeout(() => window.print(), 150);
 }
