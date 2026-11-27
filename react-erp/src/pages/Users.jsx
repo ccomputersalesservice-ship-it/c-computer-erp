@@ -22,13 +22,20 @@ function UserForm({ u, v }) {
   return <Stack gap={2} sx={{ pt: 1 }}>
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}><TextField fullWidth label="Login ID *" value={v.loginId} inputProps={{ autoCapitalize: 'off' }} onChange={e => set('loginId', e.target.value)} /><TextField fullWidth label={LT('name') + ' *'} value={v.name} onChange={e => set('name', e.target.value)} /></Stack>
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}><TextField select fullWidth label="Role" value={v.role} onChange={e => set('role', e.target.value)}><MenuItem value="STAFF">Sales Staff (no prices)</MenuItem><MenuItem value="ACCOUNTS">Accounts (adds prices)</MenuItem><MenuItem value="ADMIN">Admin / Owner</MenuItem></TextField>
-      <TextField fullWidth type="password" label={u ? 'New PIN (leave blank to keep)' : 'PIN (4-8 digits) *'} inputProps={{ inputMode: 'numeric', maxLength: 8, autoComplete: 'new-password', 'data-lpignore': 'true', 'data-1p-ignore': 'true' }} InputProps={{ endAdornment: <span style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700, padding: '6px 8px', userSelect: 'none' }} onMouseDown={e => e.preventDefault()} onClick={e => { const el = e.currentTarget, i = el.closest('.MuiInputBase-root').querySelector('input'), sh = i.type === 'password'; i.type = sh ? 'text' : 'password'; el.textContent = sh ? 'Hide' : 'Show'; }}>Show</span> }} value={v.pin} onChange={e => set('pin', e.target.value)} /></Stack>
-    {u && <FormControlLabel control={<Checkbox checked={v.active} onChange={e => set('active', e.target.checked)} />} label={LT('active')} />}
+      <TextField fullWidth type="password" label={u ? 'New PIN (leave blank to keep)' : 'PIN (4-8 digits) *'} inputProps={{ inputMode: 'numeric', maxLength: 8, autoComplete: 'new-password' }} value={v.pin} onChange={e => set('pin', e.target.value)} /></Stack>
+    {u && <FormControlLabel control={<Checkbox checked={v.active} onChange={e => set('active', e.target.checked)} />} label={'Login enabled'} />}
+    {u && u.role !== 'ADMIN' && <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #e5e7eb' }}>
+      <b>Office time</b> <small style={{ color: '#6b7280' }}>(aa time bahar login nahi thay. Khali rakho to koi limit nahi)</small>
+      <Stack direction="row" gap={1} alignItems="center" sx={{ mt: 1 }} flexWrap="wrap"><TextField type="time" value={v.hs} onChange={e => set('hs', e.target.value)} /> thi <TextField type="time" value={v.he} onChange={e => set('he', e.target.value)} />
+        <Button variant="outlined" size="small" onClick={() => work(async () => { await api('users.hours.save', { uid: u.id, extraMinutes: 60 }); v.xl = 60; set('xl', 60); toast('+1 kalak access aapyo', 'ok'); })}>+1 hour access</Button></Stack>
+      {v.xl > 0 && <small style={{ color: '#047857' }}>Extra access chalu chhe (~{v.xl} min baki)</small>}
+    </Box>}
   </Stack>;
 }
-function userForm(u, reload) {
-  const v = { loginId: u ? u.loginId : '', name: u ? u.name : '', role: u ? u.role : 'STAFF', pin: '', active: u ? !!u.active : true }, _rid = rid();
+async function userForm(u, reload) {
+  let hh = {}; if (u && u.role !== 'ADMIN') { try { hh = (await api('users.hours', {}, { loader: true }))[u.id] || {}; } catch (e) { } }
+  const v = { loginId: u ? u.loginId : '', name: u ? u.name : '', role: u ? u.role : 'STAFF', pin: '', active: u ? !!u.active : true, hs: hh.s || '', he: hh.e || '', xl: hh.xLeft || 0 }, _rid = rid();
   openDialog(u ? u.name : 'New user', () => <UserForm u={u} v={v} />, {
-    maxWidth: 'sm', actions: close => <Button variant="contained" onClick={() => work(async () => { await api('users.save', { id: u ? u.id : undefined, loginId: v.loginId, name: v.name, role: v.role, pin: v.pin, active: u ? v.active : true }, { rid: _rid }); toast('Saved', 'ok'); close(); reload(); })}>{LT('save')}</Button>
+    maxWidth: 'sm', actions: close => <Button variant="contained" onClick={() => work(async () => { await api('users.save', { id: u ? u.id : undefined, loginId: v.loginId, name: v.name, role: v.role, pin: v.pin, active: u ? v.active : true }, { rid: _rid }); if (u && u.role !== 'ADMIN') await api('users.hours.save', { uid: u.id, start: v.hs, end: v.he }); toast('Saved', 'ok'); close(); reload(); })}>{LT('save')}</Button>
   });
 }
