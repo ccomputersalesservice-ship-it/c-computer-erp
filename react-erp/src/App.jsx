@@ -1,3 +1,4 @@
+import { startJobWatch } from './lib/jobwatch.js';
 import React, { Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AppBar, Avatar, Box, BottomNavigation, BottomNavigationAction, Button, ClickAwayListener, Drawer, IconButton, InputAdornment, List, ListItemButton,
@@ -133,6 +134,7 @@ function moreSheet() {
 
 /* ---------------- shell ---------------- */
 function Shell({ logout, rerender }) {
+  useEffect(() => { startJobWatch(); }, []);
   const nav = useSyncExternalStore(navStore.sub, navStore.get);
   const wide = useMediaQuery('(min-width:900px)');
   const [open, setOpen] = useState(false);

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Button, MenuItem, Stack, TextField, Typography, Tab, Tabs, Chip, Paper, Checkbox, FormControlLabel, Link } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { api, S, inr, isAdmin, rid, toast, work, CRM_STAFF_URL, barcodeSvg, esc } from '../lib/core.js';
+import { api, S, inr, isAdmin, rid, toast, work, CRM_STAFF_URL, barcodeSvg, esc, LOGO } from '../lib/core.js';
 import { doPrint } from './Print.jsx';
 import { PageHead, Skel, Pager, DataTable, openDialog } from '../lib/ui.jsx';
 import { useList, useFilter, useDebounced } from '../lib/hooks.js';
@@ -30,13 +30,18 @@ function svWa(j) {
 
 export default function Service() {
   const [f, set] = useFilter(sv);
-  const [r] = useList('crm.jobs', f);
+  const [r, reload] = useList('crm.jobs', f);
+  useEffect(() => { window.addEventListener('cc-newjob', reload); return () => window.removeEventListener('cc-newjob', reload); }, []);
   const q = useDebounced(v => set('q', v), 300);
   const adm = isAdmin();
   const cols = [{ h: 'Job', k: j => <><b>{j.sid}</b>{j.urgent ? ' 🔥' : ''}{j.onsite ? ' 📍' : ''}</> }, { h: 'Date', k: j => <>{j.date}{j.time ? <><br /><small>{j.time}</small></> : null}</>, nw: true }, { h: 'Customer', k: j => <><b>{j.name}</b><br /><small>{j.phone}</small></> }, { h: 'Device', k: j => (j.brand + ' ' + j.device).trim() }, { h: 'Status', k: j => <SvPill s={j.status} /> }];
   if (adm) cols.push({ h: 'Bill', k: j => inr(j.total), align: 'right' }, { h: 'Paid', k: j => inr(j.paid), align: 'right' });
   return <Box>
-    <PageHead title="Service Records"><Button variant="contained" startIcon={<AddIcon />} onClick={newJob}>Navo Job</Button></PageHead>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, p: { xs: 1.5, sm: 2 }, borderRadius: 3, color: '#fff', background: 'linear-gradient(120deg,#be185d 0%,#7e22ce 100%)', boxShadow: '0 6px 18px rgba(126,34,206,.25)' }}>
+      <img src={LOGO} alt="C COMPUTER" style={{ height: 68, width: 68, objectFit: 'contain', background: '#fff', borderRadius: 14, padding: 6 }} />
+      <Box sx={{ flex: 1, minWidth: 0 }}><Typography variant="h5" fontWeight={900} sx={{ lineHeight: 1.1 }}>Service Records</Typography><Typography sx={{ opacity: .9, fontSize: 13 }}>C COMPUTER · Sales | Service | Accessories</Typography></Box>
+      <Button variant="contained" startIcon={<AddIcon />} onClick={newJob} sx={{ bgcolor: '#fff', color: '#be185d', fontWeight: 800, '&:hover': { bgcolor: '#fdf2f8' } }}>Navo Job</Button>
+    </Box>
     <TextField placeholder="Job no / name / mobile / device" defaultValue={f.q} onChange={e => q(e.target.value)} sx={{ mb: 1, width: '100%', maxWidth: 420, bgcolor: '#fff' }} />
     {r && !r.error && <Tabs value={f.status} variant="scrollable" scrollButtons="auto" onChange={(e, v) => set('status', v)} sx={{ mb: 2 }}><Tab value="" label={`All ${r.all}`} />{SV_ST.map(x => <Tab key={x} value={x} label={`${x} ${r.counts[x] || 0}`} />)}</Tabs>}
     {!r ? <Skel /> : <><DataTable rows={r.rows} cols={cols} empty="No service records" onRow={j => openJob(j.id)} /><Pager res={r} onPage={p => set('page', p)} /></>}
