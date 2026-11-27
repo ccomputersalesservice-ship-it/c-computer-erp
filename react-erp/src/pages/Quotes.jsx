@@ -98,7 +98,7 @@ function qApply(q) { Object.assign(QE, { id: q.id, status: q.status, discStatus:
 const qsave = () => work(async () => {
   const x = QE, a = isAdmin(), body = { id: x.id || undefined, name: x.name, mobile: x.mobile, address: x.address, gstNo: x.gstNo, customerId: x.customerId, gst: x.gst, gstRate: x.gstRate, taxType: x.taxType, date: x.date, validUntil: x.validUntil, billDisc: x.billDisc, note: x.note, terms: x.terms, format: x.format, followDate: x.followDate,
     lines: x.lines.map(l => ({ kind: l.kind, part: l.part, productId: l.productId, name: l.name, brand: l.brand, model: l.model, spec: l.spec, qty: l.qty, unitPrice: l.unitPrice, lineDisc: l.lineDisc, gstRate: l.gstRate === '' ? undefined : l.gstRate, cost: a ? l.cost : undefined })) };
-  const r = await api('quote.save', body, { rid: rid(), loader: true }); toast('Saved ' + r.id); S.params = { id: r.id }; qApply(r);
+  const r = await api('quote.save', body, { rid: rid(), loader: true }); toast('Saved ' + r.id); S.params = { id: r.id }; qApply(r); try { localStorage.removeItem(QDK); } catch (e) { }
 });
 async function qEnsureSaved() { if (!QE.id) await qsave(); if (!QE.id) { toast('Save the quotation first', 'bad'); return false; } return true; }
 async function qDocData() { const q = await api('quote.get', { id: QE.id }); const ids = q.lines.map(qPhId).filter(x => x && !/^data:/.test(x)); try { await Promise.race([loadThumbs(ids), new Promise(r => setTimeout(r, 2500))]); } catch (e) { } q.forTick = QE.forTick || {}; return q; }
@@ -253,6 +253,10 @@ const H = ({ h, ...p }) => <span {...p} dangerouslySetInnerHTML={{ __html: h }} 
 const FOR = ['Laptop', 'Desktop', 'Monitor', 'Printer', 'CCTV', 'Accessories', 'Gaming PC', 'Others'];
 const isoAdd = (d, n) => { const x = new Date((d || new Date().toISOString().slice(0, 10)) + 'T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
 
+/* unsaved NEW quotation draft survives a phone refresh / app reopen (e.g. after copying a number from WhatsApp) */
+const QDK = 'ccQDraft';
+let bootDraft = (() => { try { const d = JSON.parse(localStorage.getItem(QDK) || 'null'); return d && d.at && Date.now() - d.at < 864e5 && d.q ? d.q : null; } catch (e) { return null; } })();
+const qDraftSave = () => { try { if (!QE) return; if (QE.id || !(QE.name || QE.mobile || QE.address || (QE.lines && QE.lines.length))) { if (!QE.id) localStorage.removeItem(QDK); return; } localStorage.setItem(QDK, JSON.stringify({ at: Date.now(), q: QE })); } catch (e) { } };
 export function Quote({ params }) {
   const [, setN] = useState(0), [ready, setReady] = useState(false);
   useEffect(() => {
@@ -262,11 +266,14 @@ export function Quote({ params }) {
       if (p.id) q = await api('quote.get', { id: p.id });
       QE = q ? { id: q.id, status: q.status, date: q.date, validUntil: q.validUntil, name: q.name, mobile: q.mobile, address: q.address, gstNo: q.gstNo, customerId: q.customerId, gst: q.gst, taxType: q.taxType, gstRate: (q.lines[0] && q.lines[0].gstRate) || 18, billDisc: q.billDisc, note: q.note, terms: q.terms, format: q.format || 'premium', discStatus: q.discStatus, orderId: q.orderId, followDate: q.followDate, followNote: q.followNote, followBy: q.followBy, log: q.log, shop: q.shop, createdBy: q.createdBy, lines: q.lines.map(mapLine) }
         : { id: '', status: 'Draft', date: new Date().toISOString().slice(0, 10), validUntil: '', name: '', mobile: '', address: '', gstNo: '', customerId: '', gst: false, taxType: '', gstRate: 18, billDisc: 0, note: '', terms: '', format: 'premium', lines: [], log: [], discStatus: 'OK' };
+      if (!q && bootDraft && !(p.id)) { QE = bootDraft; bootDraft = null; toast('Adhuri quotation pachi aavi gai'); }
       QE.stateCode = cfg.state; QE.maxDisc = cfg.maxDiscPct; if (!q) QE.gstRate = cfg.gstRate; QE._fd = QE.followDate || ''; QE._fn = QE.followNote || '';
       const ids = QE.lines.map(qPhId).filter(x => x && !/^data:/.test(x)); if (ids.length) loadThumbs(ids).then(() => reQ(), () => { });
       setReady(true); qPreload();
     });
-    return () => { reQ = () => { }; };
+    const iv = setInterval(qDraftSave, 1500), sv = () => qDraftSave();
+    document.addEventListener('visibilitychange', sv); window.addEventListener('pagehide', sv);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', sv); window.removeEventListener('pagehide', sv); qDraftSave(); reQ = () => { }; };
   }, []);
   if (!ready || !QE) return <Loading />;
   return <QuoteBody />;
