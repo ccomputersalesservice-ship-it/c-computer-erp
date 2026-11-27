@@ -77,6 +77,7 @@ export const remote = { run: runRemote };   // tests may replace this
 export const APIC = new Map();
 const API_READ = /^(brec\.get|brec\.list|stock\.list|stock\.moves|prod\.list|prod\.get|cust\.list|cust\.search|ord\.list|ord\.get|pur\.list|pur\.get|serial\.list|serial\.item|quote\.list|quote\.get|quote\.dash|cash\.list|crm\.jobs|crm\.job|rep\.[a-z]+|dash|dash\.ops|aud\.list|print\.history)$/;
 let SWR_W = 0;
+export const lastWriteAt = () => SWR_W;
 const SWR_OK = /^(dash|stock\.list|prod\.list|crm\.jobs|cust\.list|ord\.list|pur\.list|quote\.list|brec\.list|serial\.list|chal\.list)$/;
 const swrKey = rk => 'ccswr|' + ((S.user && S.user.loginId) || '') + '|' + rk;
 function swrGet(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
