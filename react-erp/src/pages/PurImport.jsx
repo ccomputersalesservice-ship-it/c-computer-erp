@@ -1,7 +1,7 @@
 /* ===== Purchase Invoice Import (PDF -> review -> approve). Admin only. Same steps as the live ERP. ===== */
 import React, { useEffect, useRef, useState } from 'react';
 import { Badge, Box, Button, Checkbox, FormControlLabel, MenuItem, Paper, Stack, TextField, Typography, Alert, Chip, Autocomplete } from '@mui/material';
-import { api, S, inr, LT, rid, toast, work, pickFile, debounce, loadThumbs } from '../lib/core.js';
+import { api, S, inr, LT, rid, toast, work, pickFile, debounce, loadThumbs, shrinkImage } from '../lib/core.js';
 import { openDialog, promptBox, Skel, Note, openScanner } from '../lib/ui.jsx';
 import { refresh } from '../lib/nav.js';
 import { uploadPhoto } from './Products.jsx';
@@ -16,18 +16,27 @@ export function PurImportButtons() {
   useEffect(() => { badge.subs.add(setN); piBadge(); return () => badge.subs.delete(setN); }, []);
   return <>
     <Badge badgeContent={n} color="error"><Button variant="outlined" onClick={mailBills}>📧 Mail bills</Button></Badge>
-    <Button variant="contained" color="success" onClick={openImport}>📄 Import PDF bill</Button>
+    <Button variant="contained" color="success" onClick={openImport}>📄 Import bill (PDF / photo)</Button>
   </>;
 }
 
 /* ---------- choose a PDF ---------- */
 export function openImport() {
   let file = null, setMsg = () => { };
-  const Body = () => { const [m, sm] = useState(''); setMsg = sm; return <Stack gap={2}><Alert severity="info">Choose the vendor bill PDF. I will read it and show it to you. Nothing goes to stock until you press Approve.</Alert><input type="file" accept="application/pdf" onChange={e => { file = e.target.files[0]; }} />{m && <Chip label={m} />}</Stack>; };
-  openDialog('Import PDF bill', () => <Body />, {
+  const Body = () => { const [m, sm] = useState(''); setMsg = sm; return <Stack gap={2}><Alert severity="info">Choose the vendor bill (PDF or photo). I will read it and show it to you. Nothing goes to stock until you press Approve.</Alert><input type="file" accept="application/pdf,image/*" onChange={e => { file = e.target.files[0]; }} /><Button size="small" variant="outlined" onClick={async () => { const c = await pickFile(true); if (c) { file = c; sm('📷 ' + (c.name || 'photo') + ' taiyar'); } }}>📷 Camera</Button>{m && <Chip label={m} />}</Stack>; };
+  openDialog('Import bill (PDF / photo)', () => <Body />, {
     maxWidth: 'sm', actions: close => <><Button color="inherit" onClick={close}>Cancel</Button><Button variant="contained" onClick={() => work(async () => {
       const f = file; if (!f) throw new Error('Choose a PDF file first.');
-      if (!/pdf$/i.test(f.type) && !/\.pdf$/i.test(f.name)) throw new Error('This is not a PDF.');
+      if (/^image\//.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name)) {
+        setMsg('Photo vanchu chhu...');
+        const url = await shrinkImage(f, 1600, 0.8), hash = await piSha(f), r = await api('pur.scan', { dataUrl: url });
+        const lines = (r.lines || []).map(l => ({ desc: l.name, hsn: '', gst: '', qty: l.qty, rate: l.price, amount: Math.round(l.qty * l.price * 100) / 100, serialCand: [], _ser: (l.serials || []).join('\n'), productId: l.productId, pname: l.name, _tried: 1 }))
+          .concat((r.pending || []).map(u => ({ desc: u.text, hsn: '', gst: '', qty: u.qty, rate: u.price, amount: Math.round(u.qty * u.price * 100) / 100, serialCand: [], _ser: (u.serials || []).join('\n'), productId: '' })));
+        if (!lines.length) throw new Error('Photo mathi item vanchaya nahi. Saaf, sidhu photo lo athva PDF vapro.');
+        const d = { vendor: r.vendor || '', gstin: '', invoiceNo: r.billNo || '', invoiceDate: r.date || '', terms: '', orderNo: '', subtotal: 0, sgst: 0, cgst: 0, igst: 0, grandTotal: 0, copies: 1, warnings: ['Photo bill chhe - badhi vigat (name, qty, price, bill no, date) barabar check karo.'], lines };
+        close(); return piReview({ drafts: [d], i: 0, hash, url, name: f.name || 'bill.jpg' });
+      }
+      if (!/pdf$/i.test(f.type) && !/\.pdf$/i.test(f.name)) throw new Error('Aa PDF ke photo nathi.');
       if (f.size > 5000000) throw new Error('PDF is too big (max 5 MB).');
       setMsg('Reading PDF...');
       const pages = await piPdfPages(f), drafts = piParsePages(pages).filter(d => d.lines.length || d.invoiceNo);
