@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Button, Card, CardContent, Chip, MenuItem, Paper, Stack, TextField, Typography, Select, Divider } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { api, S, inr, nf, rid, toast, work, isAdmin, dtm, LT, debounce, loadThumbs, qLoadJs, pickFile, shrinkImage } from '../lib/core.js';
-import { PageHead, Skel, Loading, DataTable, Pager, Section, openDialog, promptBox, ProductPicker } from '../lib/ui.jsx';
+import { PageHead, Skel, Loading, DataTable, Pager, Section, openDialog, promptBox, confirmBox, ProductPicker } from '../lib/ui.jsx';
 import { go } from '../lib/nav.js';
 import { qPhSet, qPhId, qPhImg, qPhDel, rupeesWords, PARTICO, qNm, QIC, QPCIMG, qDNV, qDNV2, qDGD, qDocCss, qHd, qBf, qFt, qScope, qDocHtml, qPrintHtml, qPdfTimed } from '../docs/quote.js';
 
@@ -43,7 +43,8 @@ export default function Quotes() {
     {!list ? <Skel /> : <><DataTable rows={list.rows} onRow={x => openQuote(x.id)} empty="No quotations yet. Tap New Quotation."
       cols={[{ h: 'Quotation', k: x => <><b>{x.id}</b><br /><small>{dtm(x.date, x.at)}</small></>, nw: true }, { h: 'Customer', k: x => <>{x.name}{x.mobile && <><br /><small>{x.mobile}</small></>}</> }, { h: 'Amount', k: x => inr(x.total), align: 'right' }]
         .concat(a ? [{ h: 'Profit', k: x => <span style={{ color: '#16a34a' }}>{inr(x.profit)}</span>, align: 'right' }] : [])
-        .concat([{ h: 'Valid until', k: x => dtm(x.validUntil) }, { h: 'By', k: x => x.by }, { h: 'Status', k: x => <Stack direction="row" gap={0.5} flexWrap="wrap"><QPill s={x.status} />{x.discStatus === 'Pending' && <Chip size="small" color="warning" label="Discount?" />}</Stack> }])} />
+        .concat([{ h: 'Valid until', k: x => dtm(x.validUntil) }, { h: 'By', k: x => x.by }, { h: 'Status', k: x => <Stack direction="row" gap={0.5} flexWrap="wrap"><QPill s={x.status} />{x.discStatus === 'Pending' && <Chip size="small" color="warning" label="Discount?" />}</Stack> }])
+        .concat(a ? [{ h: '', k: x => x.status === 'Converted' ? null : <Button size="small" color="error" variant="outlined" onClick={ev => { ev.stopPropagation(); work(async () => { if (!await confirmBox(x.id + ' (' + (x.name || '') + ') kayam mate delete karvu? Pachi pachu nahi aave.')) return; await api('quote.delete', { id: x.id }, { rid: rid(), loader: true }); toast('Deleted ' + x.id); load(); api('quote.dash', {}).then(setD, () => { }); }); }}>Delete</Button> }] : [])} />
       <Pager res={list} onPage={p => { qfl.page = p; load(); }} /></>}
   </Box>;
 }
