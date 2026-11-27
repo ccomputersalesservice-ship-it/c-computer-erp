@@ -20,7 +20,7 @@ export function piParseLines(lines) {
   // invoice no / date / order no / terms
   const DATE_RE = '(\\d{1,2}[-\\/.]\\d{1,2}[-\\/.]\\d{2,4}|\\d{1,2}[- ][A-Za-z]{3}[a-z]*[-, ]+\\d{2,4})', LBL = /^(dated?|delivery|dispatch|mode|terms|buyer|reference|other|invoice|date|no)\.?$/i;
   let m = T.match(/Invoice\s*(?:No|Number|#)\.?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/\-\._]{2,30})/i); if (m && !LBL.test(m[1])) o.invoiceNo = m[1];
-  m = T.match(new RegExp('(?:Invoice\\s*)?Date\\s*[:\\-]?\\s*' + DATE_RE, 'i')); if (m) o.invoiceDate = piDate(m[1]);
+  m = T.match(new RegExp('(?:Invoice\\s*)?Dated?\\s*[:\\-]?\\s*' + DATE_RE, 'i')); if (m) o.invoiceDate = piDate(m[1]);
   // Tally style: labels on one row ("Invoice No.  Dated"), values on the next row ("KSIT/5841/26-27  25-Nov-26")
   if (!o.invoiceNo || !o.invoiceDate) {
     const hi2 = L.findIndex(t => /Invoice\s*(No|Number)\.?\s+Dated?\b/i.test(t));
@@ -45,7 +45,7 @@ export function piParseLines(lines) {
   // find table
   let hi = L.findIndex(t => /(description|particulars|item)/i.test(t) && /(qty|quantity)/i.test(t));
   if (hi < 0) hi = L.findIndex(t => /(description|particulars)/i.test(t));
-  let end = L.findIndex((t, i) => i > hi && /^(sub\s*total|total\b|grand\s*total|amount in words|taxable)/i.test(t));
+  let end = L.findIndex((t, i) => i > hi && /^(sub\s*total|total\b|grand\s*total|amount in words|taxable|add\s*:|less\s*:)/i.test(t));
   if (hi < 0) warn.push('Item table not found - please add the items by hand.');
   else {
     if (end < 0) end = L.length;
@@ -66,7 +66,7 @@ export function piParseLines(lines) {
       c.qty = qty; c.amount = amount; c.listRate = dec.length > 1 ? dec[0] : 0; c.rate = qty ? Math.round(amount / qty * 100) / 100 : c.listRate; c.has = true;
     };
     for (let i = hi + 1; i < end; i++) {
-      const t = L[i], sr = t.match(/^(\d{1,3})\s+(?=[A-Za-z])(.*)$/), hasQ = /(\d+(?:\.\d+)?)\s*(Nos|No|Pcs|Pc|Unit|Units|Set|Sets)\b/i.test(t);
+      const t = L[i], sr = t.match(/^(\d{1,3})\.?\s+(?=[A-Za-z])(.*)$/), hasQ = /(\d+(?:\.\d+)?)\s*(Nos|No|Pcs|Pc|Unit|Units|Set|Sets)\b/i.test(t);
       const next = o.lines.length + (cur && cur.has ? 1 : 0) + 1;
       if (sr && +sr[1] === next && !(cur && !cur.has)) {
         flush(); cur = { sr: sr[1], desc: '', hsn: '', gst: '', qty: 0, rate: 0, amount: 0, serialCand: [], productId: '', has: false };
@@ -87,6 +87,7 @@ export function piParseLines(lines) {
   o.grandTotal = last(/(grand\s*total|net\s*amount|total\s*amount|invoice\s*total)/i);
   const sum = o.lines.reduce((a, l) => a + l.amount, 0);
   if (!o.subtotal && sum) { const sl = L.find(t => /^[\d,]+\.\d{1,2}$/.test(t) && Math.abs(piN(t) - sum) <= 1); if (sl) o.subtotal = piN(sl); }
+  if (!o.subtotal && sum && o.grandTotal && Math.abs(sum + o.sgst + o.cgst + o.igst - o.grandTotal) <= 2) o.subtotal = Math.round(sum * 100) / 100;
   if (!o.grandTotal) { const gl = L.find(t => /^total\b/i.test(t) && /\b(pcs|nos|no|unit|units|set|sets)\b/i.test(t)); const gn = gl ? (gl.match(PI_NUM) || []) : []; if (gn.length) o.grandTotal = piN(gn[gn.length - 1]); }
   if (!o.grandTotal && o.subtotal && (o.sgst + o.cgst + o.igst)) o.grandTotal = Math.round((o.subtotal + o.sgst + o.cgst + o.igst) * 100) / 100;
   if (!o.invoiceNo) warn.push('Invoice number not found - please type it.');
