@@ -18,6 +18,8 @@ export function Crm() {
 export const sv = { q: '', status: '', page: 1, size: 25 };
 const SV_ST = ['Pending', 'Processing', 'Ready', 'Delivered', 'Returned', 'Replacement'];
 const SV_COL = { Pending: 'warning', Processing: 'info', Ready: 'success', Delivered: 'default', Returned: 'error', Replacement: 'error' };
+const SV_HEX = { Pending: ['#d97706', '#fffbeb'], Processing: ['#2563eb', '#eff6ff'], Ready: '#16a34a', Delivered: ['#7e22ce', '#faf5ff'], Returned: ['#dc2626', '#fef2f2'], Replacement: ['#db2777', '#fdf2f8'] };
+SV_HEX.Ready = ['#16a34a', '#f0fdf4'];
 const SvPill = ({ s }) => <Chip size="small" color={SV_COL[s] || 'default'} label={s || '-'} sx={{ fontWeight: 700 }} />;
 const svNext = s => ({ Pending: 'Processing', Processing: 'Ready', Ready: 'Delivered' })[s] || '';
 function svWa(j) {
@@ -43,7 +45,7 @@ export default function Service() {
       <Button variant="contained" startIcon={<AddIcon />} onClick={newJob} sx={{ bgcolor: '#fff', color: '#be185d', fontWeight: 800, '&:hover': { bgcolor: '#fdf2f8' } }}>Navo Job</Button>
     </Box>
     <TextField placeholder="Job no / name / mobile / device" defaultValue={f.q} onChange={e => q(e.target.value)} sx={{ mb: 1, width: '100%', maxWidth: 420, bgcolor: '#fff' }} />
-    {r && !r.error && <Tabs value={f.status} variant="scrollable" scrollButtons="auto" onChange={(e, v) => set('status', v)} sx={{ mb: 2 }}><Tab value="" label={`All ${r.all}`} />{SV_ST.map(x => <Tab key={x} value={x} label={`${x} ${r.counts[x] || 0}`} />)}</Tabs>}
+    {r && !r.error && <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>{[['', 'All', r.all, '#475569', '#f1f5f9'], ...SV_ST.map(x => [x, x, r.counts[x] || 0, SV_HEX[x][0], SV_HEX[x][1]])].map(([v, lb, n, c, bg]) => { const on = f.status === v; return <Box key={v || 'all'} onClick={() => set('status', v)} sx={{ cursor: 'pointer', userSelect: 'none', minWidth: { xs: 'calc(33% - 8px)', sm: 104 }, flex: { xs: '1 1 calc(33% - 8px)', sm: '0 0 auto' }, px: 1.5, py: 1, borderRadius: 2.5, textAlign: 'center', border: '2px solid ' + c, bgcolor: on ? c : bg, color: on ? '#fff' : c, boxShadow: on ? '0 4px 12px ' + c + '55' : 'none', transition: 'all .15s', '&:hover': { transform: 'translateY(-2px)' } }}><Box sx={{ fontSize: 22, fontWeight: 900, lineHeight: 1.1 }}>{n}</Box><Box sx={{ fontSize: 12.5, fontWeight: 700 }}>{lb}</Box></Box>; })}</Box>}
     {!r ? <Skel /> : <><DataTable rows={r.rows} cols={cols} empty="No service records" onRow={j => openJob(j.id)} /><Pager res={r} onPage={p => set('page', p)} /></>}
   </Box>;
 }
