@@ -10,7 +10,7 @@ function beep() {
 async function check() {
   if (!S.user) return;
   try {
-    const r = await api('crm.jobs', { q: '', status: '', page: 1, size: 1 }, { loader: false });
+    const r = await api('crm.jobs', { q: '', status: '', page: 1, size: 1 }, { loader: false, fresh: true });
     if (!r || r.error || typeof r.all !== 'number') return;
     if (last !== null && r.all > last) {
       const j = (r.rows && r.rows[0]) || {}, n = r.all - last, msg = '🔔 Navi service entry' + (n > 1 ? 's (' + n + ')' : '') + (j.name ? ': ' + j.name : '') + (j.device ? ' - ' + (j.brand || '') + ' ' + j.device : '');
@@ -25,5 +25,5 @@ export function startJobWatch() {
   if (started) return; started = true;
   const ask = () => { try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) { } document.removeEventListener('click', ask); };
   document.addEventListener('click', ask);
-  setTimeout(check, 4000); setInterval(() => { if (!document.hidden || true) check(); }, 30000);
+  setTimeout(check, 4000); setInterval(check, 20000); document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
 }
