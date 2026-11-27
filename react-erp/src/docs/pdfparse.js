@@ -72,6 +72,7 @@ export function piParseLines(lines) {
         flush(); cur = { sr: sr[1], desc: '', hsn: '', gst: '', qty: 0, rate: 0, amount: 0, serialCand: [], productId: '', has: false };
         if (hasQ) fill(cur, sr[2]); else cur.desc = sr[2].replace(/\s+\d{4,8}\s*$/, m => { cur.hsn = m.trim(); return ''; }).trim();
       } else if (cur && !cur.has && hasQ) fill(cur, t);
+      else if (cur && cur.has && (t.match(/\b\d{4}[A-Z0-9]{6,10}\b/g) || []).filter(x => /[A-Z]/.test(x)).length >= 1 && !/\s\d{1,3}(,\d{3})*\.\d\d\s*$/.test('') && (t.match(/\b\d{4}[A-Z0-9]{6,10}\b/g) || []).filter(x => /[A-Z]/.test(x)).length * 12 >= t.replace(/\s/g, '').length * 0.5) { (t.match(/\b\d{4}[A-Z0-9]{6,10}\b/g) || []).filter(x => /[A-Z]/.test(x)).forEach(x => { if (!cur.serialCand.includes(x)) cur.serialCand.push(x); }); }
       else if (cur) {
         const stk = t.split(/[\s,;]+/).filter(Boolean);
         if (stk.length >= 1 && cur.has && stk.every(x => SER.test(x) && /\d/.test(x) && /[A-Z]/i.test(x)) && /,/.test(t + ',')) stk.forEach(x => cur.serialCand.push(x));
@@ -88,8 +89,9 @@ export function piParseLines(lines) {
   // generic fallback for unknown bill layouts: any row with words + a quantity/unit + money amounts
   if (!o.lines.length) {
     const BAD = /^(sub\s*total|total|grand|amount|taxable|sgst|cgst|igst|gst|tax|round|bank|a\/c|ifsc|branch|gstin|pan|state|phone|ph\b|mob|email|e-mail|terms|declaration|for\b|authori|signature|invoice|date|dated|buyer|consignee|ship|bill to|place|vehicle|transport|e-way|irn|ack|page|hsn|sr\b|sl\b|s\.no|no\.|description|particulars|previous|outstanding)/i;
-    let n = 0;
+    let n = 0, lastL = null;
     L.forEach(t => {
+      if (lastL && !BAD.test(t)) { const sk = (t.match(/\b\d{4}[A-Z0-9]{6,10}\b/g) || []).filter(x => /[A-Z]/.test(x)); if (sk.length && !/\d+\s*(Nos|Pcs)\b/i.test(t)) { sk.forEach(x => { if (!lastL.serialCand.includes(x)) lastL.serialCand.push(x); }); return; } }
       if (BAD.test(t)) return;
       const dec = (t.match(PI_NUM) || []).map(piN), qm = t.match(/(\d+(?:\.\d+)?)\s*(Nos|No|Pcs|Pc|Unit|Units|Set|Sets|Pkt|Box|Mtr|Mtrs|Meter|Kg|Ltr|Pair|Roll|Rolls|Bdl|Ea|Each)\b/i);
       if (dec.length < 1 || !qm || !/[A-Za-z]{3}/.test(t)) return;
@@ -99,7 +101,7 @@ export function piParseLines(lines) {
       const desc = t.slice(0, cut).replace(/^\d{1,3}\.?\s+(?=[A-Za-z])/, '').replace(/\s+/g, ' ').trim();
       if (!/[A-Za-z]{3}/.test(desc)) return;
       const hs = (t.match(/\b(\d{4,8})\b/g) || [])[0] || '', g = (t.match(/(\d{1,2}(?:\.\d+)?)\s*%/) || [])[1] || '';
-      o.lines.push({ sr: String(++n), desc, hsn: hs, gst: g, qty, rate: Math.round(amount / qty * 100) / 100, amount, serialCand: [], productId: '', has: true });
+      lastL = { sr: String(++n), desc, hsn: hs, gst: g, qty, rate: Math.round(amount / qty * 100) / 100, amount, serialCand: [], productId: '', has: true }; o.lines.push(lastL);
     });
     if (o.lines.length) { const ix = warn.indexOf('Item table not found - please add the items by hand.'); if (ix >= 0) warn.splice(ix, 1); warn.push('Aa bill no format alag chhe - items andaje vanchya chhe. Badhu barabar check karo.'); }
   }
