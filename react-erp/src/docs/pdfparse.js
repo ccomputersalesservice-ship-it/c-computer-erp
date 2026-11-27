@@ -19,8 +19,8 @@ export function piParseLines(lines) {
   const o = { vendor: '', gstin: '', invoiceNo: '', invoiceDate: '', terms: '', orderNo: '', subtotal: 0, sgst: 0, cgst: 0, igst: 0, grandTotal: 0, lines: [], warnings: warn };
   // invoice no / date / order no / terms
   const DATE_RE = '(\\d{1,2}[-\\/.]\\d{1,2}[-\\/.]\\d{2,4}|\\d{1,2}[- ][A-Za-z]{3}[a-z]*[-, ]+\\d{2,4})', LBL = /^(dated?|delivery|dispatch|mode|terms|buyer|reference|other|invoice|date|no)\.?$/i;
-  let m = T.match(/Invoice\s*(?:No|Number|#)\.?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/\-\._]{2,30})/i); if (m && !LBL.test(m[1])) o.invoiceNo = m[1];
-  m = T.match(new RegExp('(?:Invoice\\s*)?Dated?\\s*[:\\-]?\\s*' + DATE_RE, 'i')); if (m) o.invoiceDate = piDate(m[1]);
+  let m = T.match(/(?:Invoice|Bill|Inv|Tax\s*Invoice)\s*(?:No|Number|#)\.?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/\-\._]{2,30})/i); if (m && !LBL.test(m[1])) o.invoiceNo = m[1];
+  m = T.match(new RegExp('(?:Invoice\\s*|Bill\\s*)?Dated?\\s*[:\\-]?\\s*' + DATE_RE, 'i')); if (m) o.invoiceDate = piDate(m[1]);
   // Tally style: labels on one row ("Invoice No.  Dated"), values on the next row ("KSIT/5841/26-27  25-Nov-26")
   if (!o.invoiceNo || !o.invoiceDate) {
     const hi2 = L.findIndex(t => /Invoice\s*(No|Number)\.?\s+Dated?\b/i.test(t));
@@ -53,7 +53,7 @@ export function piParseLines(lines) {
     const flush = () => { if (cur) { if (cur.has) o.lines.push(cur); cur = null; } };
     const SER = /^[A-Z0-9][A-Z0-9\-\/]{7,24}$/i;
     const fill = (c, t) => {   // numbers of one item line: HSN, GST %, qty, rate, amount (+ a serial printed after the amount)
-      const qm = t.match(/(\d+(?:\.\d+)?)\s*(Nos|No|Pcs|Pc|Unit|Units|Set|Sets)\b/i);
+      const qm = t.match(/(\d+(?:\.\d+)?)\s*(Nos|No|Pcs|Pc|Unit|Units|Set|Sets|Pkt|Box|Mtr|Mtrs|Meter|Kg|Ltr|Pair|Roll|Rolls|Bdl|Ea|Each)\b/i);
       const hs = (t.match(/\b(\d{4,8})\b/g) || []).find(h => h !== c.sr) || '';
       if (hs && !c.hsn) c.hsn = hs;
       const g = (t.match(/(\d{1,2}(?:\.\d+)?)\s*%/) || [])[1]; if (g) c.gst = g;
@@ -66,7 +66,7 @@ export function piParseLines(lines) {
       c.qty = qty; c.amount = amount; c.listRate = dec.length > 1 ? dec[0] : 0; c.rate = qty ? Math.round(amount / qty * 100) / 100 : c.listRate; c.has = true;
     };
     for (let i = hi + 1; i < end; i++) {
-      const t = L[i], sr = t.match(/^(\d{1,3})\.?\s+(?=[A-Za-z])(.*)$/), hasQ = /(\d+(?:\.\d+)?)\s*(Nos|No|Pcs|Pc|Unit|Units|Set|Sets)\b/i.test(t);
+      const t = L[i], sr = t.match(/^(\d{1,3})\.?\s+(?=[A-Za-z])(.*)$/), hasQ = /(\d+(?:\.\d+)?)\s*(Nos|No|Pcs|Pc|Unit|Units|Set|Sets|Pkt|Box|Mtr|Mtrs|Meter|Kg|Ltr|Pair|Roll|Rolls|Bdl|Ea|Each)\b/i.test(t);
       const next = o.lines.length + (cur && cur.has ? 1 : 0) + 1;
       if (sr && +sr[1] === next && !(cur && !cur.has)) {
         flush(); cur = { sr: sr[1], desc: '', hsn: '', gst: '', qty: 0, rate: 0, amount: 0, serialCand: [], productId: '', has: false };
@@ -80,6 +80,24 @@ export function piParseLines(lines) {
       }
     }
     flush();
+  }
+  // generic fallback for unknown bill layouts: any row with words + a quantity/unit + money amounts
+  if (!o.lines.length) {
+    const BAD = /^(sub\s*total|total|grand|amount|taxable|sgst|cgst|igst|gst|tax|round|bank|a\/c|ifsc|branch|gstin|pan|state|phone|ph\b|mob|email|e-mail|terms|declaration|for\b|authori|signature|invoice|date|dated|buyer|consignee|ship|bill to|place|vehicle|transport|e-way|irn|ack|page|hsn|sr\b|sl\b|s\.no|no\.|description|particulars|previous|outstanding)/i;
+    let n = 0;
+    L.forEach(t => {
+      if (BAD.test(t)) return;
+      const dec = (t.match(PI_NUM) || []).map(piN), qm = t.match(/(\d+(?:\.\d+)?)\s*(Nos|No|Pcs|Pc|Unit|Units|Set|Sets|Pkt|Box|Mtr|Mtrs|Meter|Kg|Ltr|Pair|Roll|Rolls|Bdl|Ea|Each)\b/i);
+      if (dec.length < 1 || !qm || !/[A-Za-z]{3}/.test(t)) return;
+      const qty = piN(qm[1]); if (!qty) return;
+      const amount = dec[dec.length - 1]; if (!amount) return;
+      const cut = Math.min(...[t.indexOf(qm[0]), (t.search(/\d{1,2}(?:\.\d+)?\s*%/) + 1 || 1e9) - 1, (t.search(/\s\d{4,8}\s/) + 1 || 1e9) - 1].filter(x => x > 0));
+      const desc = t.slice(0, cut).replace(/^\d{1,3}\.?\s+(?=[A-Za-z])/, '').replace(/\s+/g, ' ').trim();
+      if (!/[A-Za-z]{3}/.test(desc)) return;
+      const hs = (t.match(/\b(\d{4,8})\b/g) || [])[0] || '', g = (t.match(/(\d{1,2}(?:\.\d+)?)\s*%/) || [])[1] || '';
+      o.lines.push({ sr: String(++n), desc, hsn: hs, gst: g, qty, rate: Math.round(amount / qty * 100) / 100, amount, serialCand: [], productId: '', has: true });
+    });
+    if (o.lines.length) { const ix = warn.indexOf('Item table not found - please add the items by hand.'); if (ix >= 0) warn.splice(ix, 1); warn.push('Aa bill no format alag chhe - items andaje vanchya chhe. Badhu barabar check karo.'); }
   }
   // totals (never use Previous Balance / Outstanding)
   const last = re => { const x = L.find(t => re.test(t) && !/(previous|outstanding|balance)/i.test(t)); if (!x) return 0; const d = x.match(PI_NUM); return d ? piN(d[d.length - 1]) : (piN((x.match(/\d[\d,]*/g) || []).pop())); };

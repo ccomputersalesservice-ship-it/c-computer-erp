@@ -1,7 +1,7 @@
 /* ===== Purchase Invoice Import (PDF -> review -> approve). Admin only. Same steps as the live ERP. ===== */
 import React, { useEffect, useRef, useState } from 'react';
 import { Badge, Box, Button, Checkbox, FormControlLabel, MenuItem, Paper, Stack, TextField, Typography, Alert, Chip, Autocomplete } from '@mui/material';
-import { api, S, inr, LT, rid, toast, work, pickFile, debounce } from '../lib/core.js';
+import { api, S, inr, LT, rid, toast, work, pickFile, debounce, loadThumbs } from '../lib/core.js';
 import { openDialog, promptBox, Skel, Note } from '../lib/ui.jsx';
 import { refresh } from '../lib/nav.js';
 import { uploadPhoto } from './Products.jsx';
@@ -80,14 +80,17 @@ function LineCard({ l, red, re }) {
   const set = (k, v) => { l[k] = v; re(); };
   const phSave = async f => { if (!f) return; try { toast('Photo save thay chhe...'); await uploadPhoto(l.productId, f); l._ph = 1; re(); } catch (e) { toast(e.message, 'bad'); } };
   const paste = async cb => { try { for (const it of await navigator.clipboard.read()) { const ty = it.types.find(x => /^image\//.test(x)); if (ty) return cb(new File([await it.getType(ty)], 'p.png', { type: ty })); } toast('Copy karelu photo nathi. Google ma photo par right-click → Copy image.', 'bad'); } catch (e) { toast('Paste mate "Allow" aapo', 'bad'); } };
-  return <Paper variant="outlined" sx={{ p: 1.5, border: red ? '2px solid #dc2626' : undefined }}>
+  useEffect(() => { if (!l.productId || l._ph || l._chk === l.productId) return; l._chk = l.productId; loadThumbs([l.productId]).then(() => { if (S.thumbs[l.productId]) { l._ph = 1; l._old = 1; } re(); }, () => { }); }, [l.productId]);
+  const noPh = l.productId && !l._ph;
+  return <Paper variant="outlined" sx={{ p: 1.5, border: red ? '2px solid #dc2626' : (noPh ? '2px solid #f59e0b' : undefined) }}>
     <b>{l.desc}</b><br /><Chip size="small" label={`HSN ${l.hsn || '-'} · GST ${l.gst ? l.gst + '%' : '-'}`} />
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5} sx={{ mt: 1 }}><TextField type="number" label="Qty" value={l.qty} onChange={e => set('qty', +e.target.value || 0)} /><TextField type="number" label="Price each (without GST)" inputProps={{ step: 0.01 }} value={l.rate} onChange={e => set('rate', +e.target.value || 0)} /></Stack>
     <Stack direction="row" alignItems="center" gap={1} sx={{ mt: 1 }}><Typography sx={{ flex: 1 }}>Product in my stock *: {l.productId ? <>✓ <b>{l.pname || l.productId}</b></> : <i>not chosen</i>}</Typography>
       <Button size="small" variant="contained" onClick={() => piPick(l, re)}>{l.productId ? 'Change' : 'Choose'}</Button><Button size="small" variant="outlined" onClick={() => piNew(l, re)}>+ New</Button></Stack>
-    {l.productId && <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap" sx={{ my: 1 }}><small style={{ flex: 1 }}>{l._ph ? '✅ Photo umeryo' : '📷 Aa product no photo:'}</small>
+    {l.productId ? <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap" sx={{ my: 1, p: noPh ? 1 : 0, borderRadius: 1, bgcolor: noPh ? '#fffbeb' : undefined }}><small style={{ flex: 1, fontWeight: noPh ? 700 : 400 }}>{l._ph ? (l._old ? '✅ Aa product ma photo chhe' : '✅ Photo umeryo') : '📷 Aa product ma photo nathi - photo umero:'}</small>
       <Button size="small" onClick={async () => phSave(await pickFile(true))}>📷 Camera</Button><Button size="small" onClick={async () => phSave(await pickFile(false))}>🖼 Gallery</Button>
-      <Button size="small" href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(l.desc)}`} target="ccgimg" rel="noopener">🔍 Google</Button><Button size="small" onClick={() => paste(phSave)}>📋 Paste</Button></Stack>}
+      <Button size="small" href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(l.desc)}`} target="ccgimg" rel="noopener">🔍 Google</Button><Button size="small" onClick={() => paste(phSave)}>📋 Paste</Button></Stack>
+      : <small style={{ display: 'block', margin: '8px 0', color: '#b45309' }}>📷 Product choose / + New karo pachi photo umervano option aavse (+ New ma photo saathe j umeri shako).</small>}
     <TextField fullWidth multiline minRows={2} sx={{ mt: 1 }} label={<>Serial numbers (one per line){l.serialCand && l.serialCand.length ? <span style={{ color: '#b45309' }}> ⚠ read from bill - please confirm</span> : null}</>} value={l._ser} onChange={e => set('_ser', e.target.value)} />
   </Paper>;
 }
