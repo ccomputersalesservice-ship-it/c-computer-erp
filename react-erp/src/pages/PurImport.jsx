@@ -6,7 +6,7 @@ import { openDialog, promptBox, Skel, Note, openScanner } from '../lib/ui.jsx';
 import { refresh } from '../lib/nav.js';
 import { findDupBill, dupText } from '../lib/dupbill.js';
 import { uploadPhoto } from './Products.jsx';
-import { piParsePages, piPdfPages, piSha, piDataUrl, piVendorSave, setPiHint } from '../docs/pdfparse.js';
+import { piParsePages, piParseLines, piOcrLines, piPdfPages, piSha, piDataUrl, piVendorSave, setPiHint } from '../docs/pdfparse.js';
 
 const badge = { n: 0, subs: new Set() };
 export async function piBadge() { try { const r = await api('purimp.inbox', {}, { loader: false }); badge.n = r.mail.length + r.pending.length; badge.subs.forEach(f => f(badge.n)); } catch (e) { } }
@@ -30,7 +30,15 @@ export function openImport() {
       const f = file; if (!f) throw new Error('Choose a PDF file first.');
       if (/^image\//.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name)) {
         setMsg('Photo vanchu chhu...');
-        const url = await shrinkImage(f, 1600, 0.8), hash = await piSha(f), r = await api('pur.scan', { dataUrl: url });
+        const url = await shrinkImage(f, 1600, 0.8), hash = await piSha(f);
+        setMsg('Photo vanchu chhu (pehli vaar 20-30 sec lage)...');
+        const big = await shrinkImage(f, 2400, 0.9), ol = await piOcrLines(big);
+        if (ol.length > 5) {
+          const d0 = piParseLines(ol);
+          if (d0.lines.length) { d0.warnings = ['Photo bill chhe - vendor, bill no, date, qty, price badhu barabar check karo.'].concat((d0.warnings || []).filter(w => !/Item table not found/i.test(w))); d0.copies = 1; close(); return piReview({ drafts: [d0], i: 0, hash, url, name: f.name || 'bill.jpg' }); }
+        }
+        setMsg('Server thi vanchu chhu...');
+        const r = await api('pur.scan', { dataUrl: url });
         const lines = (r.lines || []).map(l => ({ desc: l.name, hsn: '', gst: '', qty: l.qty, rate: l.price, amount: Math.round(l.qty * l.price * 100) / 100, serialCand: [], _ser: (l.serials || []).join('\n'), productId: l.productId, pname: l.name, _tried: 1 }))
           .concat((r.pending || []).map(u => ({ desc: u.text, hsn: '', gst: '', qty: u.qty, rate: u.price, amount: Math.round(u.qty * u.price * 100) / 100, serialCand: [], _ser: (u.serials || []).join('\n'), productId: '' })));
         if (!lines.length) throw new Error('Photo mathi item vanchaya nahi. Saaf, sidhu photo lo athva PDF vapro.');

@@ -154,3 +154,24 @@ export async function piPdfPages(file) {
 export async function piSha(file) { try { const h = await crypto.subtle.digest('SHA-256', await file.arrayBuffer()); return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); } catch (e) { return ''; } }
 export const piDataUrl = f => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(f); });
 
+
+/** Free in-browser OCR (Tesseract.js) -> text rows for piParseLines. Returns [] on any failure. */
+export async function piOcrLines(dataUrl) {
+  try {
+    if (!window.Tesseract) await qLoadJs(['https://cdn.jsdelivr.net/npm/tesseract.js@4.1.4/dist/tesseract.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.4/tesseract.min.js']);
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = dataUrl; });
+    const sc = Math.min(2.2, 2400 / Math.max(img.width, 1)), c = document.createElement('canvas');
+    c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+    const g = c.getContext('2d'); g.filter = 'grayscale(1) contrast(1.35)'; g.drawImage(img, 0, 0, c.width, c.height);
+    const r = await window.Tesseract.recognize(c, 'eng', { tessedit_pageseg_mode: 6 });
+    const out = [];
+    (r.data.lines || []).forEach(L => {
+      const ws = (L.words || []).filter(w => w.text && w.text.trim()); if (!ws.length) return;
+      const h = Math.max(8, (L.bbox.y1 - L.bbox.y0)); let s = '', px = null;
+      ws.forEach(w => { s += (px !== null ? (w.bbox.x0 - px > h * 1.1 ? '  ' : ' ') : '') + w.text; px = w.bbox.x1; });
+      if (s.trim()) out.push(s.trim());
+    });
+    if (!out.length && r.data.text) return r.data.text.split(/\n+/).map(x => x.trim()).filter(Boolean);
+    return out;
+  } catch (e) { return []; }
+}
