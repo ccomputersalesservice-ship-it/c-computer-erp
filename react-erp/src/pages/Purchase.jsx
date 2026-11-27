@@ -36,7 +36,7 @@ function PurchaseList() {
       <TextField placeholder={`${LT('vendor')} / ${LT('billno')}`} defaultValue={f.q} onChange={e => q(e.target.value)} sx={{ flex: 1, minWidth: 200, bgcolor: '#fff' }} />
       <Select value={f.status} displayEmpty onChange={e => set('status', e.target.value)} sx={{ minWidth: 150, bgcolor: '#fff' }}><MenuItem value="">{LT('all')}</MenuItem>{['Ordered', 'Partial', 'Received'].map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}</Select>
     </Stack>
-    {!r ? <Skel /> : <><DataTable rows={r.rows} empty="No purchases yet" onRow={p => openPurchase(p.purchaseId)} cols={[{ h: 'ID', k: p => p.purchaseId }, { h: LT('vendor'), k: p => <b>{p.vendor}</b> }, { h: LT('billno'), k: p => p.billNo }, { h: LT('date'), k: p => dtm(p.date, p.at), nw: true }, { h: LT('qty'), k: p => `${p.qtyReceived}/${p.qtyOrdered}`, align: 'right' }].concat(a ? [{ h: LT('total'), k: p => inr(p.amount), align: 'right' }] : []).concat([{ h: LT('status'), k: p => <Pill s={p.status} /> }])} /><Pager res={r} onPage={p => set('page', p)} /></>}
+    {!r ? <Skel /> : <><DataTable rows={r.rows} empty="No purchases yet" onRow={p => openPurchase(p.purchaseId)} cols={[{ h: 'ID', k: p => p.purchaseId }, { h: LT('vendor'), k: p => <b>{p.vendor}</b> }, { h: LT('billno'), k: p => p.billNo }, { h: 'Vendor Bill Date', k: p => dtm(p.date), nw: true }, { h: 'Upload Date', k: p => dtm('', p.at), nw: true }, { h: LT('qty'), k: p => `${p.qtyReceived}/${p.qtyOrdered}`, align: 'right' }].concat(a ? [{ h: LT('total'), k: p => inr(p.amount), align: 'right' }] : []).concat([{ h: LT('status'), k: p => <Pill s={p.status} /> }])} /><Pager res={r} onPage={p => set('page', p)} /></>}
   </Box>;
 }
 
