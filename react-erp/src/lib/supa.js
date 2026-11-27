@@ -1,5 +1,6 @@
 /* Supabase read client (test only - the live app still reads Google Sheets). No library, plain fetch. */
-import { api } from './core.js';
+import { api, isAdmin } from './core.js';
+const VIEW = { erp_product_master: 'erp_v_product_master', erp_stock_register: 'erp_v_stock_register', erp_product_photos: 'erp_v_product_photos' };
 export const SUPA_URL = 'https://feqjjixmxdtkfcfhzmln.supabase.co';
 export const SUPA_KEY = 'sb_publishable_QQgMo3Knk2UUtiDVxhXx_w_pgOhE4OT';
 let jwt = null, jwtAt = 0;
@@ -24,7 +25,8 @@ export async function supaSelect(table, o) {
 
 /* ---------- Products list from the database (same result shape as Apps Script prod.list) ---------- */
 const mem = {};
-async function allRows(table, select) {
+async function allRows(table0, select) {
+  const table = isAdmin() ? table0 : (VIEW[table0] || table0);
   const m = mem[table]; if (m && Date.now() - m.at < 30000) return m.rows;
   let rows = [], off = 0;
   for (;;) { const r = await supaSelect(table, { select, limit: 1000, offset: off, order: '_row' }); rows = rows.concat(r.rows); if (r.rows.length < 1000) break; off += 1000; }
