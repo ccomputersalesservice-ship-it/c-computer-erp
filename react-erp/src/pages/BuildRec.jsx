@@ -108,8 +108,11 @@ function brNew() {
   const st = { kind: '', parts: [], cn: '', cm: '', ti: '', no: '' };
   openDialog('New Build Record', () => <NewRec st={st} />, {
     maxWidth: 'lg', sticky: true, actions: close => <Button variant="contained" onClick={() => {
-      if (!st.kind) return;
+      if (!st.kind) return toast('Pehla upar thi choose karo shu vechyu (Aakho Set / Fakt CPU / Biju Part ...).', 'bad');
+      if (String(st.cn || '').trim().length < 2) return toast('Customer nu naam lakho.', 'bad');
       const parts = st.parts.filter(x => !x.skip);
+      if (!parts.length) return toast('Ek part to joiye. "+ Part umero" dabavi ne part nu naam lakho (example: Zebronics Cabinet), pachi serial ke photo nakho.', 'bad');
+      if (!parts.some(x => String(x.serial || '').trim() || x.dataUrl)) return toast('Kam se kam ek part ma serial number ke photo nakho.', 'bad');
       const payload = { kind: st.kind, title: st.ti, note: st.no, customer: { name: st.cn, mobile: st.cm }, parts: parts.map(x => ({ part: x.part, brand: x.brand, spec: x.spec, serial: x.serial, dataUrl: x.dataUrl || undefined, thumbUrl: x.dataUrl ? x.thumb : undefined })) };
       close(); brBgSave(payload, rid());
     }}>Save</Button>
