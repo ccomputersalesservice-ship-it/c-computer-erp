@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { supaOn, prodListDb } from '../lib/supa.js';
 import { Box, Button, Checkbox, FormControlLabel, MenuItem, Paper, Select, Stack, TextField, Typography, IconButton, Chip, Alert, Link } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
@@ -18,7 +19,7 @@ export default function Products() {
   const [f, setF] = useState({ ...pf }), [r, setR] = useState(null), [n, setN] = useState(0);
   const upd = (k, v) => { const x = { ...f, [k]: v, page: k === 'page' ? v : 1 }; Object.assign(pf, x); setF(x); };
   const qRef = useRef(debounce(v => upd('q', v), 250));
-  useEffect(() => { let on = true; api('prod.list', { ...f }).then(x => { if (on) { setR(x); S.plist = x.rows; } }).catch(e => toast(e.message, 'bad')); return () => { on = false; }; }, [f.category, f.status, f.low, f.page, f.q, n]);
+  useEffect(() => { let on = true; const viaSheets = () => api('prod.list', { ...f }); (supaOn() && isAdmin() ? prodListDb({ ...f }).catch(() => viaSheets()) : viaSheets()).then(x => { if (on) { setR(x); S.plist = x.rows; } }).catch(e => toast(e.message, 'bad')); return () => { on = false; }; }, [f.category, f.status, f.low, f.page, f.q, n]);
   useEffect(() => { const l = () => setN(x => x + 1); swrListeners.add(l); return () => swrListeners.delete(l); }, []);
   return <Box>
     <PageHead title={LI('products')}>

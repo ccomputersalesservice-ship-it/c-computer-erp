@@ -21,3 +21,43 @@ export async function supaSelect(table, o) {
   const total = +((r.headers.get('content-range') || '').split('/')[1] || 0);
   return { rows: await r.json(), total };
 }
+
+/* ---------- Products list from the database (same result shape as Apps Script prod.list) ---------- */
+const mem = {};
+async function allRows(table, select) {
+  const m = mem[table]; if (m && Date.now() - m.at < 30000) return m.rows;
+  let rows = [], off = 0;
+  for (;;) { const r = await supaSelect(table, { select, limit: 1000, offset: off, order: '_row' }); rows = rows.concat(r.rows); if (r.rows.length < 1000) break; off += 1000; }
+  mem[table] = { at: Date.now(), rows }; return rows;
+}
+export function supaClearCache() { Object.keys(mem).forEach(k => delete mem[k]); }
+const nn = v => { const x = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isNaN(x) ? 0 : x; };
+export const supaOn = () => { try { return localStorage.getItem('ccDb') === '1'; } catch (e) { return false; } };
+export async function prodListDb(p) {
+  const q = String(p.q || '').trim().toLowerCase(), cat = p.category || '', st = p.status || 'active', low = !!p.low;
+  const size = Math.min(Math.max(+p.size || 20, 5), 50), page = Math.max(+p.page || 1, 1);
+  const [pm, sr, ph] = await Promise.all([
+    allRows('erp_product_master', 'productid,name,category,brand,model,sku,barcode,description,reorderlevel,trackingtype,active,sellprice,createdat'),
+    allRows('erp_stock_register', 'productid,physical,available,reserved,sold,returned,damaged'),
+    allRows('erp_product_photos', 'productid,fileid')
+  ]);
+  const sm = {}; sr.forEach(s => { sm[s.productid] = s; });
+  const pc = {}; ph.forEach(x => { if (x.fileid) pc[x.productid] = (pc[x.productid] || 0) + 1; });
+  const toks = q.split(/\s+/).filter(Boolean);
+  let rows = pm.filter(x => {
+    if (!x.productid) return false;
+    if (st === 'active' && x.active !== 'YES') return false;
+    if (st === 'inactive' && x.active === 'YES') return false;
+    if (cat && x.category !== cat) return false;
+    if (toks.length) { const hay = [x.productid, x.name, x.category, x.brand, x.model, x.sku, x.barcode].join(' ').toLowerCase(); if (!toks.every(t => hay.indexOf(t) >= 0)) return false; }
+    if (low) { const s = sm[x.productid]; if (!(nn(x.reorderlevel) > 0 && nn(s && s.available) <= nn(x.reorderlevel))) return false; }
+    return true;
+  });
+  rows.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+  const total = rows.length;
+  const out = rows.slice((page - 1) * size, page * size).map(x => {
+    const s = sm[x.productid] || {};
+    return { ProductID: x.productid, Name: x.name, Category: x.category, Brand: x.brand, Model: x.model, SKU: x.sku, Barcode: x.barcode, Description: x.description, ReorderLevel: nn(x.reorderlevel), TrackingType: x.trackingtype, Active: x.active, SellPrice: nn(x.sellprice), CreatedAt: x.createdat, stock: { physical: nn(s.physical), available: nn(s.available), reserved: nn(s.reserved), sold: nn(s.sold), returned: nn(s.returned), damaged: nn(s.damaged) }, photos: pc[x.productid] || 0 };
+  });
+  return { rows: out, total, page, size };
+}
