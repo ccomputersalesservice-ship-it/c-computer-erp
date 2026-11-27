@@ -93,7 +93,7 @@ function Review({ d, st }) {
   return <Stack gap={1.5}>
     {d.copies > 1 && <Alert severity="info">This invoice came {d.copies} times in the PDF (Original + Transporter copy). Counted only once.</Alert>}
     {dup && <Alert severity="error" sx={{ fontWeight: 700 }}>{dupText(dup)}</Alert>}
-    {d.warnings.map((w, i) => <Alert key={i} severity="error">⚠ {w}</Alert>)}
+    {d.warnings.map((w, i) => <Alert key={i} severity={/^(Photo bill|Aa bill no format)/.test(w) ? "warning" : "error"}>⚠ {w}</Alert>)}
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}><TextField fullWidth label="Vendor *" value={d.vendor} onChange={e => H('vendor', e.target.value)} /><TextField fullWidth label="Invoice No *" value={d.invoiceNo} onChange={e => H('invoiceNo', e.target.value)} /><TextField fullWidth type="date" label="Date *" InputLabelProps={{ shrink: true }} value={d.invoiceDate} onChange={e => H('invoiceDate', e.target.value)} /></Stack>
     <Chip sx={{ height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: .5 } }} label={<>Vendor GSTIN: {d.gstin || '-'} · Terms: {d.terms || '-'} · Order: {d.orderNo || '-'} · Grand Total: {d.grandTotal ? inr(d.grandTotal) : '-'} <i>(Previous Balance is NOT counted)</i></>} />
     {d.lines.map((l, i) => <LineCard key={i} l={l} red={st.red && !l.productId} re={re} />)}
