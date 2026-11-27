@@ -25,7 +25,7 @@ import DesktopWindowsIcon from '@mui/icons-material/DesktopWindowsOutlined';
 
 export const NAV_ICON = {
   dash: DashboardIcon, products: Inventory2Icon, purchase: ShoppingCartIcon, sales: BarChartIcon, stock: LayersIcon, serial: ViewWeekIcon,
-  customers: PeopleIcon, service: BuildIcon, pos: PointOfSaleIcon, fixed: EventNoteIcon, pcmp: CompareArrowsIcon, cash: PaymentsIcon, crm: ChatIcon,
+  customers: PeopleIcon, service: BuildIcon, pos: PointOfSaleIcon, fixed: EventNoteIcon, tasks: EventNoteIcon, pcmp: CompareArrowsIcon, cash: PaymentsIcon, crm: ChatIcon,
   quotes: RequestQuoteIcon, quote: RequestQuoteIcon, reports: AssessmentIcon, audit: FactCheckIcon, build: MemoryIcon, brec: DesktopWindowsIcon, print: PrintIcon,
   users: AdminPanelSettingsIcon, settings: SettingsIcon, replace: SwapHorizIcon, chal: DocumentScannerIcon, scan: QrCodeScannerIcon
 };

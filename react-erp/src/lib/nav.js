@@ -2,10 +2,10 @@
 import { S, store, isAdmin, isAcct, CRM_URL } from './core.js';
 
 export const ADMIN_ONLY = ['dbtest', 'users', 'settings', 'pcmp', 'fixed'];
-export const ROUTE_KEYS = ['dash', 'products', 'purchase', 'sales', 'stock', 'serial', 'customers', 'reports', 'audit', 'build', 'brec', 'chal', 'replace', 'print', 'users', 'settings', 'scan', 'crm', 'service', 'quotes', 'quote', 'cash', 'pcmp', 'pos', 'fixed', 'dbtest'];
+export const ROUTE_KEYS = ['dash', 'products', 'purchase', 'sales', 'stock', 'serial', 'customers', 'reports', 'audit', 'build', 'brec', 'chal', 'replace', 'print', 'users', 'settings', 'scan', 'crm', 'service', 'quotes', 'quote', 'cash', 'pcmp', 'pos', 'fixed', 'dbtest', 'tasks'];
 /* Which menus each staff member sees (by name). Admin sees everything. */
-export const STAFF_MENUS = { USTAV: ['quotes', 'service', 'replace', 'sales', 'build', 'brec', 'serial', 'products'], NAKUL: ['quotes', 'service', 'replace', 'cash', 'purchase', 'sales', 'stock'] };
-export const ACCT_MENUS = ['products', 'purchase', 'pos', 'sales', 'quotes', 'stock', 'serial', 'build', 'brec', 'replace', 'service', 'cash', 'customers'];
+export const STAFF_MENUS = { USTAV: ['tasks', 'quotes', 'service', 'replace', 'sales', 'build', 'brec', 'serial', 'products'], NAKUL: ['tasks', 'quotes', 'service', 'replace', 'cash', 'purchase', 'sales', 'stock'] };
+export const ACCT_MENUS = ['tasks', 'products', 'purchase', 'pos', 'sales', 'quotes', 'stock', 'serial', 'build', 'brec', 'replace', 'service', 'cash', 'customers'];
 export function userMenus() {
   if (!S.user || isAdmin() || isAcct()) return null;
   const k = String(S.user.name || '').trim().split(/\s+/)[0].toUpperCase(), k2 = String(S.user.loginId || '').trim().toUpperCase();
@@ -15,7 +15,7 @@ export function navItems() {
   const a = isAdmin();
   if (isAcct()) return ACCT_MENUS;
   if (userMenus()) return userMenus();
-  const l = ['dash', 'products', 'purchase', 'pcmp', 'pos', 'sales', 'chal', 'replace', 'quotes', 'stock', 'serial', 'customers', 'build', 'brec', 'audit', 'print', 'reports', 'service', 'cash', 'fixed', 'crm'];
+  const l = ['dash', 'products', 'purchase', 'pcmp', 'pos', 'sales', 'chal', 'replace', 'quotes', 'stock', 'serial', 'customers', 'build', 'brec', 'audit', 'print', 'reports', 'service', 'cash', 'tasks', 'fixed', 'crm'];
   if (!a) { l.splice(l.indexOf('chal'), 1); l.splice(l.indexOf('crm'), 1); }
   if (a) l.push('users', 'settings');
   return l;
