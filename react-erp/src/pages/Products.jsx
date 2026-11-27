@@ -87,14 +87,14 @@ function ProductForm({ p, id, v, edit, hasStock }) {
     {F('description', LT('desc'), { multiline: true, minRows: 2 })}
     {id ? <>
       <TextField select label={LT('status')} value={v.active} disabled={ro} onChange={e => set('active', e.target.value)}><MenuItem value="YES">{LT('active')}</MenuItem><MenuItem value="NO">{LT('inactive')}</MenuItem></TextField>
-      <Box><Typography variant="subtitle2" sx={{ mb: 1 }}>{LT('photo')} (max 6)</Typography><PhotoWidget pid={id} photos={p.photos} /></Box>
+      <Box><Typography variant="subtitle2" sx={{ mb: 1 }}>{LT('photo')} (max 6)</Typography><PhotoWidget pid={id} photos={p.photos} name={[p.Brand, p.Name].filter(Boolean).join(' ')} /></Box>
       <Alert severity="info">Stock: <b>{p.stock.available}</b> {LT('available')} · {p.stock.reserved} {LT('reserved')} · {p.stock.physical} {LT('physical')} · {p.stock.damaged} {LT('damaged')}</Alert>
     </> : <Alert severity="info">Save the product first, then add photos.</Alert>}
   </Stack>;
 }
 
 /* ---------- photos ---------- */
-export function PhotoWidget({ pid, photos }) {
+export function PhotoWidget({ pid, photos, name }) {
   S.phTh = S.phTh || {};
   const [cur, setCur] = useState(photos.slice()), [pending, setPending] = useState(0), [, setN] = useState(0);
   useEffect(() => {
@@ -113,6 +113,10 @@ export function PhotoWidget({ pid, photos }) {
     } catch (e) { toast(e.message || 'Photo upload failed', 'bad'); }
     setPending(x => x - 1);
   };
+  useEffect(() => {
+    const onP = e => { const it = [...((e.clipboardData || {}).items || [])].find(x => /^image\//.test(x.type)); if (it && !(e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName))) { e.preventDefault(); bg(it.getAsFile()); } };
+    document.addEventListener('paste', onP); return () => document.removeEventListener('paste', onP);
+  }, []);
   const tile = { width: 92, height: 92, borderRadius: 2, overflow: 'hidden', position: 'relative', border: '1px solid #e5e7eb', display: 'grid', placeItems: 'center', bgcolor: '#f8fafc', cursor: 'pointer' };
   return <Box>
     <Stack direction="row" gap={1} flexWrap="wrap">
@@ -124,9 +128,11 @@ export function PhotoWidget({ pid, photos }) {
       {cur.length + pending < 6 && <>
         <Box sx={tile} onClick={async () => { const f = await pickFile(true); if (f) bg(f); }}><Stack alignItems="center"><CameraAltIcon /><small>Camera</small></Stack></Box>
         <Box sx={tile} onClick={async () => { const f = await pickFile(false); if (f) bg(f); }}><Stack alignItems="center"><ImageIcon /><small>Gallery</small></Stack></Box>
+        <Box component="a" href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent((name || '') + ' product')}`} target="ccgimg" rel="noopener" sx={{ ...tile, textDecoration: 'none', color: 'inherit' }}><Stack alignItems="center"><span style={{ fontSize: 24 }}>🔍</span><small>Google</small></Stack></Box>
+        <Box sx={tile} onClick={async () => { try { for (const it of await navigator.clipboard.read()) { const ty = it.types.find(x => /^image\//.test(x)); if (ty) return bg(new File([await it.getType(ty)], 'paste.png', { type: ty })); } toast('Copy karelu photo nathi. Google ma photo par right-click → Copy image karo.', 'bad'); } catch (e) { toast('Paste na chalyu. Ahi dabavi Ctrl+V karo.', 'bad'); } }}><Stack alignItems="center"><span style={{ fontSize: 24 }}>📋</span><small>Paste</small></Stack></Box>
       </>}
     </Stack>
-    <Typography variant="caption" color="text.secondary">Tap a photo to see it big or replace it.</Typography>
+    <Typography variant="caption" color="text.secondary">Tap a photo to see it big or replace it. 🔍 Google ma photo shodho → right-click → Copy image → 📋 Paste (athva Ctrl+V).</Typography>
   </Box>;
 }
 export async function uploadPhoto(pid, file, replaceId) {
@@ -146,7 +152,7 @@ export function viewPhoto(pid, photoId, done) {
 function AddPhotoBody() {
   const [p, setP] = useState(null);
   return <Stack gap={2} sx={{ pt: 1 }}><ProductPicker autoFocus onPick={async x => { try { setP(null); setP(await api('prod.get', { id: x.ProductID }, { loader: true })); } catch (e) { toast(e.message, 'bad'); } }} />
-    {p && <Box><b>{p.Name}</b><Box sx={{ mt: 1 }}><PhotoWidget key={p.ProductID} pid={p.ProductID} photos={p.photos} /></Box></Box>}</Stack>;
+    {p && <Box><b>{p.Name}</b><Box sx={{ mt: 1 }}><PhotoWidget key={p.ProductID} pid={p.ProductID} photos={p.photos} name={[p.Brand, p.Name].filter(Boolean).join(' ')} /></Box></Box>}</Stack>;
 }
 export function addPhotoDialog() { openDialog(LT('addphoto'), () => <AddPhotoBody />, { maxWidth: 'sm' }); }
 
