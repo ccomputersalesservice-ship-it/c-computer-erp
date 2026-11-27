@@ -3,6 +3,7 @@ import { Box, Button, MenuItem, Stack, TextField, Typography, Alert, Checkbox, F
 import DownloadIcon from '@mui/icons-material/Download';
 import { api, S, LI, LT, rid, toast, work } from '../lib/core.js';
 import { PageHead, Skel, Section, Grid, openDialog } from '../lib/ui.jsx';
+import { go } from '../lib/nav.js';
 
 export default function Settings() {
   const [s, setS] = useState(null), [bi, setBi] = useState(null), [n, setN] = useState(0), [op, setOp] = useState(''), [ok, setOk] = useState(false);
@@ -12,6 +13,7 @@ export default function Settings() {
   const F = (k, label, o) => <TextField fullWidth label={label} value={s[k] == null ? '' : s[k]} onChange={e => set(k, e.target.value)} {...(o || {})} />;
   return <Box>
     <PageHead title={LI('settings')} />
+    <Button size="small" variant="outlined" sx={{ mb: 2 }} onClick={() => go('dbtest')}>🧪 Database test (speed)</Button>
     <Grid cols={2}>
       <Section title="Shop & rules"><Stack gap={2}>
         {F('SHOP_NAME', 'Shop name')}

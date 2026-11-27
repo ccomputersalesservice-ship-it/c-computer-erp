@@ -21,9 +21,10 @@ import Cash from './Cash.jsx';
 import Pcmp from './Pcmp.jsx';
 import POSPage from './POS.jsx';
 import Fixed from './Fixed.jsx';
+import DbTest from './DbTest.jsx';
 
 export const PAGES = {
   dash: Dashboard, products: Products, purchase: Purchase, sales: Sales, stock: Stock, serial: Serial, customers: Customers, reports: Reports,
   audit: Audit, build: Build, brec: BuildRec, chal: Challan, replace: Replace, print: Print, users: Users, settings: Settings, scan: Scan,
-  crm: Crm, service: Service, quotes: Quotes, quote: Quote, cash: Cash, pcmp: Pcmp, pos: POSPage, fixed: Fixed
+  crm: Crm, service: Service, quotes: Quotes, quote: Quote, cash: Cash, pcmp: Pcmp, pos: POSPage, fixed: Fixed, dbtest: DbTest
 };

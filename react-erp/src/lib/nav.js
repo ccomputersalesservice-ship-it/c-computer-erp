@@ -1,8 +1,8 @@
 /* navigation: same rules as go() in the live ERP */
 import { S, store, isAdmin, isAcct, CRM_URL } from './core.js';
 
-export const ADMIN_ONLY = ['users', 'settings', 'pcmp', 'fixed'];
-export const ROUTE_KEYS = ['dash', 'products', 'purchase', 'sales', 'stock', 'serial', 'customers', 'reports', 'audit', 'build', 'brec', 'chal', 'replace', 'print', 'users', 'settings', 'scan', 'crm', 'service', 'quotes', 'quote', 'cash', 'pcmp', 'pos', 'fixed'];
+export const ADMIN_ONLY = ['dbtest', 'users', 'settings', 'pcmp', 'fixed'];
+export const ROUTE_KEYS = ['dash', 'products', 'purchase', 'sales', 'stock', 'serial', 'customers', 'reports', 'audit', 'build', 'brec', 'chal', 'replace', 'print', 'users', 'settings', 'scan', 'crm', 'service', 'quotes', 'quote', 'cash', 'pcmp', 'pos', 'fixed', 'dbtest'];
 /* Which menus each staff member sees (by name). Admin sees everything. */
 export const STAFF_MENUS = { USTAV: ['quotes', 'service', 'replace', 'sales', 'build', 'brec', 'serial', 'products'], NAKUL: ['quotes', 'service', 'replace', 'cash', 'purchase', 'sales', 'stock'] };
 export const ACCT_MENUS = ['products', 'purchase', 'pos', 'sales', 'quotes', 'stock', 'serial', 'build', 'brec', 'replace', 'service', 'cash', 'customers'];
