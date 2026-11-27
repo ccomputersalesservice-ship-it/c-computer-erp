@@ -34,7 +34,8 @@ async function allRows(table0, select) {
 }
 export function supaClearCache() { Object.keys(mem).forEach(k => delete mem[k]); }
 const nn = v => { const x = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isNaN(x) ? 0 : x; };
-export const supaOn = () => { try { return localStorage.getItem('ccDb') === '1'; } catch (e) { return false; } };
+export const DB_DEFAULT = true; /* one-click rollback: set false and redeploy; per-browser override: localStorage ccDb 0/1 */
+export const supaOn = () => { try { const v = localStorage.getItem('ccDb'); return v === '1' ? true : v === '0' ? false : DB_DEFAULT; } catch (e) { return DB_DEFAULT; } };
 export async function prodListDb(p) {
   const q = String(p.q || '').trim().toLowerCase(), cat = p.category || '', st = p.status || 'active', low = !!p.low;
   const size = Math.min(Math.max(+p.size || 20, 5), 50), page = Math.max(+p.page || 1, 1);
