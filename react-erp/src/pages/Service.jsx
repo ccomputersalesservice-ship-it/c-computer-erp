@@ -33,7 +33,7 @@ export default function Service() {
   const [r] = useList('crm.jobs', f);
   const q = useDebounced(v => set('q', v), 300);
   const adm = isAdmin();
-  const cols = [{ h: 'Job', k: j => <><b>{j.sid}</b>{j.urgent ? ' 🔥' : ''}{j.onsite ? ' 📍' : ''}</> }, { h: 'Date', k: j => j.date, nw: true }, { h: 'Customer', k: j => <><b>{j.name}</b><br /><small>{j.phone}</small></> }, { h: 'Device', k: j => (j.brand + ' ' + j.device).trim() }, { h: 'Status', k: j => <SvPill s={j.status} /> }];
+  const cols = [{ h: 'Job', k: j => <><b>{j.sid}</b>{j.urgent ? ' 🔥' : ''}{j.onsite ? ' 📍' : ''}</> }, { h: 'Date', k: j => <>{j.date}{j.time ? <><br /><small>{j.time}</small></> : null}</>, nw: true }, { h: 'Customer', k: j => <><b>{j.name}</b><br /><small>{j.phone}</small></> }, { h: 'Device', k: j => (j.brand + ' ' + j.device).trim() }, { h: 'Status', k: j => <SvPill s={j.status} /> }];
   if (adm) cols.push({ h: 'Bill', k: j => inr(j.total), align: 'right' }, { h: 'Paid', k: j => inr(j.paid), align: 'right' });
   return <Box>
     <PageHead title="Service Records"><Button variant="contained" startIcon={<AddIcon />} onClick={newJob}>Navo Job</Button></PageHead>
