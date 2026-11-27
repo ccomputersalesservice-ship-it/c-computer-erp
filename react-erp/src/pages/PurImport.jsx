@@ -12,6 +12,7 @@ export async function piBadge() { try { const r = await api('purimp.inbox', {}, 
 
 export function PurImportButtons() {
   const [n, setN] = useState(badge.n);
+  useEffect(() => { try { const v = (localStorage.getItem('ccPiOpen') || '').split('|'); localStorage.removeItem('ccPiOpen'); if (v[0] && Date.now() - +v[1] < 15000) piOpenPending(v[0]).catch(() => { }); } catch (e) { } }, []);
   useEffect(() => { badge.subs.add(setN); piBadge(); return () => badge.subs.delete(setN); }, []);
   return <>
     <Badge badgeContent={n} color="error"><Button variant="outlined" onClick={mailBills}>📧 Mail bills</Button></Badge>
@@ -41,23 +42,24 @@ export function openImport() {
 function piReview(PI) {
   const d = PI.drafts[PI.i];
   d.lines.forEach(l => { l._ser = l._ser !== undefined ? l._ser : (l.serial || ''); });
-  const st = { recv: true, red: false, redraw: () => { } };
+  const st = { recv: true, red: false, redraw: () => { }, save: null };
   const saveDraft = async quiet => {
     piVendorSave(d.gstin, d.vendor);
     const body = { id: PI.id, vendor: d.vendor, gstin: d.gstin, invoiceNo: d.invoiceNo, invoiceDate: d.invoiceDate, terms: d.terms, subtotal: d.subtotal, tax: d.sgst + d.cgst + d.igst, grandTotal: d.grandTotal, copies: d.copies, fileHash: PI.hash || undefined, warnings: d.warnings, lines: d.lines.map(l => ({ desc: l.desc, hsn: l.hsn, gst: l.gst, qty: l.qty, rate: l.rate, amount: l.amount, serial: l._ser, productId: l.productId })) };
     if (!PI.id) { if (PI.i > 0 && PI.firstId) body.sameFileAs = PI.firstId; else if (PI.mailId) body.mailId = PI.mailId; else { body.pdf = PI.url; body.fileName = PI.name; } }
-    const r = await api('purimp.save', body, { rid: PI['rid0' + PI.i] || (PI['rid0' + PI.i] = rid()) }); PI.id = r.id; if (PI.i === 0) PI.firstId = r.id; if (!quiet) toast('Saved for later', 'ok'); return r.id;
+    const r = await api('purimp.save', body, { rid: PI['rid0' + PI.i] || (PI['rid0' + PI.i] = rid()), loader: false }); PI.id = r.id; try { localStorage.setItem('ccPiOpen', PI.id + '|' + Date.now()); } catch (e) { } if (PI.i === 0) PI.firstId = r.id; if (!quiet) toast('Saved for later', 'ok'); return r.id;
   };
+  st.save = saveDraft;
   openDialog('Check bill before saving' + (PI.drafts.length > 1 ? ` (${PI.i + 1}/${PI.drafts.length})` : ''), () => <Review d={d} st={st} />, {
     maxWidth: 'lg', actions: close => <>
-      <Button color="error" variant="contained" onClick={() => work(async () => { const r = await promptBox('Reason for rejecting?', 'Reason'); if (!r) return; await saveDraft(true); await api('purimp.reject', { id: PI.id, reason: r }); toast('Rejected', 'ok'); close(); if (S.route === 'purchase') refresh(); })}>Reject</Button>
-      <Button onClick={() => work(async () => { await saveDraft(false); close(); piBadge(); })}>Save for later</Button>
+      <Button color="error" variant="contained" onClick={() => work(async () => { const r = await promptBox('Reason for rejecting?', 'Reason'); if (!r) return; await saveDraft(true); await api('purimp.reject', { id: PI.id, reason: r }); toast('Rejected', 'ok'); try { localStorage.removeItem('ccPiOpen'); } catch (e) { } close(); if (S.route === 'purchase') refresh(); })}>Reject</Button>
+      <Button onClick={() => work(async () => { await saveDraft(false); try { localStorage.removeItem('ccPiOpen'); } catch (e) { } close(); piBadge(); })}>Save for later</Button>
       <Button variant="contained" color="success" onClick={() => work(async () => {
         const need = d.lines.filter(l => !l.productId);
         if (need.length) { st.red = true; st.redraw(); throw new Error('Choose a product (Choose or + New) for the red lines (' + need.length + ' left).'); }
         const id = await saveDraft(true);
         const r = await api('purimp.approve', { id, receiveNow: st.recv, lines: d.lines.map(l => ({ productId: l.productId, qty: l.qty, rate: l.rate, serials: String(l._ser || '').split(/[\s,;]+/).filter(Boolean) })) }, { rid: PI.rid || (PI.rid = rid()) });
-        toast('Saved as ' + r.purchaseId, 'ok'); close(); piBadge();
+        toast('Saved as ' + r.purchaseId, 'ok'); try { localStorage.removeItem('ccPiOpen'); } catch (e) { } close(); piBadge();
         if (PI.i + 1 < PI.drafts.length) { PI.i++; PI.id = null; PI.rid = null; piReview(PI); } else if (S.route === 'purchase') refresh();
       })}>Approve &amp; add to stock</Button>
     </>
@@ -65,6 +67,7 @@ function piReview(PI) {
 }
 function Review({ d, st }) {
   const [, setN] = useState(0); const re = () => setN(n => n + 1); st.redraw = re;
+  useEffect(() => { let last = '', busy = false; const t = setInterval(async () => { if (busy || !st.save) return; const k = JSON.stringify([d.vendor, d.invoiceNo, d.invoiceDate, d.lines.map(l => [l.desc, l.qty, l.rate, l.productId, l._ser])]); if (k === last) { try { const v = localStorage.getItem('ccPiOpen'); if (v) localStorage.setItem('ccPiOpen', v.split('|')[0] + '|' + Date.now()); } catch (e) { } return; } busy = true; try { await st.save(true); last = k; } catch (e) { } busy = false; }, 5000); return () => clearInterval(t); }, []);
   useEffect(() => { d.lines.forEach((l, i) => { if (!l.productId && !l._tried) { l._tried = 1; piSuggest(d, i, re); } }); }, []);
   const H = (k, v) => { d[k] = v; re(); };
   return <Stack gap={1.5}>
@@ -80,7 +83,7 @@ function LineCard({ l, red, re }) {
   const set = (k, v) => { l[k] = v; re(); };
   const phSave = async f => { if (!f) return; if (!l.productId) { l._pend = f; l._pendU = URL.createObjectURL(f); toast('Photo taiyar - product choose karo etle save thase', 'ok'); return re(); } try { toast('Photo save thay chhe...'); await uploadPhoto(l.productId, f); l._ph = 1; l._old = 0; l._upU = URL.createObjectURL(f); re(); } catch (e) { toast(e.message, 'bad'); } };
   const paste = async cb => { try { for (const it of await navigator.clipboard.read()) { const ty = it.types.find(x => /^image\//.test(x)); if (ty) return cb(new File([await it.getType(ty)], 'p.png', { type: ty })); } toast('Copy karelu photo nathi. Google ma photo par right-click → Copy image.', 'bad'); } catch (e) { toast('Paste mate "Allow" aapo', 'bad'); } };
-  useEffect(() => { if (l.productId && l._pend && !l._ph) { const f = l._pend; l._pend = null; l._pendU = ''; (async () => { try { await uploadPhoto(l.productId, f); l._ph = 1; l._upU = URL.createObjectURL(f); } catch (e) { toast(e.message, 'bad'); } re(); })(); return; } if (!l.productId || l._ph || l._chk === l.productId) return; l._chk = l.productId; loadThumbs([l.productId]).then(() => { if (S.thumbs[l.productId]) { l._ph = 1; l._old = 1; } re(); }, () => { }); }, [l.productId, l._pend]);
+  useEffect(() => { if (l.productId && l._pend && !l._ph) { const f = l._pend; l._pend = null; l._pendU = ''; (async () => { try { await uploadPhoto(l.productId, f); l._ph = 1; l._upU = URL.createObjectURL(f); } catch (e) { toast(e.message, 'bad'); } re(); })(); return; } if (!l.productId || l._chk === l.productId) return; l._chk = l.productId; loadThumbs([l.productId]).then(() => { if (S.thumbs[l.productId]) { if (!l._ph) { l._ph = 1; l._old = 1; } } re(); }, () => { }); }, [l.productId, l._pend]);
   const noPh = l.productId && !l._ph;
   const onPaste = ev => { const it = [...((ev.clipboardData || {}).items || [])].find(x => /^image\//.test(x.type)); if (it) { ev.preventDefault(); phSave(it.getAsFile()); } else if (ev.target && ev.target.dataset && ev.target.dataset.pz) toast('Clipboard ma photo nathi. Google ma photo par right-click → Copy image karo.', 'bad'); };
   return <Paper variant="outlined" onPaste={onPaste} sx={{ p: 1.5, border: red ? '2px solid #dc2626' : (noPh ? '2px solid #f59e0b' : undefined) }}>
@@ -170,7 +173,7 @@ async function piFromServer(q) {
   if (!drafts.length) throw new Error('Could not read text from this PDF (maybe a scanned photo). Use "New purchase" for this bill.');
   piReview({ drafts, i: 0, hash: await piSha(blob), mailId: q.mailId, name: 'mail.pdf' });
 }
-async function piOpenPending(id) {
+export async function piOpenPending(id) {
   const x = await api('purimp.get', { id }, { loader: true });
   const d = { vendor: x.vendor, gstin: x.gstin, invoiceNo: x.invoiceNo, invoiceDate: x.date, terms: x.terms, orderNo: '', subtotal: x.subtotal, sgst: x.tax, cgst: 0, igst: 0, grandTotal: x.grandTotal, copies: x.copies || 1, warnings: x.note ? [x.note] : [],
     lines: x.lines.map(l => ({ desc: l.desc, hsn: l.hsn, gst: l.gst, qty: l.qty, rate: l.rate, amount: l.amount, _ser: l.serial, serialCand: [], productId: l.productId, pname: l.productId, _tried: !!l.productId })) };

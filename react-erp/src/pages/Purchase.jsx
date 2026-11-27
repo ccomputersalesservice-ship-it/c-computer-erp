@@ -7,7 +7,7 @@ import ImageIcon from '@mui/icons-material/ImageOutlined';
 import PrintIcon from '@mui/icons-material/PrintOutlined';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import SaveIcon from '@mui/icons-material/SaveAlt';
-import { api, S, inr, nf, isAdmin, LI, LT, rid, toast, work, dtm, todayStr, shrinkImage, busy, pickFile } from '../lib/core.js';
+import { api, S, inr, nf, isAdmin, isAcct, LI, LT, rid, toast, work, dtm, todayStr, shrinkImage, busy, pickFile } from '../lib/core.js';
 import { uploadPhoto } from './Products.jsx';
 import { PageHead, Skel, Pager, Thumb, DataTable, Stat, Grid, Pill, openDialog, openScanner, ProductPicker, Empty } from '../lib/ui.jsx';
 import { useList, useFilter, useDebounced } from '../lib/hooks.js';
@@ -29,7 +29,7 @@ function PurchaseList() {
   const a = isAdmin();
   return <Box>
     <PageHead title={LI('purchase')}>
-      {a && <PurImportButtons />}
+      {(a || isAcct()) && <PurImportButtons />}
       <Button variant="contained" startIcon={<AddIcon />} onClick={() => go('purchase', { new: 1 })}>{LT('newpurchase')}</Button>
     </PageHead>
     <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mb: 2 }}>
