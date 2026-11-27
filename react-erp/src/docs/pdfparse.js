@@ -12,7 +12,7 @@ function piDate(s) {
   if (mo < 1 || mo > 12 || d < 1 || d > 31) return '';
   return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
 }
-const PI_SKIP_VENDOR = /^(tax\s*invoice|invoice|original|duplicate|triplicate|bill of supply|gstin|e-?way|page|\(?(original|duplicate)|cash|credit)/i;
+const PI_SKIP_VENDOR = /^(irn\b|ack\b|e-?invoice|tax\s*invoice|invoice|original|duplicate|triplicate|bill of supply|gstin|e-?way|page|\(?(original|duplicate)|cash|credit)/i;
 /** lines: array of text lines of ONE invoice page. Returns a draft. Never invents data. */
 export function piParseLines(lines) {
   const L = lines.map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean), T = L.join('\n'), warn = [];
@@ -35,12 +35,12 @@ export function piParseLines(lines) {
   while ((gm = gre.exec(T))) { if (OWN.test(gm[0])) continue; const before = T.slice(Math.max(0, gm.index - 60), gm.index); if (!/(bill\s*to|buyer|consignee|ship\s*to|party|customer|recipient|sold\s*to)[^]*$/i.test(before) || o.gstin === '') { if (!/(bill\s*to|buyer|consignee|ship\s*to|sold\s*to)[^]*$/i.test(before)) { o.gstin = gm[0]; break; } } }
   // vendor name: 1) "For XYZ" signature  2) "certified that XYZ has supplied"  3) name saved earlier for this GSTIN  4) mail sender  5) top line
   const me = /C\s*COMPUTER/i, clean = v => String(v || '').replace(/[|"]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
-  let vf = (T.match(/^For\s+(?:M\/s\.?\s*)?([A-Z][A-Za-z0-9 &.,'()\-]{2,60})$/m) || [])[1];
-  if (vf && me.test(vf)) vf = (T.match(/^For\s+(?!.*C\s*COMPUTER)(?:M\/s\.?\s*)?([A-Z][A-Za-z0-9 &.,'()\-]{2,60})$/m) || [])[1];
+  let vf = (T.match(/^For\s+(?:M\/s\.?\s*)?([A-Z][A-Za-z0-9 &.,'()\-]{2,60}?)(?:\s+Authori[sz]ed.*)?$/mi) || [])[1];
+  if (vf && me.test(vf)) vf = (T.match(/^For\s+(?!.*C\s*COMPUTER)(?:M\/s\.?\s*)?([A-Z][A-Za-z0-9 &.,'()\-]{2,60}?)(?:\s+Authori[sz]ed.*)?$/mi) || [])[1];
   if (!vf) { const c = T.match(/certified that\s+(.{3,60}?)\s+has supplied/i); if (c && !me.test(c[1])) vf = c[1]; }
   if (!vf && o.gstin) vf = piVendorMap()[o.gstin];
   if (!vf && PI_HINT.from) { const f = clean(String(PI_HINT.from).replace(/<.*>/, '')); if (f.length > 3 && !/@|gmail|account|noreply|^sales$|^tax invoice$/i.test(f)) vf = f.replace(/^Account\s+\w+\s+/i, ''); }
-  if (!vf) for (let i = 0; i < Math.min(L.length, 12); i++) { const t = clean(L[i]).replace(/\s+(Invoice\s*(No|Number)\.?|Dated?|Delivery Note|Mode\/Terms.*|Voucher No.*)(\s+(Dated?|Delivery Note.*))?$/i, '').trim(); if (PI_SKIP_VENDOR.test(t) || /invoice|voucher|shree|shri|jay |jai |namah|ganesh|printed on|user\s*:/i.test(t) || /^[\d\W]+$/.test(t) || t.length < 4) continue; vf = t.replace(/\s*\(.*$/, ''); break; }
+  if (!vf) for (let i = 0; i < Math.min(L.length, 12); i++) { const t = clean(L[i]).replace(/\s+(Invoice\s*(No|Number)\.?|Dated?|Delivery Note|Mode\/Terms.*|Voucher No.*)(\s+(Dated?|Delivery Note.*))?$/i, '').trim(); if (PI_SKIP_VENDOR.test(t) || /invoice|voucher|shree|shri|jay |jai |namah|ganesh|printed on|user\s*:/i.test(t) || /^[\d\W]+$/.test(t) || /^[0-9a-f]{16,}/i.test(t) || t.length < 4) continue; vf = t.replace(/\s*\(.*$/, ''); break; }
   o.vendor = clean(vf);
   // find table
   let hi = L.findIndex(t => /(description|particulars|item)/i.test(t) && /(qty|quantity)/i.test(t));
@@ -54,7 +54,7 @@ export function piParseLines(lines) {
     const SER = /^[A-Z0-9][A-Z0-9\-\/]{7,24}$/i;
     const fill = (c, t) => {   // numbers of one item line: HSN, GST %, qty, rate, amount (+ a serial printed after the amount)
       const qm = t.match(/(\d+(?:\.\d+)?)\s*(Nos|No|Pcs|Pc|Unit|Units|Set|Sets|Pkt|Box|Mtr|Mtrs|Meter|Kg|Ltr|Pair|Roll|Rolls|Bdl|Ea|Each)\b/i);
-      const hs = (t.match(/\b(\d{4,8})\b/g) || []).find(h => h !== c.sr) || '';
+      const hl = (t.match(/\b(\d{4,8})\b/g) || []).filter(h => h !== c.sr), hs = hl.find(h => h.length >= 6) || hl[0] || '';
       if (hs && !c.hsn) c.hsn = hs;
       const g = (t.match(/(\d{1,2}(?:\.\d+)?)\s*%/) || [])[1]; if (g) c.gst = g;
       const dec = (t.match(PI_NUM) || []).map(piN), qty = piN(qm[1]), amount = dec.length ? dec[dec.length - 1] : 0;
@@ -74,9 +74,11 @@ export function piParseLines(lines) {
       } else if (cur && !cur.has && hasQ) fill(cur, t);
       else if (cur) {
         if (SER.test(t) && /\d/.test(t) && !/\s/.test(t)) cur.serialCand.push(t);
+        else if (t.split(' ').length >= 2 && t.split(' ').every(x => SER.test(x) && /\d/.test(x) && /[A-Z]/i.test(x))) t.split(' ').forEach(x => cur.serialCand.push(x));
+        else if (/^(round\s*off|roundoff|rounding)/i.test(t)) { }
         else if (cur.has && /^\d{3,7}$/.test(t) && cur.serialCand.length < Math.max(1, Math.round(cur.qty))) cur.serialCand.push(t);
         else if (!cur.has && !/^(previous|outstanding|page|continued)/i.test(t)) cur.desc += ' ' + t;
-        else if (cur.has && /^[A-Za-z]/.test(t) && !/^(previous|outstanding|page|continued|sub|total|sgst|cgst|igst)/i.test(t)) cur.desc += ' ' + t;
+        else if (cur.has && /^[A-Za-z]/.test(t) && !/^(previous|outstanding|page|continued|sub|total|sgst|cgst|igst|round)/i.test(t)) cur.desc += ' ' + t;
       }
     }
     flush();
@@ -100,7 +102,7 @@ export function piParseLines(lines) {
     if (o.lines.length) { const ix = warn.indexOf('Item table not found - please add the items by hand.'); if (ix >= 0) warn.splice(ix, 1); warn.push('Aa bill no format alag chhe - items andaje vanchya chhe. Badhu barabar check karo.'); }
   }
   // totals (never use Previous Balance / Outstanding)
-  const last = re => { const x = L.find(t => re.test(t) && !/(previous|outstanding|balance)/i.test(t)); if (!x) return 0; const d = x.match(PI_NUM); return d ? piN(d[d.length - 1]) : (piN((x.match(/\d[\d,]*/g) || []).pop())); };
+  const last = re => { const x = L.find(t => re.test(t) && /\d/.test(t) && !/(previous|outstanding|balance)/i.test(t)); if (!x) return 0; const d = x.match(PI_NUM); return d ? piN(d[d.length - 1]) : (piN((x.match(/\d[\d,]*/g) || []).pop())); };
   o.subtotal = last(/^sub\s*total/i); o.sgst = last(/\bSGST\b/i); o.cgst = last(/\bCGST\b/i); o.igst = last(/\bIGST\b/i);
   o.grandTotal = last(/(grand\s*total|net\s*amount|total\s*amount|invoice\s*total)/i);
   const sum = o.lines.reduce((a, l) => a + l.amount, 0);
@@ -108,6 +110,7 @@ export function piParseLines(lines) {
   if (!o.subtotal && sum && o.grandTotal && Math.abs(sum + o.sgst + o.cgst + o.igst - o.grandTotal) <= 2) o.subtotal = Math.round(sum * 100) / 100;
   if (!o.grandTotal) { const gl = L.find(t => /^total\b/i.test(t) && /\b(pcs|nos|no|unit|units|set|sets)\b/i.test(t)); const gn = gl ? (gl.match(PI_NUM) || []) : []; if (gn.length) o.grandTotal = piN(gn[gn.length - 1]); }
   if (!o.grandTotal && o.subtotal && (o.sgst + o.cgst + o.igst)) o.grandTotal = Math.round((o.subtotal + o.sgst + o.cgst + o.igst) * 100) / 100;
+  if (!o.subtotal && sum && o.grandTotal && Math.abs(sum + o.sgst + o.cgst + o.igst - o.grandTotal) <= 2) o.subtotal = Math.round(sum * 100) / 100;
   if (!o.invoiceNo) warn.push('Invoice number not found - please type it.');
   if (!o.invoiceDate) warn.push('Invoice date not found - please set it.');
   if (!o.lines.length) warn.push('No item lines were read.');
