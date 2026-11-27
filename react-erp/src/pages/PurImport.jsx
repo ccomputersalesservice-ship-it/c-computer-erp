@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Badge, Box, Button, Checkbox, FormControlLabel, MenuItem, Paper, Stack, TextField, Typography, Alert, Chip, Autocomplete } from '@mui/material';
 import { api, S, inr, LT, rid, toast, work, pickFile, debounce, loadThumbs } from '../lib/core.js';
-import { openDialog, promptBox, Skel, Note } from '../lib/ui.jsx';
+import { openDialog, promptBox, Skel, Note, openScanner } from '../lib/ui.jsx';
 import { refresh } from '../lib/nav.js';
 import { uploadPhoto } from './Products.jsx';
 import { piParsePages, piPdfPages, piSha, piDataUrl, piVendorSave, setPiHint } from '../docs/pdfparse.js';
@@ -78,19 +78,19 @@ function Review({ d, st }) {
 }
 function LineCard({ l, red, re }) {
   const set = (k, v) => { l[k] = v; re(); };
-  const phSave = async f => { if (!f) return; try { toast('Photo save thay chhe...'); await uploadPhoto(l.productId, f); l._ph = 1; re(); } catch (e) { toast(e.message, 'bad'); } };
+  const phSave = async f => { if (!f) return; if (!l.productId) { l._pend = f; l._pendU = URL.createObjectURL(f); toast('Photo taiyar - product choose karo etle save thase', 'ok'); return re(); } try { toast('Photo save thay chhe...'); await uploadPhoto(l.productId, f); l._ph = 1; re(); } catch (e) { toast(e.message, 'bad'); } };
   const paste = async cb => { try { for (const it of await navigator.clipboard.read()) { const ty = it.types.find(x => /^image\//.test(x)); if (ty) return cb(new File([await it.getType(ty)], 'p.png', { type: ty })); } toast('Copy karelu photo nathi. Google ma photo par right-click → Copy image.', 'bad'); } catch (e) { toast('Paste mate "Allow" aapo', 'bad'); } };
-  useEffect(() => { if (!l.productId || l._ph || l._chk === l.productId) return; l._chk = l.productId; loadThumbs([l.productId]).then(() => { if (S.thumbs[l.productId]) { l._ph = 1; l._old = 1; } re(); }, () => { }); }, [l.productId]);
+  useEffect(() => { if (l.productId && l._pend && !l._ph) { const f = l._pend; l._pend = null; l._pendU = ''; (async () => { try { await uploadPhoto(l.productId, f); l._ph = 1; } catch (e) { toast(e.message, 'bad'); } re(); })(); return; } if (!l.productId || l._ph || l._chk === l.productId) return; l._chk = l.productId; loadThumbs([l.productId]).then(() => { if (S.thumbs[l.productId]) { l._ph = 1; l._old = 1; } re(); }, () => { }); }, [l.productId, l._pend]);
   const noPh = l.productId && !l._ph;
   return <Paper variant="outlined" sx={{ p: 1.5, border: red ? '2px solid #dc2626' : (noPh ? '2px solid #f59e0b' : undefined) }}>
     <b>{l.desc}</b><br /><Chip size="small" label={`HSN ${l.hsn || '-'} · GST ${l.gst ? l.gst + '%' : '-'}`} />
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5} sx={{ mt: 1 }}><TextField type="number" label="Qty" value={l.qty} onChange={e => set('qty', +e.target.value || 0)} /><TextField type="number" label="Price each (without GST)" inputProps={{ step: 0.01 }} value={l.rate} onChange={e => set('rate', +e.target.value || 0)} /></Stack>
     <Stack direction="row" alignItems="center" gap={1} sx={{ mt: 1 }}><Typography sx={{ flex: 1 }}>Product in my stock *: {l.productId ? <>✓ <b>{l.pname || l.productId}</b></> : <i>not chosen</i>}</Typography>
       <Button size="small" variant="contained" onClick={() => piPick(l, re)}>{l.productId ? 'Change' : 'Choose'}</Button><Button size="small" variant="outlined" onClick={() => piNew(l, re)}>+ New</Button></Stack>
-    {l.productId ? <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap" sx={{ my: 1, p: noPh ? 1 : 0, borderRadius: 1, bgcolor: noPh ? '#fffbeb' : undefined }}><small style={{ flex: 1, fontWeight: noPh ? 700 : 400 }}>{l._ph ? (l._old ? '✅ Aa product ma photo chhe' : '✅ Photo umeryo') : '📷 Aa product ma photo nathi - photo umero:'}</small>
+    <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap" sx={{ my: 1, p: noPh || !l.productId ? 1 : 0, borderRadius: 1, bgcolor: noPh || !l.productId ? '#fffbeb' : undefined }}><small style={{ flex: 1, fontWeight: noPh ? 700 : 400 }}>{l._ph ? (l._old ? '✅ Aa product ma photo chhe' : '✅ Photo umeryo') : l._pend ? '✅ Photo taiyar (product choose karo etle save)' : '📷 Photo nathi - photo umero:'}{l._pendU && <img src={l._pendU} alt="" style={{ height: 36, marginLeft: 6, borderRadius: 6, verticalAlign: 'middle' }} />}</small>
       <Button size="small" onClick={async () => phSave(await pickFile(true))}>📷 Camera</Button><Button size="small" onClick={async () => phSave(await pickFile(false))}>🖼 Gallery</Button>
       <Button size="small" href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(l.desc)}`} target="ccgimg" rel="noopener">🔍 Google</Button><Button size="small" onClick={() => paste(phSave)}>📋 Paste</Button></Stack>
-      : <small style={{ display: 'block', margin: '8px 0', color: '#b45309' }}>📷 Product choose / + New karo pachi photo umervano option aavse (+ New ma photo saathe j umeri shako).</small>}
+    <Button size="small" sx={{ mt: 1 }} onClick={() => openScanner(c => { const cur = String(l._ser || '').trim(); set('_ser', (cur ? cur + '\n' : '') + c); toast('Serial umeryo: ' + c, 'ok'); }, 'Scan serial / barcode')}>📷 Serial scan karo</Button>
     <TextField fullWidth multiline minRows={2} sx={{ mt: 1 }} label={<>Serial numbers (one per line){l.serialCand && l.serialCand.length ? <span style={{ color: '#b45309' }}> ⚠ read from bill - please confirm</span> : null}</>} value={l._ser} onChange={e => set('_ser', e.target.value)} />
   </Paper>;
 }
@@ -102,10 +102,10 @@ async function piSuggest(d, i, re) {   // suggestion only - owner must confirm
 }
 function PickBody({ l, onPick }) {
   const [q, setQ] = useState(l.desc.split(' ').slice(0, 3).join(' ')), [r, setR] = useState(null);
-  const run = useRef(debounce(async v => { try { setR(await api('prod.quick', { q: v }, { loader: false })); } catch (e) { setR([]); } }, 250)).current;
+  const run = useRef(debounce(async v => { try { let x = await api('prod.quick', { q: v }, { loader: false }); const w = String(v || '').trim().split(/\s+/)[0]; if (!x.length && w && w !== String(v || '').trim()) x = await api('prod.quick', { q: w }, { loader: false }); setR(x); } catch (e) { setR([]); } }, 250)).current;
   useEffect(() => { run(q); }, []);
   return <Stack gap={1}><TextField autoFocus placeholder="Search product" value={q} onChange={e => { setQ(e.target.value); run(e.target.value); }} />
-    {r === null ? <Skel /> : r.length ? r.map(p => <Paper key={p.ProductID} variant="outlined" sx={{ p: 1.2, cursor: 'pointer' }} onClick={() => onPick(p)}><b>{p.Name}</b>{p.Model && <b style={{ color: '#4b5563' }}> · {p.Model}</b>}<br /><Chip size="small" label={`${p.Brand || ''} ${p.Category} · ${p.TrackingType}`} /></Paper>) : <i>No product found. Use "+ New".</i>}</Stack>;
+    {r === null ? <Skel /> : r.length ? r.map(p => <Paper key={p.ProductID} variant="outlined" sx={{ p: 1.2, cursor: 'pointer' }} onClick={() => onPick(p)}><b>{p.Name}</b>{p.Model && <b style={{ color: '#4b5563' }}> · {p.Model}</b>}<br /><Chip size="small" label={`${p.Brand || ''} ${p.Category} · ${p.TrackingType}`} /></Paper>) : <i>Product nathi malyu. Search ma ek j shabd lakho (jem ke Speaker) athva "+ New" vapro.</i>}</Stack>;
 }
 function piPick(l, re) {
   const dl = openDialog('Choose product', () => <PickBody l={l} onPick={p => { l.productId = p.ProductID; l.pname = p.Name + (p.Model ? ' · ' + p.Model : ''); dl.close(); re(); }} />, { maxWidth: 'sm' });
@@ -128,10 +128,11 @@ function NewBody({ v }) {
 }
 function piNew(l, re) {
   const dtok = l.desc.split(/\s+/), gb = BR.find(b => dtok.some(t => t.toLowerCase() === b.toLowerCase())) || '', gm = (dtok.filter(t => /\d/.test(t) && /[A-Za-z]/.test(t) && !/^\d+(GB|TB|MB|W|MM|M|MTR)$/i.test(t)).join(' ') || '');
-  const v = { n: l.desc.slice(0, 120), b: gb, m: gm, c: S.boot.categories[0], t: 'SERIAL', desc: l.desc, phf: null, phu: '' };
+  const v = { n: l.desc.slice(0, 120), b: gb, m: gm, c: S.boot.categories[0], t: 'SERIAL', desc: l.desc, phf: l._pend || null, phu: l._pendU || '' };
   openDialog('New product from bill', () => <NewBody v={v} />, {
     maxWidth: 'sm', actions: close => <><Button color="inherit" onClick={close}>Cancel</Button><Button variant="contained" onClick={() => work(async () => {
       const r = await api('prod.save', { name: v.n, brand: v.b, model: v.m, category: v.c, trackingType: v.t, reorderLevel: 0, sellPrice: 0, costPrice: l.rate });
+      if (v.phf === l._pend) { l._pend = null; l._pendU = ''; }
       l.productId = r.id; l.pname = v.n + (v.m ? ' · ' + v.m : '');
       if (v.phf) { try { await uploadPhoto(r.id, v.phf); l._ph = 1; } catch (er) { toast('Product banyo, pan photo na chadyo: ' + er.message, 'bad'); } }
       close(); re();
