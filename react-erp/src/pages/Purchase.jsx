@@ -12,6 +12,7 @@ import { uploadPhoto } from './Products.jsx';
 import { PageHead, Skel, Pager, Thumb, DataTable, Stat, Grid, Pill, openDialog, openScanner, ProductPicker, Empty } from '../lib/ui.jsx';
 import { useList, useFilter, useDebounced } from '../lib/hooks.js';
 import { go, refresh } from '../lib/nav.js';
+import { findDupBill, dupText } from '../lib/dupbill.js';
 import { PurImportButtons } from './PurImport.jsx';
 
 export const lineTrkNote = t => t === 'SERIAL' ? 'Serial number needed for each piece' : t === 'ITEMID' ? 'Each piece gets its own Item ID' : 'Quantity only';
@@ -64,6 +65,8 @@ function PurchaseForm({ params }) {
   if (!PF.current) { PF.current = { rid: rid(), preSerial: params.serial || '' }; params.serial = ''; }
   const [head, setHead] = useState({ vendor: '', billNo: '', date: todayStr(), note: '' });
   const [lines, setLines] = useState([]), [bills, setBills] = useState([]), [pending, setPending] = useState([]), [msg, setMsg] = useState(null);
+  const [dup, setDup] = useState(null);
+  useEffect(() => { let on = true; const t = setTimeout(async () => { const d = await findDupBill(head.vendor, head.billNo); if (on) setDup(d); }, 500); return () => { on = false; clearTimeout(t); }; }, [head.billNo, head.vendor]);
   const linesRef = useRef(lines); linesRef.current = lines;
   const addLine = (p, item) => {
     const ex = linesRef.current.find(l => l.productId === p.ProductID);
@@ -135,6 +138,7 @@ function PurchaseForm({ params }) {
         <Button variant="outlined" startIcon={<CameraAltIcon />} onClick={async () => { const fs = await pickFiles(true); if (fs.length) work(() => scanBills(fs)); }}>Camera</Button>
       </Stack>
       <Stack direction="row" gap={1} flexWrap="wrap">{bills.map((b, i) => <Chip key={i} label={(b.pdf ? '📄 ' : '🖼️ ') + b.name} onDelete={() => setBills(bills.filter((x, j) => j !== i))} />)}</Stack>
+      {dup && <Alert severity="error" sx={{ fontWeight: 700 }}>{dupText(dup)}</Alert>}
       {msg && <Alert severity={msg.sev}>{msg.t}</Alert>}
       {pending.map((p, i) => <PendingCard key={i} p={p} onUse={async pid => { if (!pid) return toast('Choose a product from the list first', 'bad'); try { const pr = await api('prod.get', { id: pid }, { loader: true }); pushPending(i, pr); } catch (e) { toast(e.message, 'bad'); } }} onNew={() => newFromBill(i)} onSkip={() => setPending(ps => ps.filter((x, j) => j !== i))} />)}
       {!a && <Typography variant="caption" color="text.secondary">Bill is private. Only Admin can open it.</Typography>}

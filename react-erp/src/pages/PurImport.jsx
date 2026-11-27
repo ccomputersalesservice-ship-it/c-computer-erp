@@ -4,6 +4,7 @@ import { Badge, Box, Button, Checkbox, FormControlLabel, MenuItem, Paper, Stack,
 import { api, S, inr, LT, rid, toast, work, pickFile, debounce, loadThumbs, shrinkImage } from '../lib/core.js';
 import { openDialog, promptBox, Skel, Note, openScanner } from '../lib/ui.jsx';
 import { refresh } from '../lib/nav.js';
+import { findDupBill, dupText } from '../lib/dupbill.js';
 import { uploadPhoto } from './Products.jsx';
 import { piParsePages, piPdfPages, piSha, piDataUrl, piVendorSave, setPiHint } from '../docs/pdfparse.js';
 
@@ -78,9 +79,12 @@ function Review({ d, st }) {
   const [, setN] = useState(0); const re = () => setN(n => n + 1); st.redraw = re;
   useEffect(() => { let last = '', busy = false; const t = setInterval(async () => { if (busy || !st.save) return; const k = JSON.stringify([d.vendor, d.invoiceNo, d.invoiceDate, d.lines.map(l => [l.desc, l.qty, l.rate, l.productId, l._ser])]); if (k === last) { try { const v = localStorage.getItem('ccPiOpen'); if (v) localStorage.setItem('ccPiOpen', v.split('|')[0] + '|' + Date.now()); } catch (e) { } return; } busy = true; try { await st.save(true); last = k; } catch (e) { } busy = false; }, 5000); return () => clearInterval(t); }, []);
   useEffect(() => { d.lines.forEach((l, i) => { if (!l.productId && !l._tried) { l._tried = 1; piSuggest(d, i, re); } }); }, []);
+  const [dup, setDup] = useState(null);
+  useEffect(() => { let on = true; const t = setTimeout(async () => { const x = await findDupBill(d.vendor, d.invoiceNo); if (on) setDup(x); }, 400); return () => { on = false; clearTimeout(t); }; }, [d.invoiceNo, d.vendor]);
   const H = (k, v) => { d[k] = v; re(); };
   return <Stack gap={1.5}>
     {d.copies > 1 && <Alert severity="info">This invoice came {d.copies} times in the PDF (Original + Transporter copy). Counted only once.</Alert>}
+    {dup && <Alert severity="error" sx={{ fontWeight: 700 }}>{dupText(dup)}</Alert>}
     {d.warnings.map((w, i) => <Alert key={i} severity="error">⚠ {w}</Alert>)}
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}><TextField fullWidth label="Vendor *" value={d.vendor} onChange={e => H('vendor', e.target.value)} /><TextField fullWidth label="Invoice No *" value={d.invoiceNo} onChange={e => H('invoiceNo', e.target.value)} /><TextField fullWidth type="date" label="Date *" InputLabelProps={{ shrink: true }} value={d.invoiceDate} onChange={e => H('invoiceDate', e.target.value)} /></Stack>
     <Chip sx={{ height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: .5 } }} label={<>Vendor GSTIN: {d.gstin || '-'} · Terms: {d.terms || '-'} · Order: {d.orderNo || '-'} · Grand Total: {d.grandTotal ? inr(d.grandTotal) : '-'} <i>(Previous Balance is NOT counted)</i></>} />
