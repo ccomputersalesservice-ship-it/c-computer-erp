@@ -20,6 +20,7 @@ const SV_ST = ['Pending', 'Processing', 'Ready', 'Delivered', 'Returned', 'Repla
 const SV_COL = { Pending: 'warning', Processing: 'info', Ready: 'success', Delivered: 'default', Returned: 'error', Replacement: 'error' };
 const SV_HEX = { Pending: ['#d97706', '#fffbeb'], Processing: ['#2563eb', '#eff6ff'], Ready: '#16a34a', Delivered: ['#7e22ce', '#faf5ff'], Returned: ['#dc2626', '#fef2f2'], Replacement: ['#db2777', '#fdf2f8'] };
 SV_HEX.Ready = ['#16a34a', '#f0fdf4'];
+const svT = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?$/); if (!m) return t || ''; if (m[3]) return (+m[1]) + ':' + m[2] + ' ' + m[3].toUpperCase(); let h = +m[1]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + m[2] + ' ' + ap; };
 const SvPill = ({ s }) => <Chip size="small" color={SV_COL[s] || 'default'} label={s || '-'} sx={{ fontWeight: 700 }} />;
 const svNext = s => ({ Pending: 'Processing', Processing: 'Ready', Ready: 'Delivered' })[s] || '';
 function svWa(j) {
@@ -36,7 +37,7 @@ export default function Service() {
   useEffect(() => { window.addEventListener('cc-newjob', reload); return () => window.removeEventListener('cc-newjob', reload); }, []);
   const q = useDebounced(v => set('q', v), 300);
   const adm = isAdmin();
-  const cols = [{ h: 'Job', k: j => <><b>{j.sid}</b>{j.urgent ? ' 🔥' : ''}{j.onsite ? ' 📍' : ''}</> }, { h: 'Date', k: j => <>{j.date}{j.time ? <><br /><small>{j.time}</small></> : null}</>, nw: true }, { h: 'Customer', k: j => <><b>{j.name}</b><br /><small>{j.phone}</small></> }, { h: 'Device', k: j => (j.brand + ' ' + j.device).trim() }, { h: 'Status', k: j => <SvPill s={j.status} /> }];
+  const cols = [{ h: 'Job', k: j => <><b>{j.sid}</b>{j.urgent ? ' 🔥' : ''}{j.onsite ? ' 📍' : ''}</> }, { h: 'Date', k: j => <>{j.date}{j.time ? <><br /><small>{svT(j.time)}</small></> : null}</>, nw: true }, { h: 'Customer', k: j => <><b>{j.name}</b><br /><small>{j.phone}</small></> }, { h: 'Device', k: j => (j.brand + ' ' + j.device).trim() }, { h: 'Status', k: j => <SvPill s={j.status} /> }];
   if (adm) cols.push({ h: 'Bill', k: j => inr(j.total), align: 'right' }, { h: 'Paid', k: j => inr(j.paid), align: 'right' });
   return <Box>
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, p: { xs: 1.5, sm: 2 }, borderRadius: 3, color: '#fff', background: 'linear-gradient(120deg,#be185d 0%,#7e22ce 100%)', boxShadow: '0 6px 18px rgba(126,34,206,.25)' }}>
@@ -100,7 +101,7 @@ function JobView({ j, v, adm, due }) {
   const [, setN] = useState(0); const set = (k, x) => { v[k] = x; setN(n => n + 1); };
   const log = (j.log || []).slice().reverse();
   return <Stack gap={1.5}>
-    <Typography><b>{(j.brand + ' ' + j.device).trim()}</b> <SvPill s={j.status} />{j.urgent ? ' 🔥' : ''}<br />Mobile: <a href={'tel:' + j.phone}>{j.phone}</a> · Date: {j.date} {j.time}<br />Problem: {j.issue}<br />{j.acc && <>Accessories: {j.acc}<br /></>}
+    <Typography><b>{(j.brand + ' ' + j.device).trim()}</b> <SvPill s={j.status} />{j.urgent ? ' 🔥' : ''}<br />Mobile: <a href={'tel:' + j.phone}>{j.phone}</a> · Date: {j.date} {svT(j.time)}<br />Problem: {j.issue}<br />{j.acc && <>Accessories: {j.acc}<br /></>}
       {adm && <>Bill: {inr(j.total)} · Paid: {inr(j.paid)}{due ? <> · <b style={{ color: '#dc2626' }}>Baki {inr(due)}</b></> : null}<br /></>}{j.fu_next && <>Follow-up: {j.fu_next} {j.fu_note}<br /></>}Taken by: {j.by}</Typography>
     <Paper variant="outlined" sx={{ p: 2 }}><Typography fontWeight={800} sx={{ mb: 1 }}>Update karo</Typography><Stack gap={1.5}>
       <Stack direction="row" gap={1.5}><TextField select fullWidth label="Navo status" value={v.status} onChange={e => set('status', e.target.value)} SelectProps={{ displayEmpty: true }} InputLabelProps={{ shrink: true }}><MenuItem value="">(same - {j.status})</MenuItem>{SV_ST.map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}</TextField><TextField fullWidth type="date" label="Ready date" InputLabelProps={{ shrink: true }} value={v.rd} onChange={e => set('rd', e.target.value)} /></Stack>
