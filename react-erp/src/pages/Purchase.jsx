@@ -7,7 +7,8 @@ import ImageIcon from '@mui/icons-material/ImageOutlined';
 import PrintIcon from '@mui/icons-material/PrintOutlined';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import SaveIcon from '@mui/icons-material/SaveAlt';
-import { api, S, inr, nf, isAdmin, LI, LT, rid, toast, work, dtm, todayStr, shrinkImage, busy } from '../lib/core.js';
+import { api, S, inr, nf, isAdmin, LI, LT, rid, toast, work, dtm, todayStr, shrinkImage, busy, pickFile } from '../lib/core.js';
+import { uploadPhoto } from './Products.jsx';
 import { PageHead, Skel, Pager, Thumb, DataTable, Stat, Grid, Pill, openDialog, openScanner, ProductPicker, Empty } from '../lib/ui.jsx';
 import { useList, useFilter, useDebounced } from '../lib/hooks.js';
 import { go, refresh } from '../lib/nav.js';
@@ -110,7 +111,7 @@ function PurchaseForm({ params }) {
     openDialog('New product from bill', () => <NewFromBill v={v} />, {
       maxWidth: 'sm', actions: close => <><Button color="inherit" onClick={close}>Cancel</Button><Button variant="contained" onClick={() => work(async () => {
         const r = await api('prod.save', { name: v.n, category: v.c, trackingType: v.t, reorderLevel: 0, sellPrice: 0, costPrice: p.price === '' ? undefined : p.price, description: 'Created from bill' });
-        close(); const pr = await api('prod.get', { id: r.id }); pushPending(i, pr); toast('Product created', 'ok');
+        if (v.file) { try { await uploadPhoto(r.id, v.file); } catch (e) { toast('Product banyu, photo save na thayo: ' + e.message, 'bad'); } } close(); const pr = await api('prod.get', { id: r.id }); pushPending(i, pr); toast('Product created', 'ok');
       })}>Create & add</Button></>
     });
   };
@@ -176,7 +177,8 @@ function NewFromBill({ v }) {
   const [, setN] = useState(0); const set = (k, x) => { v[k] = x; setN(n => n + 1); };
   return <Stack gap={2} sx={{ pt: 1 }}><TextField label="Name *" value={v.n} onChange={e => set('n', e.target.value)} />
     <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}><TextField select fullWidth label="Category" value={v.c} onChange={e => set('c', e.target.value)}>{S.boot.categories.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}</TextField>
-      <TextField select fullWidth label="Tracking" value={v.t} onChange={e => set('t', e.target.value)}><MenuItem value="SERIAL">Manufacturer serial number</MenuItem><MenuItem value="ITEMID">Internal Item ID</MenuItem><MenuItem value="QTY">Quantity only</MenuItem></TextField></Stack></Stack>;
+      <TextField select fullWidth label="Tracking" value={v.t} onChange={e => set('t', e.target.value)}><MenuItem value="SERIAL">Manufacturer serial number</MenuItem><MenuItem value="ITEMID">Internal Item ID</MenuItem><MenuItem value="QTY">Quantity only</MenuItem></TextField></Stack>
+    <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap"><Button variant="outlined" startIcon={<CameraAltIcon />} onClick={async () => { const f = await pickFile(true); if (f) set('file', f); }}>Camera</Button><Button variant="outlined" startIcon={<ImageIcon />} onClick={async () => { const f = await pickFile(false); if (f) set('file', f); }}>Gallery</Button>{v.file && <small>✓ Photo: {v.file.name || 'selected'}</small>}</Stack></Stack>;
 }
 
 /* ---------- open purchase: details, view bill, receive remaining goods ---------- */
