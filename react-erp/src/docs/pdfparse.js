@@ -73,7 +73,9 @@ export function piParseLines(lines) {
         if (hasQ) fill(cur, sr[2]); else cur.desc = sr[2].replace(/\s+\d{4,8}\s*$/, m => { cur.hsn = m.trim(); return ''; }).trim();
       } else if (cur && !cur.has && hasQ) fill(cur, t);
       else if (cur) {
-        if (SER.test(t) && /\d/.test(t) && !/\s/.test(t)) cur.serialCand.push(t);
+        const stk = t.split(/[\s,;]+/).filter(Boolean);
+        if (stk.length >= 1 && cur.has && stk.every(x => SER.test(x) && /\d/.test(x) && /[A-Z]/i.test(x)) && /,/.test(t + ',')) stk.forEach(x => cur.serialCand.push(x));
+        else if (SER.test(t) && /\d/.test(t) && !/\s/.test(t)) cur.serialCand.push(t);
         else if (t.split(' ').length >= 2 && t.split(' ').every(x => SER.test(x) && /\d/.test(x) && /[A-Z]/i.test(x))) t.split(' ').forEach(x => cur.serialCand.push(x));
         else if (/^(round\s*off|roundoff|rounding)/i.test(t)) { }
         else if (cur.has && /^\d{3,7}$/.test(t) && cur.serialCand.length < Math.max(1, Math.round(cur.qty))) cur.serialCand.push(t);
