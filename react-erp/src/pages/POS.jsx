@@ -21,7 +21,7 @@ async function posLoad() {
   try {
     let viaDb = null;
     if (supaOn() && localStorage.getItem('ccDbPos') !== '0') { try { const d1 = await prodListDb({ page: 1, size: 50, status: 'active' }), dn = Math.min(Math.ceil(d1.total / 50), 40), dr = []; for (let pg = 2; pg <= dn; pg++) dr.push(prodListDb({ page: pg, size: 50, status: 'active' })); viaDb = d1.rows.concat(...(await Promise.all(dr)).map(r => r.rows)); } catch (e) { viaDb = null; } }
-    if (viaDb) POS.prods = viaDb; else {
+    if (viaDb) { POS.prods = viaDb; viaDb.forEach(x => { POS.price[x.ProductID] = Object.assign({}, POS.price[x.ProductID] || {}, { productId: x.ProductID, sellPrice: +x.SellPrice || 0 }); }); } else {
       const r1 = await api('prod.list', { page: 1, size: 50, status: 'active' }), n = Math.min(Math.ceil(r1.total / 50), 40), rest = [];
       for (let pg = 2; pg <= n; pg++) rest.push(api('prod.list', { page: pg, size: 50, status: 'active' }));
       POS.prods = r1.rows.concat(...(await Promise.all(rest)).map(r => r.rows));
