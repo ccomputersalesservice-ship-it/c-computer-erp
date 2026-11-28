@@ -1,4 +1,5 @@
 /* ================= POS – photo based quick order (same logic as the live ERP JS_POS.html) ================= */
+import { supaOn, prodListDb } from '../lib/supa.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Button, Checkbox, FormControlLabel, IconButton, MenuItem, Paper, Select, Stack, TextField, Typography, Chip, Tabs, Tab, useMediaQuery, Divider, Alert } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
@@ -18,9 +19,13 @@ async function posLoad() {
   if (POS.prods || POS.loading) return; POS.loading = true;
   try { Object.assign(POS.price, JSON.parse(localStorage.getItem(POS_PK()) || '{}').p || {}); } catch (e) { }
   try {
-    const r1 = await api('prod.list', { page: 1, size: 50, status: 'active' }), n = Math.min(Math.ceil(r1.total / 50), 40), rest = [];
-    for (let pg = 2; pg <= n; pg++) rest.push(api('prod.list', { page: pg, size: 50, status: 'active' }));
-    POS.prods = r1.rows.concat(...(await Promise.all(rest)).map(r => r.rows));
+    let viaDb = null;
+    if (supaOn() && localStorage.getItem('ccDbPos') !== '0') { try { const d1 = await prodListDb({ page: 1, size: 50, status: 'active' }), dn = Math.min(Math.ceil(d1.total / 50), 40), dr = []; for (let pg = 2; pg <= dn; pg++) dr.push(prodListDb({ page: pg, size: 50, status: 'active' })); viaDb = d1.rows.concat(...(await Promise.all(dr)).map(r => r.rows)); } catch (e) { viaDb = null; } }
+    if (viaDb) POS.prods = viaDb; else {
+      const r1 = await api('prod.list', { page: 1, size: 50, status: 'active' }), n = Math.min(Math.ceil(r1.total / 50), 40), rest = [];
+      for (let pg = 2; pg <= n; pg++) rest.push(api('prod.list', { page: pg, size: 50, status: 'active' }));
+      POS.prods = r1.rows.concat(...(await Promise.all(rest)).map(r => r.rows));
+    }
     DOCS.prods = POS.prods;
   } catch (e) { POS.loading = false; throw e; }
   POS.loading = false;
