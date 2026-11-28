@@ -191,10 +191,28 @@ export async function thumbsDb(p) {
   Object.keys(first).forEach(k => { if (!first[k].thumb) throw new Error('sheets'); out[k] = first[k].thumb; });
   return out;
 }
-const DBL = { 'photo.thumbs': ['ccDbTh', thumbsDb], 'cust.list': ['ccDbCust', custListDb], 'serial.list': ['ccDbSer', serialListDb], 'rpl.list': ['ccDbRpl', rplListDb], 'build.list': ['ccDbBld', buildListDb], 'brec.list': ['ccDbBrec', brecListDb] };
+
+/* ---------- open one order from the database (Admin only; same shape as Apps Script ord.get) ---------- */
+const ORDER_FLOW = { Pending: ['Reserved', 'Cancelled'], Reserved: ['Processing', 'Ready', 'Delivered', 'Cancelled'], Processing: ['Ready', 'Delivered', 'Cancelled'], Ready: ['Delivered', 'Cancelled'], Delivered: ['Returned'], Cancelled: [], Returned: [] };
+export async function ordGetDb(p) {
+  if (!isAdmin()) throw new Error('sheets');
+  const id = String(p.id || '');
+  const [oh, ol, cu, pm] = await Promise.all([
+    allRows('erp_sales_orders', 'orderid,orderdate,createdat,updatedat,status,customerid,total,staffname,note'),
+    allRows('erp_sales_items', 'lineid,orderid,productid,qty,itemid,mfrserial,unitprice'),
+    allRows('erp_customers', 'customerid,name,mobile,address,createdat'),
+    allRows('erp_product_master', 'productid,name,model,trackingtype,sellprice')
+  ]);
+  const o = oh.find(x => x.orderid === id); if (!o) throw new Error('sheets');
+  const c = cu.find(x => x.customerid === o.customerid), prod = {}; pm.forEach(x => { prod[x.productid] = x; });
+  const lines = ol.filter(l => l.orderid === id).map(l => { const pr = prod[l.productid] || {}; return { lineId: l.lineid, productId: l.productid, name: pr.name || '', model: pr.model || '', tracking: pr.trackingtype, qty: nn(l.qty), itemId: l.itemid, serial: l.mfrserial, unitPrice: nn(l.unitprice), suggested: nn(pr.sellprice) }; });
+  const total = nn(o.total);
+  return { orderId: o.orderid, date: o.orderdate, at: o.createdat || o.updatedat || '', status: o.status, total, pricePending: total === 0 && o.status !== 'Cancelled', staff: o.staffname, note: o.note, customer: c ? { id: c.customerid, name: c.name, mobile: c.mobile, address: c.address, createdAt: c.createdat } : { id: '', name: '', mobile: '', address: '', createdAt: '' }, lines, next: (ORDER_FLOW[o.status] || []).slice() };
+}
+const DBL = { 'ord.get': ['ccDbOg', ordGetDb], 'photo.thumbs': ['ccDbTh', thumbsDb], 'cust.list': ['ccDbCust', custListDb], 'serial.list': ['ccDbSer', serialListDb], 'rpl.list': ['ccDbRpl', rplListDb], 'build.list': ['ccDbBld', buildListDb], 'brec.list': ['ccDbBrec', brecListDb] };
 dbHook.fn = (action, payload) => {
   const d = DBL[action]; if (!d || !supaOn()) return null;
   try { const v = localStorage.getItem(d[0]); if (v !== '1' && v !== null) return null; if (v === null && (!DBL_DEFAULT_ON || DBL_TEST[d[0]])) return null; } catch (e) { return null; }
   return d[1](payload);
 };
-let DBL_DEFAULT_ON = true; const DBL_TEST = {}; /* Sheets-vs-DB check passed */
+let DBL_DEFAULT_ON = true; const DBL_TEST = { ccDbOg: 1 }; /* Sheets-vs-DB check passed */
