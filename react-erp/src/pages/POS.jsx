@@ -42,7 +42,7 @@ const posAvail = p => p.stock ? p.stock.available : 0;
 const posPriceOf = p => { const r = POS.price[p.ProductID]; return r ? r.sellPrice : (p.SellPrice != null ? +p.SellPrice : 0); };
 function posFiltered() {
   const q = POS.q.trim().toLowerCase(), toks = q.split(/\s+/).filter(Boolean);
-  const l = (POS.prods || []).filter(p => {
+  let l = (POS.prods || []).filter(p => {
     if (!toks.length && POS.cat !== 'all' && (p.Category || 'Other') !== POS.cat) return false;
     if (POS.brand && p.Brand !== POS.brand) return false;
     if (POS.stock === 'in' && posAvail(p) <= 0) return false; if (POS.stock === 'out' && posAvail(p) > 0) return false; if (POS.stock === 'fav' && !POS.fav[p.ProductID]) return false;
@@ -50,6 +50,7 @@ function posFiltered() {
     return true;
   });
   if (POS.sort === 'lo') l.sort((a, b) => posPriceOf(a) - posPriceOf(b)); else if (POS.sort === 'hi') l.sort((a, b) => posPriceOf(b) - posPriceOf(a)); else if (POS.sort === 'name') l.sort((a, b) => a.Name < b.Name ? -1 : 1); else l.sort((a, b) => posAvail(b) - posAvail(a) || (a.Name < b.Name ? -1 : 1));
+  { const hi = l.filter(p => posAvail(p) > 0), lo = l.filter(p => posAvail(p) <= 0); l = hi.concat(lo); }
   return l;
 }
 function posTotals() {
