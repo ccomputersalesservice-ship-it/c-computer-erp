@@ -1,6 +1,6 @@
 /* Supabase read client (test only - the live app still reads Google Sheets). No library, plain fetch. */
 import { api, isAdmin, lastWriteAt, dbHook } from './core.js';
-const VIEW = { erp_product_master: 'erp_v_product_master', erp_stock_register: 'erp_v_stock_register', erp_product_photos: 'erp_v_product_photos', erp_replace: 'erp_v_replace', erp_builds: 'erp_v_builds', erp_build_components: 'erp_v_build_components', erp_brec_main: 'erp_v_brec_main', erp_brec_parts: 'erp_v_brec_parts', erp_customers: 'erp_v_customers_lite' };
+const VIEW = { erp_product_master: 'erp_v_product_master', erp_stock_register: 'erp_v_stock_register', erp_product_photos: 'erp_v_product_photos', erp_replace: 'erp_v_replace', erp_builds: 'erp_v_builds', erp_build_components: 'erp_v_build_components', erp_brec_main: 'erp_v_brec_main', erp_brec_parts: 'erp_v_brec_parts', erp_customers: 'erp_v_customers_lite', erp_serial_register: 'erp_v_serial_register' };
 export const SUPA_URL = 'https://feqjjixmxdtkfcfhzmln.supabase.co';
 export const SUPA_KEY = 'sb_publishable_QQgMo3Knk2UUtiDVxhXx_w_pgOhE4OT';
 let jwt = null, jwtAt = 0;
@@ -155,10 +155,26 @@ export async function brecListDb(p) {
   return mm.filter(r => r.status !== 'Deleted' && (!q || [r.recid, r.title, r.brand, r.custname, r.custmobile].join(' ').toLowerCase().indexOf(q) >= 0))
     .sort((a, b) => a.recid < b.recid ? 1 : -1).slice(0, 100).map(r => ({ recId: r.recid, kind: r.kind, title: r.title, customer: r.custname, mobile: r.custmobile, parts: cnt[r.recid] || 0, status: r.status, createdAt: r.createdat, by: r.createdby }));
 }
-const DBL = { 'rpl.list': ['ccDbRpl', rplListDb], 'build.list': ['ccDbBld', buildListDb], 'brec.list': ['ccDbBrec', brecListDb] };
+export async function serialListDb(p) {
+  const q = String(p.q || '').trim().toLowerCase(), st = String(p.status || ''), pid = String(p.productId || '');
+  const size = Math.min(Math.max(+p.size || 25, 5), 100), page = Math.max(+p.page || 1, 1);
+  const [sr, pm] = await Promise.all([allRows('erp_serial_register', 'itemid,mfrserial,barcode,productid,status,purchaseid,orderid,buildid,createdat'), allRows('erp_product_master', 'productid,name,model')]);
+  const prod = {}; pm.forEach(x => { prod[x.productid] = x; });
+  const toks = q.split(/\s+/).filter(Boolean);
+  const rows = sr.filter(it => {
+    if (!it.itemid) return false;
+    if (st && it.status !== st) return false;
+    if (pid && it.productid !== pid) return false;
+    if (toks.length) { const pr = prod[it.productid]; const hay = [it.itemid, it.mfrserial, it.barcode, it.orderid, pr ? pr.name + ' ' + pr.model : ''].join(' ').toLowerCase(); if (!toks.every(t => hay.indexOf(t) >= 0)) return false; }
+    return true;
+  });
+  rows.sort((a, b) => a.itemid < b.itemid ? 1 : -1);
+  return { rows: rows.slice((page - 1) * size, page * size).map(it => { const p0 = prod[it.productid] || {}; return { itemId: it.itemid, serial: it.mfrserial, barcode: it.barcode, productId: it.productid, productName: p0.name || '', model: p0.model || '', status: it.status, purchaseId: it.purchaseid, orderId: it.orderid, buildId: it.buildid, createdAt: it.createdat }; }), total: rows.length, page, size };
+}
+const DBL = { 'serial.list': ['ccDbSer', serialListDb], 'rpl.list': ['ccDbRpl', rplListDb], 'build.list': ['ccDbBld', buildListDb], 'brec.list': ['ccDbBrec', brecListDb] };
 dbHook.fn = (action, payload) => {
   const d = DBL[action]; if (!d || !supaOn()) return null;
-  try { const v = localStorage.getItem(d[0]); if (v !== '1' && v !== null) return null; if (v === null && !DBL_DEFAULT_ON) return null; } catch (e) { return null; }
+  try { const v = localStorage.getItem(d[0]); if (v !== '1' && v !== null) return null; if (v === null && (!DBL_DEFAULT_ON || DBL_TEST[d[0]])) return null; } catch (e) { return null; }
   return d[1](payload);
 };
-let DBL_DEFAULT_ON = true; /* Sheets-vs-DB check passed */
+let DBL_DEFAULT_ON = true; const DBL_TEST = { ccDbSer: 1 }; /* Sheets-vs-DB check passed */
