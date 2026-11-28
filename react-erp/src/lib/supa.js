@@ -56,7 +56,8 @@ export async function prodListDb(p) {
     if (low) { const s = sm[x.productid]; if (!(nn(x.reorderlevel) > 0 && nn(s && s.available) <= nn(x.reorderlevel))) return false; }
     return true;
   });
-  rows.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+  const inS = x => (nn((sm[x.productid] || {}).available) > 0 ? 0 : 1);
+  rows.sort((a, b) => inS(a) - inS(b) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   const total = rows.length;
   const out = rows.slice((page - 1) * size, page * size).map(x => {
     const s = sm[x.productid] || {};
