@@ -21,6 +21,8 @@ const SV_COL = { Pending: 'warning', Processing: 'info', Ready: 'success', Deliv
 const SV_HEX = { Pending: ['#d97706', '#fffbeb'], Processing: ['#2563eb', '#eff6ff'], Ready: '#16a34a', Delivered: ['#7e22ce', '#faf5ff'], Returned: ['#dc2626', '#fef2f2'], Replacement: ['#db2777', '#fdf2f8'] };
 SV_HEX.Ready = ['#16a34a', '#f0fdf4'];
 const svT = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?$/); if (!m) return t || ''; if (m[3]) return (+m[1]) + ':' + m[2] + ' ' + m[3].toUpperCase(); let h = +m[1]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + m[2] + ' ' + ap; };
+/* Ready but fully paid = customer already took it -> show Delivered (needs Bill and Paid, which only Admin gets) */
+export const svEff = j => (j.status === 'Ready' && +j.total > 0 && +j.paid >= +j.total) ? 'Delivered' : j.status;
 const SvPill = ({ s }) => <Chip size="small" color={SV_COL[s] || 'default'} label={s || '-'} sx={{ fontWeight: 700 }} />;
 const svNext = s => ({ Pending: 'Processing', Processing: 'Ready', Ready: 'Delivered' })[s] || '';
 function svWa(j) {
@@ -37,7 +39,7 @@ export default function Service() {
   useEffect(() => { window.addEventListener('cc-newjob', reload); return () => window.removeEventListener('cc-newjob', reload); }, []);
   const q = useDebounced(v => set('q', v), 300);
   const adm = isAdmin();
-  const cols = [{ h: 'Job', k: j => <><b>{j.sid}</b>{j.urgent ? ' 🔥' : ''}{j.onsite ? ' 📍' : ''}</> }, { h: 'Date', k: j => <>{j.date}{j.time ? <><br /><small>{svT(j.time)}</small></> : null}</>, nw: true }, { h: 'Customer', k: j => <><b>{j.name}</b><br /><small>{j.phone}</small></> }, { h: 'Device', k: j => (j.brand + ' ' + j.device).trim() }, { h: 'Status', k: j => <SvPill s={j.status} /> }];
+  const cols = [{ h: 'Job', k: j => <><b>{j.sid}</b>{j.urgent ? ' 🔥' : ''}{j.onsite ? ' 📍' : ''}</> }, { h: 'Date', k: j => <>{j.date}{j.time ? <><br /><small>{svT(j.time)}</small></> : null}</>, nw: true }, { h: 'Customer', k: j => <><b>{j.name}</b><br /><small>{j.phone}</small></> }, { h: 'Device', k: j => (j.brand + ' ' + j.device).trim() }, { h: 'Status', k: j => <SvPill s={svEff(j)} /> }];
   if (adm) cols.push({ h: 'Bill', k: j => inr(j.total), align: 'right' }, { h: 'Paid', k: j => inr(j.paid), align: 'right' });
   return <Box>
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, p: { xs: 1.5, sm: 2 }, borderRadius: 3, color: '#fff', background: 'linear-gradient(120deg,#be185d 0%,#7e22ce 100%)', boxShadow: '0 6px 18px rgba(126,34,206,.25)' }}>
@@ -47,7 +49,7 @@ export default function Service() {
     </Box>
     <TextField placeholder="Job no / name / mobile / device" defaultValue={f.q} onChange={e => q(e.target.value)} sx={{ mb: 1, width: '100%', maxWidth: 420, bgcolor: '#fff' }} />
     {r && !r.error && <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>{[['', 'All', r.all, '#475569', '#f1f5f9'], ...SV_ST.map(x => [x, x, r.counts[x] || 0, SV_HEX[x][0], SV_HEX[x][1]])].map(([v, lb, n, c, bg]) => { const on = f.status === v; return <Box key={v || 'all'} onClick={() => set('status', v)} sx={{ cursor: 'pointer', userSelect: 'none', minWidth: { xs: 'calc(33% - 8px)', sm: 104 }, flex: { xs: '1 1 calc(33% - 8px)', sm: '0 0 auto' }, px: 1.5, py: 1, borderRadius: 2.5, textAlign: 'center', border: '2px solid ' + c, bgcolor: on ? c : bg, color: on ? '#fff' : c, boxShadow: on ? '0 4px 12px ' + c + '55' : 'none', transition: 'all .15s', '&:hover': { transform: 'translateY(-2px)' } }}><Box sx={{ fontSize: 22, fontWeight: 900, lineHeight: 1.1 }}>{n}</Box><Box sx={{ fontSize: 12.5, fontWeight: 700 }}>{lb}</Box></Box>; })}</Box>}
-    {!r ? <Skel /> : <><DataTable rows={r.rows} cols={cols} empty="No service records" onRow={j => openJob(j.id)} /><Pager res={r} onPage={p => set('page', p)} /></>}
+    {!r ? <Skel /> : <><DataTable rows={f.status === 'Ready' ? r.rows.filter(j => svEff(j) === 'Ready') : f.status === 'Delivered' ? r.rows : r.rows} cols={cols} empty="No service records" onRow={j => openJob(j.id)} /><Pager res={r} onPage={p => set('page', p)} /></>}
   </Box>;
 }
 
