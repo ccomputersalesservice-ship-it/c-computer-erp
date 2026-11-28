@@ -64,3 +64,32 @@ export async function prodListDb(p) {
   });
   return { rows: out, total, page, size };
 }
+
+/* ---------- Purchase list from the database (Admin only; same result shape as Apps Script pur.list) ---------- */
+export async function purListDb(p) {
+  const q = String(p.q || '').trim().toLowerCase(), st = String(p.status || '');
+  const size = Math.min(Math.max(+p.size || 20, 5), 50), page = Math.max(+p.page || 1, 1);
+  const [ph, pi, im] = await Promise.all([
+    allRows('erp_purchases', 'purchaseid,vendor,billno,purchasedate,createdat,status,createdby,billfileid'),
+    allRows('erp_purchase_items', 'purchaseid,qtyordered,qtyreceived,purchaseprice'),
+    allRows('erp_purimp', 'purchaseid,grandtotal').catch(() => [])
+  ]);
+  const by = {}; pi.forEach(l => { (by[l.purchaseid] = by[l.purchaseid] || []).push(l); });
+  const gt = {}; im.forEach(x => { if (x.purchaseid && nn(x.grandtotal) > 0) gt[x.purchaseid] = nn(x.grandtotal); });
+  const toks = q.split(/\s+/).filter(Boolean);
+  const rows = ph.filter(h => {
+    if (!h.purchaseid) return false;
+    if (st && h.status !== st) return false;
+    if (toks.length) { const hay = (h.purchaseid + ' ' + h.vendor + ' ' + h.billno).toLowerCase(); if (!toks.every(t => hay.indexOf(t) >= 0)) return false; }
+    return true;
+  });
+  rows.sort((a, b) => a.purchaseid < b.purchaseid ? 1 : -1);
+  return {
+    total: rows.length, page, size,
+    rows: rows.slice((page - 1) * size, page * size).map(h => {
+      const ls = by[h.purchaseid] || []; let o = 0, r = 0, amt = 0;
+      ls.forEach(l => { o += nn(l.qtyordered); r += nn(l.qtyreceived); amt += nn(l.qtyreceived) * nn(l.purchaseprice); });
+      return { purchaseId: h.purchaseid, vendor: h.vendor, billNo: h.billno, date: h.purchasedate, at: h.createdat || '', status: h.status, lines: ls.length, qtyOrdered: o, qtyReceived: r, by: h.createdby, hasBill: !!h.billfileid, amount: gt[h.purchaseid] || amt };
+    })
+  };
+}
