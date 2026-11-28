@@ -93,3 +93,39 @@ export async function purListDb(p) {
     })
   };
 }
+
+/* ---------- Sales list from the database (Admin only; same result shape as Apps Script ord.list) ---------- */
+export async function ordListDb(p) {
+  const q = String(p.q || '').trim().toLowerCase(), st = String(p.status || ''), cid = String(p.customerId || '');
+  const size = Math.min(Math.max(+p.size || 20, 5), 50), page = Math.max(+p.page || 1, 1);
+  const [oh, ol, cu, pm] = await Promise.all([
+    allRows('erp_sales_orders', 'orderid,orderdate,createdat,updatedat,status,customerid,total,staffname'),
+    allRows('erp_sales_items', 'orderid,itemid,mfrserial,productid'),
+    allRows('erp_customers', 'customerid,name,mobile'),
+    allRows('erp_product_master', 'productid,name,model')
+  ]);
+  const lines = {}; ol.forEach(l => { (lines[l.orderid] = lines[l.orderid] || []).push(l); });
+  const cust = {}; cu.forEach(c => { cust[c.customerid] = c; });
+  const prod = {}; pm.forEach(x => { prod[x.productid] = x; });
+  const toks = q.split(/\s+/).filter(Boolean);
+  const rows = oh.filter(o => {
+    if (!o.orderid) return false;
+    if (st && o.status !== st) return false;
+    if (!st && o.status === 'Deleted') return false;
+    if (cid && o.customerid !== cid) return false;
+    if (toks.length) {
+      const c = cust[o.customerid] || {}, hay = [o.orderid, c.name, c.mobile];
+      (lines[o.orderid] || []).forEach(l => { const pr = prod[l.productid]; hay.push(l.itemid, l.mfrserial, pr ? pr.name + ' ' + pr.model : ''); });
+      const h = hay.join(' ').toLowerCase(); if (!toks.every(t => h.indexOf(t) >= 0)) return false;
+    }
+    return true;
+  });
+  rows.sort((a, b) => a.orderid < b.orderid ? 1 : -1);
+  return {
+    total: rows.length, page, size,
+    rows: rows.slice((page - 1) * size, page * size).map(o => {
+      const c = cust[o.customerid] || {}, ls = lines[o.orderid] || [], f = ls[0] ? prod[ls[0].productid] : null;
+      return { orderId: o.orderid, date: o.orderdate, at: o.createdat || o.updatedat || '', status: o.status, total: nn(o.total), pricePending: nn(o.total) === 0 && o.status !== 'Cancelled', staff: o.staffname, customer: c.name || '', mobile: c.mobile || '', items: ls.length, first: f ? f.name : '', productIds: ls.slice(0, 3).map(l => l.productid) };
+    })
+  };
+}
