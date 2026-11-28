@@ -161,4 +161,4 @@ dbHook.fn = (action, payload) => {
   try { const v = localStorage.getItem(d[0]); if (v !== '1' && v !== null) return null; if (v === null && !DBL_DEFAULT_ON) return null; } catch (e) { return null; }
   return d[1](payload);
 };
-let DBL_DEFAULT_ON = false; /* flipped to true after Sheets-vs-DB check */
+let DBL_DEFAULT_ON = true; /* Sheets-vs-DB check passed */
