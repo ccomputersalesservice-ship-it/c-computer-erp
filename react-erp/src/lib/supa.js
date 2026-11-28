@@ -1,6 +1,6 @@
 /* Supabase read client (test only - the live app still reads Google Sheets). No library, plain fetch. */
-import { api, isAdmin, lastWriteAt } from './core.js';
-const VIEW = { erp_product_master: 'erp_v_product_master', erp_stock_register: 'erp_v_stock_register', erp_product_photos: 'erp_v_product_photos' };
+import { api, isAdmin, lastWriteAt, dbHook } from './core.js';
+const VIEW = { erp_product_master: 'erp_v_product_master', erp_stock_register: 'erp_v_stock_register', erp_product_photos: 'erp_v_product_photos', erp_replace: 'erp_v_replace', erp_builds: 'erp_v_builds', erp_build_components: 'erp_v_build_components', erp_brec_main: 'erp_v_brec_main', erp_brec_parts: 'erp_v_brec_parts', erp_customers: 'erp_v_customers_lite' };
 export const SUPA_URL = 'https://feqjjixmxdtkfcfhzmln.supabase.co';
 export const SUPA_KEY = 'sb_publishable_QQgMo3Knk2UUtiDVxhXx_w_pgOhE4OT';
 let jwt = null, jwtAt = 0;
@@ -129,3 +129,36 @@ export async function ordListDb(p) {
     })
   };
 }
+
+
+/* ---------- Replacement / Build / Build Record lists (same shapes as Apps Script rpl.list, build.list, brec.list) ---------- */
+export async function rplListDb(p) {
+  const q = String(p.q || '').trim().toLowerCase();
+  const rows = await allRows('erp_replace', 'repid,date,custname,mobile,product,sizegb,brand,billno,oldserial,newserial,status,company,fileids,note,log,createdby');
+  return rows.slice().reverse().filter(x => !q || [x.custname, x.mobile, x.billno, x.oldserial, x.newserial, x.repid].join(' ').toLowerCase().indexOf(q) >= 0).slice(0, 200).map(x => ({
+    id: x.repid, date: x.date, name: x.custname, mobile: x.mobile, product: x.product, size: x.sizegb, brand: x.brand, billNo: x.billno,
+    oldSerial: x.oldserial, newSerial: x.newserial, status: x.status, company: x.company, note: x.note,
+    log: (() => { try { return JSON.parse(x.log || '[]'); } catch (e) { return []; } })(), photos: x.fileids ? x.fileids.split(',').length : 0, by: x.createdby }));
+}
+export async function buildListDb(p) {
+  const q = String(p.q || '').trim().toLowerCase(), st = String(p.status || '');
+  const [bs, bc, cu] = await Promise.all([allRows('erp_builds', 'buildid,name,customerid,status,createdby,createdat'), allRows('erp_build_components', 'buildid,status'), allRows('erp_customers', 'customerid,name,mobile')]);
+  const cnt = {}; bc.forEach(c => { if (c.status === 'Active') cnt[c.buildid] = (cnt[c.buildid] || 0) + 1; });
+  const cust = {}; cu.forEach(c => { cust[c.customerid] = c; });
+  return bs.filter(b => { if (st && b.status !== st) return false; const c = cust[b.customerid] || {}; return !q || [b.buildid, b.name, c.name || '', c.mobile || ''].join(' ').toLowerCase().indexOf(q) >= 0; })
+    .sort((a, b) => a.buildid < b.buildid ? 1 : -1).slice(0, 100).map(b => { const c = cust[b.customerid] || {}; return { buildId: b.buildid, name: b.name, status: b.status, customer: c.name || '', mobile: c.mobile || '', components: cnt[b.buildid] || 0, createdAt: b.createdat, by: b.createdby }; });
+}
+export async function brecListDb(p) {
+  const q = String(p.q || '').trim().toLowerCase();
+  const [mm, pp] = await Promise.all([allRows('erp_brec_main', 'recid,kind,title,brand,custname,custmobile,status,createdby,createdat'), allRows('erp_brec_parts', 'recid,status')]);
+  const cnt = {}; pp.forEach(x => { if (x.status !== 'Replaced') cnt[x.recid] = (cnt[x.recid] || 0) + 1; });
+  return mm.filter(r => r.status !== 'Deleted' && (!q || [r.recid, r.title, r.brand, r.custname, r.custmobile].join(' ').toLowerCase().indexOf(q) >= 0))
+    .sort((a, b) => a.recid < b.recid ? 1 : -1).slice(0, 100).map(r => ({ recId: r.recid, kind: r.kind, title: r.title, customer: r.custname, mobile: r.custmobile, parts: cnt[r.recid] || 0, status: r.status, createdAt: r.createdat, by: r.createdby }));
+}
+const DBL = { 'rpl.list': ['ccDbRpl', rplListDb], 'build.list': ['ccDbBld', buildListDb], 'brec.list': ['ccDbBrec', brecListDb] };
+dbHook.fn = (action, payload) => {
+  const d = DBL[action]; if (!d || !supaOn()) return null;
+  try { const v = localStorage.getItem(d[0]); if (v !== '1' && v !== null) return null; if (v === null && !DBL_DEFAULT_ON) return null; } catch (e) { return null; }
+  return d[1](payload);
+};
+let DBL_DEFAULT_ON = false; /* flipped to true after Sheets-vs-DB check */

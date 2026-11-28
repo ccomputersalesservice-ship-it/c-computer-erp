@@ -90,7 +90,13 @@ export function swrClear() { try { Object.keys(localStorage).filter(x => x.index
 /* listeners that want to re-render when a fresher copy arrives (the page's reload) */
 export const swrListeners = new Set();
 
+/* DB hook: supa.js registers a function that answers some read lists from the database. Skipped when opt.fresh. Falls back to Sheets on any error. */
+export const dbHook = { fn: null };
 export function api(action, payload, opt) {
+  if (dbHook.fn && !(opt && opt.fresh)) { const d = dbHook.fn(action, payload || {}); if (d) return d.catch(() => api_sheets(action, payload, opt)); }
+  return api_sheets(action, payload, opt);
+}
+function api_sheets(action, payload, opt) {
   opt = opt || {}; payload = Object.assign({}, payload || {});
   const rk = API_READ.test(action) && !opt.fresh ? action + '|' + JSON.stringify(payload) : null;
   if (rk) {
