@@ -197,4 +197,4 @@ dbHook.fn = (action, payload) => {
   try { const v = localStorage.getItem(d[0]); if (v !== '1' && v !== null) return null; if (v === null && (!DBL_DEFAULT_ON || DBL_TEST[d[0]])) return null; } catch (e) { return null; }
   return d[1](payload);
 };
-let DBL_DEFAULT_ON = true; const DBL_TEST = { ccDbTh: 1 }; /* Sheets-vs-DB check passed */
+let DBL_DEFAULT_ON = true; const DBL_TEST = {}; /* Sheets-vs-DB check passed */
