@@ -180,10 +180,21 @@ export async function custListDb(p) {
   rows.sort((a, b) => a.customerid < b.customerid ? 1 : -1);
   return { total: rows.length, page, size, rows: rows.slice((page - 1) * size, page * size).map(c => ({ id: c.customerid, name: c.name, mobile: c.mobile, address: c.address, createdAt: c.createdat, orders: counts[c.customerid] || 0 })) };
 }
-const DBL = { 'cust.list': ['ccDbCust', custListDb], 'serial.list': ['ccDbSer', serialListDb], 'rpl.list': ['ccDbRpl', rplListDb], 'build.list': ['ccDbBld', buildListDb], 'brec.list': ['ccDbBrec', brecListDb] };
+export async function thumbsDb(p) {
+  if (p.photoIds && p.photoIds.length) throw new Error('sheets');
+  const ids = Array.from(new Set((p.ids || []).slice(0, 60).map(String).filter(Boolean)));
+  if (!ids.length) return {};
+  const r = await supaSelect(isAdmin() ? 'erp_product_photos' : 'erp_v_product_photos', { select: 'productid,sortno,thumb', limit: 1000, filter: { productid: 'in.(' + ids.map(i => '"' + i.replace(/"/g, '') + '"').join(',') + ')' } });
+  const first = {};
+  r.rows.forEach(x => { const f = first[x.productid]; if (!f || nn(x.sortno) < nn(f.sortno)) first[x.productid] = x; });
+  const out = {};
+  Object.keys(first).forEach(k => { if (!first[k].thumb) throw new Error('sheets'); out[k] = first[k].thumb; });
+  return out;
+}
+const DBL = { 'photo.thumbs': ['ccDbTh', thumbsDb], 'cust.list': ['ccDbCust', custListDb], 'serial.list': ['ccDbSer', serialListDb], 'rpl.list': ['ccDbRpl', rplListDb], 'build.list': ['ccDbBld', buildListDb], 'brec.list': ['ccDbBrec', brecListDb] };
 dbHook.fn = (action, payload) => {
   const d = DBL[action]; if (!d || !supaOn()) return null;
   try { const v = localStorage.getItem(d[0]); if (v !== '1' && v !== null) return null; if (v === null && (!DBL_DEFAULT_ON || DBL_TEST[d[0]])) return null; } catch (e) { return null; }
   return d[1](payload);
 };
-let DBL_DEFAULT_ON = true; const DBL_TEST = {}; /* Sheets-vs-DB check passed */
+let DBL_DEFAULT_ON = true; const DBL_TEST = { ccDbTh: 1 }; /* Sheets-vs-DB check passed */
